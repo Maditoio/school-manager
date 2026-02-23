@@ -1,0 +1,168 @@
+{
+  "common": {
+    "appName": "School Connect",
+    "welcome": "Karibu",
+    "loading": "Inapakia...",
+    "save": "Hifadhi",
+    "cancel": "Ghairi",
+    "delete": "Futa",
+    "edit": "Hariri",
+    "view": "Tazama",
+    "add": "Ongeza",
+    "submit": "Wasilisha",
+    "search": "Tafuta",
+    "filter": "Chuja",
+    "logout": "Ondoka",
+    "language": "Lugha"
+  },
+  "auth": {
+    "login": "Ingia",
+    "email": "Barua pepe",
+    "password": "Neno la siri",
+    "signIn": "Ingia",
+    "signOut": "Ondoka",
+    "invalidCredentials": "Barua pepe au neno la siri si sahihi"
+  },
+  "roles": {
+    "super_admin": "Msimamizi Mkuu",
+    "school_admin": "Msimamizi wa Shule",
+    "teacher": "Mwalimu",
+    "parent": "Mzazi"
+  },
+  "navigation": {
+    "dashboard": "Dashibodi",
+    "students": "Wanafunzi",
+    "classes": "Madarasa",
+    "teachers": "Walimu",
+    "subjects": "Masomo",
+    "attendance": "Mahudhurio",
+    "results": "Matokeo",
+    "assessments": "Tathmini",
+    "messages": "Ujumbe",
+    "announcements": "Matangazo",
+    "profile": "Wasifu",
+    "settings": "Mipangilio",
+    "schools": "Shule"
+  },
+  "dashboard": {
+    "title": "Dashibodi",
+    "overview": "Muhtasari",
+    "statistics": "Takwimu",
+    "recentActivity": "Shughuli za Hivi Karibuni"
+  },
+  "attendance": {
+    "title": "Mahudhurio",
+    "mark": "Weka Mahudhurio",
+    "date": "Tarehe",
+    "status": "Hali",
+    "present": "Yupo",
+    "absent": "Hayupo",
+    "late": "Amechelewa",
+    "rate": "Kiwango cha Mahudhurio",
+    "percentage": "Asilimia ya Mahudhurio"
+  },
+  "results": {
+    "title": "Matokeo",
+    "term": "Muhula",
+    "year": "Mwaka",
+    "subject": "Somo",
+    "testScore": "Alama za Mtihani",
+    "examScore": "Alama za Mtihani",
+    "totalScore": "Jumla ya Alama",
+    "grade": "Daraja",
+    "average": "Wastani",
+    "publish": "Chapisha Matokeo",
+    "published": "Imechapishwa",
+    "unpublished": "Haijachapishwa",
+    "comment": "Maoni"
+  },
+  "students": {
+    "title": "Wanafunzi",
+    "addStudent": "Ongeza Mwanafunzi",
+    "firstName": "Jina la Kwanza",
+    "lastName": "Jina la Ukoo",
+    "class": "Darasa",
+    "admissionNumber": "Namba ya Kuingizwa",
+    "dateOfBirth": "Tarehe ya Kuzaliwa",
+    "parent": "Mzazi",
+    "totalStudents": "Jumla ya Wanafunzi"
+  },
+  "classes": {
+    "title": "Madarasa",
+    "addClass": "Ongeza Darasa",
+    "className": "Jina la Darasa",
+    "grade": "Kiwango",
+    "teacher": "Mwalimu",
+    "totalClasses": "Jumla ya Madarasa"
+  },
+  "subjects": {
+    "title": "Masomo",
+    "addSubject": "Ongeza Somo",
+    "name": "Jina la Somo",
+    "code": "Namba ya Somo"
+  },
+  "messages": {
+    "title": "Ujumbe",
+    "newMessage": "Ujumbe Mpya",
+    "inbox": "Kikasha cha Barua",
+    "sent": "Zilizotumwa",
+    "compose": "Tunga",
+    "to": "Kwa",
+    "from": "Kutoka",
+    "subject": "Mada",
+    "message": "Ujumbe",
+    "send": "Tuma",
+    "read": "Amesoma",
+    "unread": "Hajasoma"
+  },
+  "announcements": {
+    "title": "Matangazo",
+    "newAnnouncement": "Tangazo Jipya",
+    "createAnnouncement": "Unda Tangazo",
+    "priority": "Kipaumbele",
+    "low": "Chini",
+    "normal": "Wastani",
+    "high": "Juu"
+  },
+  "schools": {
+    "title": "Shule",
+    "addSchool": "Ongeza Shule",
+    "name": "Jina la Shule",
+    "plan": "Mpango",
+    "active": "Inafanya Kazi",
+    "inactive": "Haifanyi Kazi",
+    "totalSchools": "Jumla ya Shule",
+    "activeSchools": "Shule Zinazofanya Kazi"
+  },
+  "parent": {
+    "dashboard": {
+      "childProfile": "Wasifu wa mtoto",
+      "classLabel": "Darasa",
+      "attendanceLabel": "Mahudhurio",
+      "noChild": "Hakuna mtoto aliyeunganishwa na akaunti yako.",
+      "contactSchool": "Tafadhali wasiliana na msimamizi wa shule.",
+      "attendanceTitle": "Mahudhurio ya hivi karibuni",
+      "attendanceSubtitle": "Siku 5 zilizopita",
+      "attendanceEmpty": "Hakuna rekodi za mahudhurio bado.",
+      "termAttendance": "Mahudhurio ya muhula",
+      "viewAttendance": "Tazama mahudhurio yote",
+      "announcementsTitle": "Matangazo ya hivi karibuni",
+      "announcementsEmpty": "Hakuna matangazo yanayopatikana.",
+      "viewAnnouncements": "Tazama matangazo yote",
+      "assessmentsTitle": "Arifa za tathmini",
+      "viewAssessments": "Tazama tathmini zote",
+      "assessmentsEmpty": "Hakuna tathmini bado.",
+      "dueDateLabel": "Mwisho wa tarehe",
+      "noDueDate": "Hakuna tarehe ya mwisho",
+      "newBadge": "Mpya",
+      "academicTitle": "Muhtasari wa masomo",
+      "overallAverage": "Wastani wa muhula",
+      "topSubjects": "Masomo bora",
+      "noResults": "Hakuna matokeo yanayopatikana.",
+      "viewResults": "Tazama matokeo yote",
+      "quickActions": "Vitendo vya haraka",
+      "messageTeacher": "Mjumbe mwalimu",
+      "downloadReport": "Pakua ripoti"
+    }
+  }
+}

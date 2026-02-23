@@ -1,0 +1,383 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { redirect } from 'next/navigation'
+import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
+import { useToast } from '@/components/ui/Toast'
+
+interface Student {
+  id: string
+  firstName: string
+  lastName: string
+  admissionNumber: string | null
+  class?: {
+    id: string
+    name: string
+  }
+}
+
+interface ClassOption {
+  id: string
+  name: string
+  academicYear: number
+  grade: string | null
+}
+
+export default function ClassStudentsPage() {
+  const params = useParams<{ id: string }>()
+  const classId = params?.id
+
+  const { data: session, status } = useSession()
+  const { showToast } = useToast()
+
+  const [assigned, setAssigned] = useState<Student[]>([])
+  const [available, setAvailable] = useState<Student[]>([])
+  const [selectedAvailableIds, setSelectedAvailableIds] = useState<string[]>([])
+  const [selectedAssignedIds, setSelectedAssignedIds] = useState<string[]>([])
+  const [classes, setClasses] = useState<ClassOption[]>([])
+  const [targetClassId, setTargetClassId] = useState('')
+  const [assignedSearch, setAssignedSearch] = useState('')
+  const [availableSearch, setAvailableSearch] = useState('')
+  const [transferring, setTransferring] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      redirect('/login')
+    }
+    if (session?.user?.role !== 'SCHOOL_ADMIN') {
+      redirect('/login')
+    }
+  }, [session, status])
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true)
+
+      const [assignedRes, availableRes, classesRes] = await Promise.all([
+        fetch(`/api/classes/${classId}/students`),
+        fetch(`/api/classes/${classId}/students?available=true`),
+        fetch('/api/classes'),
+      ])
+
+      if (assignedRes.ok) {
+        const data = await assignedRes.json()
+        setAssigned(Array.isArray(data.students) ? data.students : [])
+      } else {
+        setAssigned([])
+      }
+
+      if (availableRes.ok) {
+        const data = await availableRes.json()
+        setAvailable(Array.isArray(data.students) ? data.students : [])
+      } else {
+        setAvailable([])
+      }
+
+      if (classesRes.ok) {
+        const data = await classesRes.json()
+        const allClasses = Array.isArray(data.classes) ? data.classes : []
+        setClasses(
+          allClasses
+            .filter((classItem: ClassOption) => classItem.id !== classId)
+            .map((classItem: ClassOption) => ({
+              id: classItem.id,
+              name: classItem.name,
+              academicYear: classItem.academicYear,
+              grade: classItem.grade ?? null,
+            }))
+        )
+      } else {
+        setClasses([])
+      }
+    } catch (error) {
+      console.error('Failed to fetch class students:', error)
+      showToast('Failed to load class students', 'error')
+      setAssigned([])
+      setAvailable([])
+      setClasses([])
+    } finally {
+      setLoading(false)
+    }
+  }, [classId, showToast])
+
+  useEffect(() => {
+    if (classId && session?.user?.role === 'SCHOOL_ADMIN') {
+      fetchData()
+    }
+  }, [classId, session, fetchData])
+
+  const toggleAvailableSelect = (studentId: string) => {
+    setSelectedAvailableIds((prev) =>
+      prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId]
+    )
+  }
+
+  const toggleAssignedSelect = (studentId: string) => {
+    setSelectedAssignedIds((prev) =>
+      prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId]
+    )
+  }
+
+  const selectAllAssigned = () => {
+    setSelectedAssignedIds(filteredAssigned.map((student) => student.id))
+  }
+
+  const clearAssignedSelection = () => {
+    setSelectedAssignedIds([])
+  }
+
+  const addSelectedStudents = async () => {
+    if (selectedAvailableIds.length === 0) {
+      showToast('Select students to add', 'warning')
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/classes/${classId}/students`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentIds: selectedAvailableIds }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        showToast(data.error || 'Failed to add students', 'error')
+        return
+      }
+
+      setSelectedAvailableIds([])
+      await fetchData()
+      showToast('Students added to class', 'success')
+    } catch (error) {
+      console.error('Failed to add students:', error)
+      showToast('Failed to add students', 'error')
+    }
+  }
+
+  const transferSelectedStudents = async () => {
+    if (!targetClassId) {
+      showToast('Select the target class first', 'warning')
+      return
+    }
+
+    if (selectedAssignedIds.length === 0) {
+      showToast('Select students to move', 'warning')
+      return
+    }
+
+    if (!confirm('Move selected students to the target class?')) return
+
+    try {
+      setTransferring(true)
+      const res = await fetch(`/api/classes/${classId}/students/transfer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetClassId,
+          studentIds: selectedAssignedIds,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        showToast(data.error || 'Failed to move students', 'error')
+        return
+      }
+
+      setSelectedAssignedIds([])
+      await fetchData()
+      showToast('Students moved successfully', 'success')
+    } catch (error) {
+      console.error('Failed to move students:', error)
+      showToast('Failed to move students', 'error')
+    } finally {
+      setTransferring(false)
+    }
+  }
+
+  const navItems = useMemo(
+    () => [
+      { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
+      { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
+      { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
+      { label: 'Classes', href: '/admin/classes', icon: '🏫' },
+      { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
+      { label: 'Attendance', href: '/admin/attendance', icon: '📅' },
+      { label: 'Results', href: '/admin/results', icon: '📝' },
+      { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
+      { label: 'Messages', href: '/admin/messages', icon: '💬' },
+    ],
+    []
+  )
+
+  const filteredAssigned = useMemo(() => {
+    const query = assignedSearch.trim().toLowerCase()
+    if (!query) return assigned
+
+    return assigned.filter((student) => {
+      const fullName = `${student.firstName} ${student.lastName}`.toLowerCase()
+      const admission = (student.admissionNumber || '').toLowerCase()
+      return fullName.includes(query) || admission.includes(query)
+    })
+  }, [assigned, assignedSearch])
+
+  const filteredAvailable = useMemo(() => {
+    const query = availableSearch.trim().toLowerCase()
+    if (!query) return available
+
+    return available.filter((student) => {
+      const fullName = `${student.firstName} ${student.lastName}`.toLowerCase()
+      const admission = (student.admissionNumber || '').toLowerCase()
+      return fullName.includes(query) || admission.includes(query)
+    })
+  }, [available, availableSearch])
+
+  if (status === 'loading' || !session) {
+    return <div>Loading...</div>
+  }
+
+  return (
+    <DashboardLayout
+      user={{
+        name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Admin',
+        role: 'School Admin',
+        email: session.user.email,
+      }}
+      navItems={navItems}
+    >
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Class Students</h1>
+            <p className="text-gray-600 mt-2">Add or move students for this class enrollment</p>
+          </div>
+          <a
+            href="/admin/classes"
+            className="px-4 py-2 text-sm rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+          >
+            Back to Classes
+          </a>
+        </div>
+
+        {loading ? (
+          <div>Loading class students...</div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Enrolled Students ({assigned.length})</h2>
+              <div className="mb-3 space-y-2">
+                <div className="flex gap-2">
+                  <Button onClick={selectAllAssigned} className="text-sm">
+                    Select All Visible
+                  </Button>
+                  <Button variant="secondary" onClick={clearAssignedSelection} className="text-sm">
+                    Clear Selection
+                  </Button>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <select
+                    value={targetClassId}
+                    onChange={(e) => setTargetClassId(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+                  >
+                    <option value="">Select target class</option>
+                    {classes.map((classItem) => (
+                      <option key={classItem.id} value={classItem.id}>
+                        {classItem.name}
+                        {classItem.grade ? ` • ${classItem.grade}` : ''}
+                        {` • ${classItem.academicYear}`}
+                      </option>
+                    ))}
+                  </select>
+                  <Button onClick={transferSelectedStudents} disabled={transferring}>
+                    {transferring
+                      ? 'Moving...'
+                      : `Move Selected (${selectedAssignedIds.length})`}
+                  </Button>
+                </div>
+              </div>
+              <input
+                type="text"
+                value={assignedSearch}
+                onChange={(e) => setAssignedSearch(e.target.value)}
+                placeholder="Search by student name or admission number"
+                className="w-full mb-3 px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+              />
+              <div className="space-y-3 max-h-112 overflow-auto">
+                {filteredAssigned.length > 0 ? (
+                  filteredAssigned.map((student) => (
+                    <div key={student.id} className="flex items-center justify-between border rounded-lg p-3">
+                      <label className="flex items-center gap-3 flex-1 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedAssignedIds.includes(student.id)}
+                          onChange={() => toggleAssignedSelect(student.id)}
+                        />
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {student.firstName} {student.lastName}
+                          </p>
+                          <p className="text-xs text-gray-500">{student.admissionNumber || 'No admission number'}</p>
+                        </div>
+                      </label>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">No students enrolled in this class yet.</p>
+                )}
+              </div>
+            </Card>
+
+            <Card className="p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Available Students ({available.length})</h2>
+              <input
+                type="text"
+                value={availableSearch}
+                onChange={(e) => setAvailableSearch(e.target.value)}
+                placeholder="Search by student name or admission number"
+                className="w-full mb-3 px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+              />
+              <div className="space-y-3 max-h-88 overflow-auto">
+                {filteredAvailable.length > 0 ? (
+                  filteredAvailable.map((student) => (
+                    <label key={student.id} className="flex items-center justify-between border rounded-lg p-3">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedAvailableIds.includes(student.id)}
+                          onChange={() => toggleAvailableSelect(student.id)}
+                        />
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {student.firstName} {student.lastName}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {student.admissionNumber || 'No admission number'}
+                            {student.class?.name ? ` • Primary: ${student.class.name}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">No available students to add.</p>
+                )}
+              </div>
+
+              <div className="mt-4">
+                <Button onClick={addSelectedStudents}>
+                  Add Selected Students ({selectedAvailableIds.length})
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  )
+}

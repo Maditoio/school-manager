@@ -1,0 +1,168 @@
+{
+  "common": {
+    "appName": "School Connect",
+    "welcome": "Welcome",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "add": "Add",
+    "submit": "Submit",
+    "search": "Search",
+    "filter": "Filter",
+    "logout": "Logout",
+    "language": "Language"
+  },
+  "auth": {
+    "login": "Login",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "invalidCredentials": "Invalid email or password"
+  },
+  "roles": {
+    "super_admin": "Super Admin",
+    "school_admin": "School Admin",
+    "teacher": "Teacher",
+    "parent": "Parent"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "students": "Students",
+    "classes": "Classes",
+    "teachers": "Teachers",
+    "subjects": "Subjects",
+    "attendance": "Attendance",
+    "results": "Results",
+    "assessments": "Assessments",
+    "messages": "Messages",
+    "announcements": "Announcements",
+    "profile": "Profile",
+    "settings": "Settings",
+    "schools": "Schools"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "overview": "Overview",
+    "statistics": "Statistics",
+    "recentActivity": "Recent Activity"
+  },
+  "attendance": {
+    "title": "Attendance",
+    "mark": "Mark Attendance",
+    "date": "Date",
+    "status": "Status",
+    "present": "Present",
+    "absent": "Absent",
+    "late": "Late",
+    "rate": "Attendance Rate",
+    "percentage": "Attendance Percentage"
+  },
+  "results": {
+    "title": "Results",
+    "term": "Term",
+    "year": "Year",
+    "subject": "Subject",
+    "testScore": "Test Score",
+    "examScore": "Exam Score",
+    "totalScore": "Total Score",
+    "grade": "Grade",
+    "average": "Average",
+    "publish": "Publish Results",
+    "published": "Published",
+    "unpublished": "Unpublished",
+    "comment": "Comment"
+  },
+  "students": {
+    "title": "Students",
+    "addStudent": "Add Student",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "class": "Class",
+    "admissionNumber": "Admission Number",
+    "dateOfBirth": "Date of Birth",
+    "parent": "Parent",
+    "totalStudents": "Total Students"
+  },
+  "classes": {
+    "title": "Classes",
+    "addClass": "Add Class",
+    "className": "Class Name",
+    "grade": "Grade",
+    "teacher": "Teacher",
+    "totalClasses": "Total Classes"
+  },
+  "subjects": {
+    "title": "Subjects",
+    "addSubject": "Add Subject",
+    "name": "Subject Name",
+    "code": "Subject Code"
+  },
+  "messages": {
+    "title": "Messages",
+    "newMessage": "New Message",
+    "inbox": "Inbox",
+    "sent": "Sent",
+    "compose": "Compose",
+    "to": "To",
+    "from": "From",
+    "subject": "Subject",
+    "message": "Message",
+    "send": "Send",
+    "read": "Read",
+    "unread": "Unread"
+  },
+  "announcements": {
+    "title": "Announcements",
+    "newAnnouncement": "New Announcement",
+    "createAnnouncement": "Create Announcement",
+    "priority": "Priority",
+    "low": "Low",
+    "normal": "Normal",
+    "high": "High"
+  },
+  "schools": {
+    "title": "Schools",
+    "addSchool": "Add School",
+    "name": "School Name",
+    "plan": "Plan",
+    "active": "Active",
+    "inactive": "Inactive",
+    "totalSchools": "Total Schools",
+    "activeSchools": "Active Schools"
+  },
+  "parent": {
+    "dashboard": {
+      "childProfile": "Child Profile",
+      "classLabel": "Class",
+      "attendanceLabel": "Attendance",
+      "noChild": "No child linked to your account yet.",
+      "contactSchool": "Please contact your school administrator.",
+      "attendanceTitle": "Recent Attendance",
+      "attendanceSubtitle": "Last 5 days",
+      "attendanceEmpty": "No attendance records yet.",
+      "termAttendance": "Term Attendance",
+      "viewAttendance": "View Full Attendance",
+      "announcementsTitle": "Latest Announcements",
+      "announcementsEmpty": "No announcements available.",
+      "viewAnnouncements": "View All Announcements",
+      "assessmentsTitle": "Assessment Notifications",
+      "viewAssessments": "View All Assessments",
+      "assessmentsEmpty": "No assessments yet.",
+      "dueDateLabel": "Due",
+      "noDueDate": "No due date",
+      "newBadge": "New",
+      "academicTitle": "Academic Overview",
+      "overallAverage": "Overall Term Average",
+      "topSubjects": "Top Subjects",
+      "noResults": "No results available.",
+      "viewResults": "View Full Results",
+      "quickActions": "Quick Actions",
+      "messageTeacher": "Message Teacher",
+      "downloadReport": "Download Report"
+    }
+  }
+}

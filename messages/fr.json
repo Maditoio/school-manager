@@ -1,0 +1,168 @@
+{
+  "common": {
+    "appName": "School Connect",
+    "welcome": "Bienvenue",
+    "loading": "Chargement...",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "view": "Voir",
+    "add": "Ajouter",
+    "submit": "Soumettre",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "logout": "Déconnexion",
+    "language": "Langue"
+  },
+  "auth": {
+    "login": "Connexion",
+    "email": "Email",
+    "password": "Mot de passe",
+    "signIn": "Se connecter",
+    "signOut": "Se déconnecter",
+    "invalidCredentials": "Email ou mot de passe invalide"
+  },
+  "roles": {
+    "super_admin": "Super Administrateur",
+    "school_admin": "Administrateur d'École",
+    "teacher": "Enseignant",
+    "parent": "Parent"
+  },
+  "navigation": {
+    "dashboard": "Tableau de bord",
+    "students": "Étudiants",
+    "classes": "Classes",
+    "teachers": "Enseignants",
+    "subjects": "Matières",
+    "attendance": "Présence",
+    "results": "Résultats",
+    "assessments": "Évaluations",
+    "messages": "Messages",
+    "announcements": "Annonces",
+    "profile": "Profil",
+    "settings": "Paramètres",
+    "schools": "Écoles"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "overview": "Aperçu",
+    "statistics": "Statistiques",
+    "recentActivity": "Activité récente"
+  },
+  "attendance": {
+    "title": "Présence",
+    "mark": "Marquer la présence",
+    "date": "Date",
+    "status": "Statut",
+    "present": "Présent",
+    "absent": "Absent",
+    "late": "En retard",
+    "rate": "Taux de présence",
+    "percentage": "Pourcentage de présence"
+  },
+  "results": {
+    "title": "Résultats",
+    "term": "Trimestre",
+    "year": "Année",
+    "subject": "Matière",
+    "testScore": "Note du test",
+    "examScore": "Note d'examen",
+    "totalScore": "Note totale",
+    "grade": "Note",
+    "average": "Moyenne",
+    "publish": "Publier les résultats",
+    "published": "Publié",
+    "unpublished": "Non publié",
+    "comment": "Commentaire"
+  },
+  "students": {
+    "title": "Étudiants",
+    "addStudent": "Ajouter un étudiant",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "class": "Classe",
+    "admissionNumber": "Numéro d'admission",
+    "dateOfBirth": "Date de naissance",
+    "parent": "Parent",
+    "totalStudents": "Total des étudiants"
+  },
+  "classes": {
+    "title": "Classes",
+    "addClass": "Ajouter une classe",
+    "className": "Nom de la classe",
+    "grade": "Niveau",
+    "teacher": "Enseignant",
+    "totalClasses": "Total des classes"
+  },
+  "subjects": {
+    "title": "Matières",
+    "addSubject": "Ajouter une matière",
+    "name": "Nom de la matière",
+    "code": "Code de la matière"
+  },
+  "messages": {
+    "title": "Messages",
+    "newMessage": "Nouveau message",
+    "inbox": "Boîte de réception",
+    "sent": "Envoyés",
+    "compose": "Composer",
+    "to": "À",
+    "from": "De",
+    "subject": "Sujet",
+    "message": "Message",
+    "send": "Envoyer",
+    "read": "Lu",
+    "unread": "Non lu"
+  },
+  "announcements": {
+    "title": "Annonces",
+    "newAnnouncement": "Nouvelle annonce",
+    "createAnnouncement": "Créer une annonce",
+    "priority": "Priorité",
+    "low": "Faible",
+    "normal": "Normal",
+    "high": "Élevée"
+  },
+  "schools": {
+    "title": "Écoles",
+    "addSchool": "Ajouter une école",
+    "name": "Nom de l'école",
+    "plan": "Plan",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "totalSchools": "Total des écoles",
+    "activeSchools": "Écoles actives"
+  },
+  "parent": {
+    "dashboard": {
+      "childProfile": "Profil de l'enfant",
+      "classLabel": "Classe",
+      "attendanceLabel": "Présence",
+      "noChild": "Aucun enfant lié à votre compte.",
+      "contactSchool": "Veuillez contacter l'administrateur de l'école.",
+      "attendanceTitle": "Présence récente",
+      "attendanceSubtitle": "5 derniers jours",
+      "attendanceEmpty": "Aucune présence enregistrée.",
+      "termAttendance": "Présence du trimestre",
+      "viewAttendance": "Voir toute la présence",
+      "announcementsTitle": "Dernières annonces",
+      "announcementsEmpty": "Aucune annonce disponible.",
+      "viewAnnouncements": "Voir toutes les annonces",
+      "assessmentsTitle": "Notifications d'évaluation",
+      "viewAssessments": "Voir toutes les évaluations",
+      "assessmentsEmpty": "Aucune évaluation pour le moment.",
+      "dueDateLabel": "Date limite",
+      "noDueDate": "Pas de date limite",
+      "newBadge": "Nouveau",
+      "academicTitle": "Aperçu académique",
+      "overallAverage": "Moyenne du trimestre",
+      "topSubjects": "Meilleures matières",
+      "noResults": "Aucun résultat disponible.",
+      "viewResults": "Voir tous les résultats",
+      "quickActions": "Actions rapides",
+      "messageTeacher": "Message à l'enseignant",
+      "downloadReport": "Télécharger le rapport"
+    }
+  }
+}
