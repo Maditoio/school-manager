@@ -1,4 +1,5 @@
 import React from 'react'
+import { getClientLocale, translateNode, translateText } from '@/lib/client-i18n'
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
@@ -6,11 +7,17 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export function Input({ label, error, className = '', ...props }: InputProps) {
+  const locale = getClientLocale()
+
+  const translatedLabel = label ? translateText(label, locale) : label
+  const translatedPlaceholder =
+    typeof props.placeholder === 'string' ? translateText(props.placeholder, locale) : props.placeholder
+
   return (
     <div className="w-full">
-      {label && (
+      {translatedLabel && (
         <label className="block text-sm font-medium ui-text-secondary mb-2">
-          {label}
+          {translatedLabel}
         </label>
       )}
       <input
@@ -18,6 +25,7 @@ export function Input({ label, error, className = '', ...props }: InputProps) {
           error ? 'border-rose-400 bg-rose-50' : ''
         } ${className}`}
         {...props}
+        placeholder={translatedPlaceholder}
       />
       {error && <p className="mt-1 text-sm text-rose-600">{error}</p>}
     </div>
@@ -32,11 +40,14 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export function Select({ label, error, options, children, className = '', ...props }: SelectProps) {
+  const locale = getClientLocale()
+  const translatedLabel = label ? translateText(label, locale) : label
+
   return (
     <div className="w-full">
-      {label && (
+      {translatedLabel && (
         <label className="block text-sm font-medium ui-text-secondary mb-2">
-          {label}
+          {translatedLabel}
         </label>
       )}
       <select
@@ -47,9 +58,9 @@ export function Select({ label, error, options, children, className = '', ...pro
       >
         {options ? options.map((option) => (
           <option key={option.value} value={option.value}>
-            {option.label}
+            {translateText(option.label, locale)}
           </option>
-        )) : children}
+        )) : translateNode(children, locale)}
       </select>
       {error && <p className="mt-1 text-sm text-rose-600">{error}</p>}
     </div>
@@ -62,11 +73,16 @@ interface TextAreaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
 }
 
 export function TextArea({ label, error, className = '', ...props }: TextAreaProps) {
+  const locale = getClientLocale()
+  const translatedLabel = label ? translateText(label, locale) : label
+  const translatedPlaceholder =
+    typeof props.placeholder === 'string' ? translateText(props.placeholder, locale) : props.placeholder
+
   return (
     <div className="w-full">
-      {label && (
+      {translatedLabel && (
         <label className="block text-sm font-medium ui-text-secondary mb-2">
-          {label}
+          {translatedLabel}
         </label>
       )}
       <textarea
@@ -74,6 +90,7 @@ export function TextArea({ label, error, className = '', ...props }: TextAreaPro
           error ? 'border-rose-400 bg-rose-50' : ''
         } ${className}`}
         {...props}
+        placeholder={translatedPlaceholder}
       />
       {error && <p className="mt-1 text-sm text-rose-600">{error}</p>}
     </div>

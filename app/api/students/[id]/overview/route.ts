@@ -20,6 +20,20 @@ type SubjectAssignmentRow = {
   }
 }
 
+type StudentStatusHistoryRow = {
+  id: string
+  status: 'ACTIVE' | 'LEFT'
+  reason: 'SUSPENSION' | 'GRADUATION' | 'TRANSFERRED_SCHOOL' | 'OTHER' | null
+  effectiveAt: Date
+  notes: string | null
+  changedBy: {
+    id: string
+    firstName: string | null
+    lastName: string | null
+    email: string
+  } | null
+}
+
 async function getSubjectsForClass(classId: string, schoolId: string): Promise<SubjectAssignmentRow[]> {
   const prismaAny = prisma as unknown as {
     classSubjectTeacher?: {
@@ -194,6 +208,33 @@ async function getStudentClassHistory(studentId: string) {
   }))
 }
 
+async function getStudentStatusHistory(studentId: string): Promise<StudentStatusHistoryRow[]> {
+  const prismaAny = prisma as unknown as {
+    studentStatusHistory?: {
+      findMany: (args: unknown) => Promise<StudentStatusHistoryRow[]>
+    }
+  }
+
+  if (prismaAny.studentStatusHistory?.findMany) {
+    return prismaAny.studentStatusHistory.findMany({
+      where: { studentId },
+      include: {
+        changedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: [{ effectiveAt: 'desc' }, { createdAt: 'desc' }],
+    })
+  }
+
+  return []
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -235,7 +276,7 @@ export async function GET(
       return NextResponse.json({ error: 'Student not found' }, { status: 404 })
     }
 
-    const [attendanceByStatus, recentAttendance, subjectAssignments, results, assessmentSummary, classHistory] = await Promise.all([
+    const [attendanceByStatus, recentAttendance, subjectAssignments, results, assessmentSummary, classHistory, statusHistory] = await Promise.all([
       prisma.attendance.groupBy({
         by: ['status'],
         where: { studentId: student.id },
@@ -273,6 +314,7 @@ export async function GET(
         _avg: { score: true },
       }),
       getStudentClassHistory(student.id),
+      getStudentStatusHistory(student.id),
     ])
 
     const attendanceSummary = (attendanceByStatus as AttendanceStatusCountRow[]).reduce(
@@ -303,6 +345,7 @@ export async function GET(
         averageScore: assessmentSummary._avg.score,
       },
       classHistory,
+      statusHistory,
     })
   } catch (error) {
     console.error('Error fetching student overview:', error)

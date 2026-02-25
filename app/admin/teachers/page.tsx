@@ -14,6 +14,8 @@ interface Teacher {
   firstName: string
   lastName: string
   email: string
+  title?: string
+  phone?: string
   createdAt: string
 }
 
@@ -23,10 +25,15 @@ export default function TeachersPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [showBulkModal, setShowBulkModal] = useState(false)
+  const [bulkUploadLoading, setBulkUploadLoading] = useState(false)
+  const [bulkUploadErrors, setBulkUploadErrors] = useState<Array<{ row: number; error: string }>>([])
   const [formData, setFormData] = useState({
+    title: '',
     firstName: '',
     lastName: '',
     email: '',
+    phone: '',
     password: '',
   })
 
@@ -75,9 +82,52 @@ export default function TeachersPage() {
         await fetchTeachers()
         setShowModal(false)
         resetForm()
+        showToast('Teacher created successfully!', 'success')
+      } else {
+        const error = await res.json()
+        showToast(error.error || 'Failed to save teacher', 'error')
       }
     } catch (error) {
       console.error('Failed to save teacher:', error)
+      showToast('Failed to save teacher', 'error')
+    }
+  }
+
+  const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setBulkUploadLoading(true)
+    setBulkUploadErrors([])
+
+    try {
+      const formDataToSend = new FormData()
+      formDataToSend.append('file', file)
+
+      const res = await fetch('/api/teachers/bulk-upload', {
+        method: 'POST',
+        body: formDataToSend,
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        await fetchTeachers()
+        setShowBulkModal(false)
+        showToast(`Successfully created ${data.created} teacher(s)!`, 'success')
+      } else {
+        if (data.errors && data.errors.length > 0) {
+          setBulkUploadErrors(data.errors)
+          showToast(`Failed to create ${data.failed} row(s). See errors below.`, 'error')
+        } else {
+          showToast(data.error || 'Failed to upload teachers', 'error')
+        }
+      }
+    } catch (error) {
+      console.error('Failed to upload teachers:', error)
+      showToast('Failed to upload teachers', 'error')
+    } finally {
+      setBulkUploadLoading(false)
     }
   }
 
@@ -88,9 +138,11 @@ export default function TeachersPage() {
       const res = await fetch(`/api/users/${id}`, { method: 'DELETE' })
       if (res.ok) {
         await fetchTeachers()
+        showToast('Teacher deleted successfully!', 'success')
       }
     } catch (error) {
       console.error('Failed to delete teacher:', error)
+      showToast('Failed to delete teacher', 'error')
     }
   }
 
@@ -125,11 +177,33 @@ export default function TeachersPage() {
 
   const resetForm = () => {
     setFormData({
+      title: '',
       firstName: '',
       lastName: '',
       email: '',
+      phone: '',
       password: '',
     })
+  }
+
+  const downloadTemplate = async () => {
+    try {
+      const res = await fetch('/api/teachers/bulk-upload/template')
+      if (res.ok) {
+        const blob = await res.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'teachers-bulk-upload-template.xlsx'
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }
+    } catch (error) {
+      console.error('Failed to download template:', error)
+      showToast('Failed to download template', 'error')
+    }
   }
 
   if (status === 'loading' || !session) {
@@ -163,14 +237,25 @@ export default function TeachersPage() {
             <h1 className="text-3xl font-bold text-gray-900">Teachers Management</h1>
             <p className="text-gray-600 mt-2">Manage all teachers in your school</p>
           </div>
-          <Button
-            onClick={() => {
-              resetForm()
-              setShowModal(true)
-            }}
-          >
-            Add Teacher
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowBulkModal(true)
+                setBulkUploadErrors([])
+              }}
+            >
+              Bulk Upload
+            </Button>
+            <Button
+              onClick={() => {
+                resetForm()
+                setShowModal(true)
+              }}
+            >
+              Add Teacher
+            </Button>
+          </div>
         </div>
 
         {loading ? (
@@ -181,10 +266,11 @@ export default function TeachersPage() {
               <Card key={teacher.id} className="p-6">
                 <div className="space-y-3">
                   <h3 className="text-xl font-semibold text-gray-900">
-                    {teacher.firstName} {teacher.lastName}
+                    {teacher.title ? `${teacher.title} ` : ''}{teacher.firstName} {teacher.lastName}
                   </h3>
                   <div className="space-y-1 text-sm text-gray-600">
                     <p>📧 {teacher.email}</p>
+                    {teacher.phone && <p>📱 {teacher.phone}</p>}
                     <p>📅 Joined: {new Date(teacher.createdAt).toLocaleDateString()}</p>
                   </div>
                   <div className="flex gap-2 pt-3">
@@ -211,6 +297,13 @@ export default function TeachersPage() {
               <h2 className="text-2xl font-bold mb-4">Add Teacher</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Input
+                  label="Title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="e.g., Mr., Mrs., Dr."
+                  required
+                />
+                <Input
                   label="First Name"
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
@@ -230,12 +323,18 @@ export default function TeachersPage() {
                   required
                 />
                 <Input
+                  label="Phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="+1234567890"
+                />
+                <Input
                   label="Password"
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required
-                  placeholder="Minimum 6 characters"
+                  placeholder="Leave blank to use default: default12345"
                 />
                 <div className="flex gap-2 justify-end">
                   <Button
@@ -251,6 +350,73 @@ export default function TeachersPage() {
                   <Button type="submit">Create</Button>
                 </div>
               </form>
+            </Card>
+          </div>
+        )}
+
+        {showBulkModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold mb-4">Bulk Upload Teachers</h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <Button 
+                    variant="secondary" 
+                    onClick={downloadTemplate}
+                    className="mb-4"
+                  >
+                    Download Template
+                  </Button>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Download the Excel template, fill it with teacher details, then upload it here.
+                  </p>
+                </div>
+
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleBulkUpload}
+                    disabled={bulkUploadLoading}
+                    className="hidden"
+                    id="bulk-file-input"
+                  />
+                  <label htmlFor="bulk-file-input" className="cursor-pointer">
+                    <div className="text-4xl mb-2">📁</div>
+                    <p className="text-gray-700 font-medium">
+                      {bulkUploadLoading ? 'Uploading...' : 'Click to upload or drag and drop'}
+                    </p>
+                    <p className="text-sm text-gray-500">Excel files (.xlsx, .xls) - Max 5MB</p>
+                  </label>
+                </div>
+
+                {bulkUploadErrors.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-red-900 mb-2">Upload Errors</h3>
+                    <div className="max-h-64 overflow-y-auto space-y-1">
+                      {bulkUploadErrors.map((err, idx) => (
+                        <p key={idx} className="text-sm text-red-700">
+                          <strong>Row {err.row}:</strong> {err.error}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setShowBulkModal(false)
+                      setBulkUploadErrors([])
+                    }}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
             </Card>
           </div>
         )}

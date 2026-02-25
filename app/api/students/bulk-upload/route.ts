@@ -22,6 +22,8 @@ type RowData = {
   parentName?: string
   parentEmail?: string
   parentPhone?: string
+  emergencyContactName?: string
+  emergencyContactPhone?: string
 }
 
 function normalizeHeader(value: string) {
@@ -44,6 +46,8 @@ function mapRow(raw: Record<string, unknown>): RowData {
     if (normalizedKey === 'parentname') mapped.parentName = stringValue
     if (normalizedKey === 'parentemail') mapped.parentEmail = stringValue
     if (normalizedKey === 'parentphone') mapped.parentPhone = stringValue
+    if (normalizedKey === 'emergencycontactname') mapped.emergencyContactName = stringValue
+    if (normalizedKey === 'emergencycontactphone' || normalizedKey === 'emergencyphone') mapped.emergencyContactPhone = stringValue
   })
 
   return mapped
@@ -109,27 +113,38 @@ async function ensureParentUser(params: {
 
 async function generateAdmissionNumber(schoolId: string, academicYear: number): Promise<string> {
   const prefix = `ADM-${academicYear}-`
-  let sequence = (await prisma.student.count({ where: { schoolId, academicYear } })) + 1
-
-  for (let attempt = 0; attempt < 5000; attempt += 1) {
-    const candidate = `${prefix}${String(sequence).padStart(4, '0')}`
-    const exists = await prisma.student.findFirst({
-      where: {
-        schoolId,
-        academicYear,
-        admissionNumber: candidate,
+  const existingAdmissionNumbers = await prisma.student.findMany({
+    where: {
+      schoolId,
+      academicYear,
+      admissionNumber: {
+        startsWith: prefix,
       },
-      select: { id: true },
-    })
+    },
+    select: {
+      admissionNumber: true,
+    },
+  })
 
-    if (!exists) {
-      return candidate
+  const usedCodes = new Set<string>()
+  const pattern = new RegExp(`^ADM-${academicYear}-(\\d{4})$`)
+
+  for (const row of existingAdmissionNumbers) {
+    const admissionNumber = row.admissionNumber || ''
+    const match = admissionNumber.match(pattern)
+    if (match?.[1]) {
+      usedCodes.add(match[1])
     }
-
-    sequence += 1
   }
 
-  return `${prefix}${Date.now()}`
+  for (let number = 0; number < 10000; number += 1) {
+    const code = String(number).padStart(4, '0')
+    if (!usedCodes.has(code)) {
+      return `${prefix}${code}`
+    }
+  }
+
+  throw new Error(`Admission number space exhausted for academic year ${academicYear}`)
 }
 
 export async function POST(request: NextRequest) {
@@ -253,7 +268,9 @@ export async function POST(request: NextRequest) {
             parentName: row.parentName?.trim() || null,
             parentEmail: normalizedParentEmail || null,
             parentPhone: row.parentPhone?.trim() || null,
-          },
+            emergencyContactName: row.emergencyContactName?.trim() || null,
+            emergencyContactPhone: row.emergencyContactPhone?.trim() || null,
+          } as Prisma.StudentUncheckedCreateInput,
         })
 
         createdIds.push(student.id)

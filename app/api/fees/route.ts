@@ -4,6 +4,156 @@ import { prisma } from '@/lib/prisma'
 import { hasRole } from '@/lib/auth-utils'
 import { createFeeScheduleSchema, recordFeePaymentSchema } from '@/lib/validations'
 
+type FeeScheduleRow = {
+  id: string
+  school_id: string
+  period_type: 'MONTHLY' | 'SEMESTER' | 'YEARLY'
+  year: number
+  month: number | null
+  semester: number | null
+  amount_due: number
+  created_by: string
+  created_at: Date
+  updated_at: Date
+}
+
+type FeePaymentRow = {
+  id: string
+  school_id: string
+  schedule_id: string
+  student_id: string
+  payment_number: string
+  amount_paid: number
+  payment_date: Date
+}
+
+function getPrismaDelegates() {
+  const prismaUnsafe = prisma as unknown as {
+    feeSchedule?: {
+      findMany?: (...args: unknown[]) => Promise<unknown>
+      findUnique?: (...args: unknown[]) => Promise<unknown>
+      update?: (...args: unknown[]) => Promise<unknown>
+      create?: (...args: unknown[]) => Promise<unknown>
+    }
+    feePayment?: {
+      findMany?: (...args: unknown[]) => Promise<unknown>
+      create?: (...args: unknown[]) => Promise<unknown>
+    }
+    student?: {
+      findMany?: (...args: unknown[]) => Promise<unknown>
+      findUnique?: (...args: unknown[]) => Promise<unknown>
+    }
+    class?: {
+      findMany?: (...args: unknown[]) => Promise<unknown>
+    }
+  }
+
+  return prismaUnsafe
+}
+
+function normalizeScheduleRow(row: FeeScheduleRow) {
+  return {
+    id: row.id,
+    schoolId: row.school_id,
+    periodType: row.period_type,
+    year: Number(row.year),
+    month: row.month === null ? null : Number(row.month),
+    semester: row.semester === null ? null : Number(row.semester),
+    amountDue: Number(row.amount_due),
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+function normalizePaymentRow(row: FeePaymentRow) {
+  return {
+    id: row.id,
+    schoolId: row.school_id,
+    scheduleId: row.schedule_id,
+    studentId: row.student_id,
+    paymentNumber: row.payment_number,
+    amountPaid: Number(row.amount_paid),
+    paymentDate: new Date(row.payment_date),
+  }
+}
+
+async function getFeeSchedulesForSchool(schoolId: string) {
+  const delegates = getPrismaDelegates()
+  if (delegates.feeSchedule?.findMany) {
+    return (await prisma.feeSchedule.findMany({
+      where: { schoolId },
+      orderBy: [{ year: 'desc' }, { createdAt: 'desc' }],
+      take: 36,
+    })) as Array<{
+      id: string
+      schoolId: string
+      periodType: 'MONTHLY' | 'SEMESTER' | 'YEARLY'
+      year: number
+      month: number | null
+      semester: number | null
+      amountDue: number
+      createdBy: string
+      createdAt: Date
+      updatedAt: Date
+    }>
+  }
+
+  const rows = await prisma.$queryRaw<FeeScheduleRow[]>`
+    SELECT id, school_id, period_type, year, month, semester, amount_due, created_by, created_at, updated_at
+    FROM fee_schedules
+    WHERE school_id = ${schoolId}
+    ORDER BY year DESC, created_at DESC
+    LIMIT 36
+  `
+
+  return rows.map(normalizeScheduleRow)
+}
+
+async function getFeePaymentsForSchedule(schoolId: string, scheduleId: string) {
+  const delegates = getPrismaDelegates()
+  if (delegates.feePayment?.findMany) {
+    return (await prisma.feePayment.findMany({
+      where: {
+        schoolId,
+        scheduleId,
+      },
+      select: {
+        id: true,
+        studentId: true,
+        paymentNumber: true,
+        amountPaid: true,
+        paymentDate: true,
+      },
+      orderBy: { paymentDate: 'desc' },
+    })) as Array<{
+      id: string
+      studentId: string
+      paymentNumber: string
+      amountPaid: number
+      paymentDate: Date
+    }>
+  }
+
+  const rows = await prisma.$queryRaw<FeePaymentRow[]>`
+    SELECT id, school_id, schedule_id, student_id, payment_number, amount_paid, payment_date
+    FROM fee_payments
+    WHERE school_id = ${schoolId} AND schedule_id = ${scheduleId}
+    ORDER BY payment_date DESC
+  `
+
+  return rows.map((row) => {
+    const payment = normalizePaymentRow(row)
+    return {
+      id: payment.id,
+      studentId: payment.studentId,
+      paymentNumber: payment.paymentNumber,
+      amountPaid: payment.amountPaid,
+      paymentDate: payment.paymentDate,
+    }
+  })
+}
+
 async function resolveFeesUserContext(sessionUser: {
   id?: string | null
   email?: string | null
@@ -87,11 +237,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const scheduleId = searchParams.get('scheduleId')
 
-    const schedules = await prisma.feeSchedule.findMany({
-      where: { schoolId },
-      orderBy: [{ year: 'desc' }, { createdAt: 'desc' }],
-      take: 36,
-    })
+    const schedules = await getFeeSchedulesForSchool(schoolId)
 
     const selectedSchedule = scheduleId
       ? schedules.find((schedule) => schedule.id === scheduleId) || null
@@ -145,20 +291,7 @@ export async function GET(request: NextRequest) {
 
     const classNameById = new Map(classes.map((classItem) => [classItem.id, classItem.name]))
 
-    const payments = await prisma.feePayment.findMany({
-      where: {
-        schoolId,
-        scheduleId: selectedSchedule.id,
-      },
-      select: {
-        id: true,
-        studentId: true,
-        paymentNumber: true,
-        amountPaid: true,
-        paymentDate: true,
-      },
-      orderBy: { paymentDate: 'desc' },
-    })
+    const payments = await getFeePaymentsForSchedule(schoolId, selectedSchedule.id)
 
     const paymentStudentIds = Array.from(new Set(payments.map((payment) => payment.studentId)))
     const paymentStudents = paymentStudentIds.length
@@ -326,37 +459,81 @@ export async function POST(request: NextRequest) {
 
       const normalizedMonth = periodType === 'MONTHLY' ? month || null : null
       const normalizedSemester = periodType === 'SEMESTER' ? semester || null : null
-      const existingSchedules = await prisma.feeSchedule.findMany({
-        where: {
-          schoolId,
-          periodType,
-          year,
-          month: normalizedMonth,
-          semester: normalizedSemester,
-        },
-        take: 1,
-      })
-      const existingSchedule = existingSchedules[0] ?? null
+      const delegates = getPrismaDelegates()
 
-      const schedule = existingSchedule
-        ? await prisma.feeSchedule.update({
-            where: { id: existingSchedule.id },
-            data: {
-              amountDue,
-              updatedAt: new Date(),
-            },
-          })
-        : await prisma.feeSchedule.create({
-            data: {
-              schoolId,
-              periodType,
-              year,
-              month: normalizedMonth,
-              semester: normalizedSemester,
-              amountDue,
-              createdBy: userId,
-            },
-          })
+      let schedule: {
+        id: string
+        schoolId: string
+        periodType: 'MONTHLY' | 'SEMESTER' | 'YEARLY'
+        year: number
+        month: number | null
+        semester: number | null
+        amountDue: number
+      }
+
+      if (delegates.feeSchedule?.findMany && delegates.feeSchedule?.update && delegates.feeSchedule?.create) {
+        const existingSchedules = await prisma.feeSchedule.findMany({
+          where: {
+            schoolId,
+            periodType,
+            year,
+            month: normalizedMonth,
+            semester: normalizedSemester,
+          },
+          take: 1,
+        })
+
+        const existingSchedule = existingSchedules[0] ?? null
+
+        schedule = existingSchedule
+          ? await prisma.feeSchedule.update({
+              where: { id: existingSchedule.id },
+              data: {
+                amountDue,
+                updatedAt: new Date(),
+              },
+            })
+          : await prisma.feeSchedule.create({
+              data: {
+                schoolId,
+                periodType,
+                year,
+                month: normalizedMonth,
+                semester: normalizedSemester,
+                amountDue,
+                createdBy: userId,
+              },
+            })
+      } else {
+        const existingRows = await prisma.$queryRaw<FeeScheduleRow[]>`
+          SELECT id, school_id, period_type, year, month, semester, amount_due, created_by, created_at, updated_at
+          FROM fee_schedules
+          WHERE school_id = ${schoolId}
+            AND period_type = ${periodType}::"FeePeriodType"
+            AND year = ${year}
+            AND month IS NOT DISTINCT FROM ${normalizedMonth}
+            AND semester IS NOT DISTINCT FROM ${normalizedSemester}
+          LIMIT 1
+        `
+
+        if (existingRows.length > 0) {
+          const updatedRows = await prisma.$queryRaw<FeeScheduleRow[]>`
+            UPDATE fee_schedules
+            SET amount_due = ${amountDue}, updated_at = NOW()
+            WHERE id = ${existingRows[0].id}
+            RETURNING id, school_id, period_type, year, month, semester, amount_due, created_by, created_at, updated_at
+          `
+          schedule = normalizeScheduleRow(updatedRows[0])
+        } else {
+          const insertedId = crypto.randomUUID()
+          const insertedRows = await prisma.$queryRaw<FeeScheduleRow[]>`
+            INSERT INTO fee_schedules (id, school_id, period_type, year, month, semester, amount_due, created_by, created_at, updated_at)
+            VALUES (${insertedId}, ${schoolId}, ${periodType}::"FeePeriodType", ${year}, ${normalizedMonth}, ${normalizedSemester}, ${amountDue}, ${userId}, NOW(), NOW())
+            RETURNING id, school_id, period_type, year, month, semester, amount_due, created_by, created_at, updated_at
+          `
+          schedule = normalizeScheduleRow(insertedRows[0])
+        }
+      }
 
       return NextResponse.json({ schedule }, { status: 201 })
     }
@@ -372,8 +549,19 @@ export async function POST(request: NextRequest) {
 
       const { scheduleId, studentId, amountPaid, paymentDate, notes } = validation.data
 
+      const delegates = getPrismaDelegates()
       const [schedule, student] = await Promise.all([
-        prisma.feeSchedule.findUnique({ where: { id: scheduleId } }),
+        delegates.feeSchedule?.findUnique
+          ? prisma.feeSchedule.findUnique({ where: { id: scheduleId } })
+          : (async () => {
+              const rows = await prisma.$queryRaw<FeeScheduleRow[]>`
+                SELECT id, school_id, period_type, year, month, semester, amount_due, created_by, created_at, updated_at
+                FROM fee_schedules
+                WHERE id = ${scheduleId}
+                LIMIT 1
+              `
+              return rows[0] ? normalizeScheduleRow(rows[0]) : null
+            })(),
         prisma.student.findUnique({ where: { id: studentId } }),
       ])
 
@@ -385,18 +573,51 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Student not found' }, { status: 404 })
       }
 
-      const payment = await prisma.feePayment.create({
-        data: {
-          schoolId,
-          scheduleId,
-          studentId,
-          paymentNumber: createPaymentNumber(),
-          amountPaid,
-          paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
-          notes: notes || null,
-          receivedBy: userId,
-        },
-      })
+      const paymentPayload = {
+        schoolId,
+        scheduleId,
+        studentId,
+        paymentNumber: createPaymentNumber(),
+        amountPaid,
+        paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
+        notes: notes || null,
+        receivedBy: userId,
+      }
+
+      const payment = delegates.feePayment?.create
+        ? await prisma.feePayment.create({
+            data: paymentPayload,
+          })
+        : await (async () => {
+            const insertedId = crypto.randomUUID()
+            const rows = await prisma.$queryRaw<FeePaymentRow[]>`
+              INSERT INTO fee_payments (id, school_id, schedule_id, student_id, payment_number, amount_paid, payment_date, notes, received_by, created_at)
+              VALUES (
+                ${insertedId},
+                ${paymentPayload.schoolId},
+                ${paymentPayload.scheduleId},
+                ${paymentPayload.studentId},
+                ${paymentPayload.paymentNumber},
+                ${paymentPayload.amountPaid},
+                ${paymentPayload.paymentDate},
+                ${paymentPayload.notes},
+                ${paymentPayload.receivedBy},
+                NOW()
+              )
+              RETURNING id, school_id, schedule_id, student_id, payment_number, amount_paid, payment_date
+            `
+
+            const inserted = normalizePaymentRow(rows[0])
+            return {
+              id: inserted.id,
+              schoolId: inserted.schoolId,
+              scheduleId: inserted.scheduleId,
+              studentId: inserted.studentId,
+              paymentNumber: inserted.paymentNumber,
+              amountPaid: inserted.amountPaid,
+              paymentDate: inserted.paymentDate,
+            }
+          })()
 
       return NextResponse.json({ payment }, { status: 201 })
     }

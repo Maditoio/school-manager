@@ -623,19 +623,19 @@ export default async function ParentDashboard() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">
-              {t('parent.dashboard.announcementsTitle')}
-            </h2>
-            <a href="/parent/announcements" className="text-xs font-semibold text-emerald-600 hover:text-emerald-700">
-              {t('parent.dashboard.viewAnnouncements')}
-            </a>
-          </div>
+        {data?.announcements.length ? (
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">
+                {t('parent.dashboard.announcementsTitle')}
+              </h2>
+              <a href="/parent/announcements" className="text-xs font-semibold text-emerald-600 hover:text-emerald-700">
+                {t('parent.dashboard.viewAnnouncements')}
+              </a>
+            </div>
 
-          <div className="mt-4 space-y-3">
-            {data?.announcements.length ? (
-              data.announcements.map((announcement) => {
+            <div className="mt-4 space-y-3">
+              {data.announcements.map((announcement) => {
                 const isNew = announcement.createdAt >= announcementCutoff
                 return (
                   <TrackedInteractionLink
@@ -681,16 +681,10 @@ export default async function ParentDashboard() {
                     </p>
                   </TrackedInteractionLink>
                 )
-              })
-            ) : (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-linear-to-br from-slate-50 to-slate-100 p-4 text-center text-sm text-slate-500">
-                <div className="text-2xl">📣</div>
-                <p className="mt-2">{t('parent.dashboard.announcementsEmpty')}
-                </p>
-              </div>
-            )}
-          </div>
-        </section>
+              })}
+            </div>
+          </section>
+        ) : null}
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">

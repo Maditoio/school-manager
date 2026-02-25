@@ -2,6 +2,26 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 
+type InvoicePageRow = {
+  payment_id: string
+  payment_number: string
+  amount_paid: number
+  payment_date: Date
+  notes: string | null
+  school_name: string
+  student_first_name: string
+  student_last_name: string
+  student_admission_number: string | null
+  class_name: string | null
+  schedule_period_type: 'MONTHLY' | 'SEMESTER' | 'YEARLY'
+  schedule_year: number
+  schedule_month: number | null
+  schedule_semester: number | null
+  schedule_amount_due: number
+  receiver_first_name: string | null
+  receiver_last_name: string | null
+}
+
 function periodLabel(periodType: 'MONTHLY' | 'SEMESTER' | 'YEARLY', year: number, month: number | null, semester: number | null) {
   if (periodType === 'MONTHLY') {
     const monthName = new Date(year, (month || 1) - 1, 1).toLocaleDateString('en-US', { month: 'long' })
@@ -16,46 +36,70 @@ function periodLabel(periodType: 'MONTHLY' | 'SEMESTER' | 'YEARLY', year: number
 }
 
 async function getInvoiceData(paymentId: string, schoolId: string) {
-  return prisma.feePayment.findFirst({
-    where: {
-      id: paymentId,
-      schoolId,
+  const rows = await prisma.$queryRaw<InvoicePageRow[]>`
+    SELECT
+      p.id AS payment_id,
+      p.payment_number,
+      p.amount_paid,
+      p.payment_date,
+      p.notes,
+      sch.name AS school_name,
+      st.first_name AS student_first_name,
+      st.last_name AS student_last_name,
+      st.admission_number AS student_admission_number,
+      cls.name AS class_name,
+      fs.period_type AS schedule_period_type,
+      fs.year AS schedule_year,
+      fs.month AS schedule_month,
+      fs.semester AS schedule_semester,
+      fs.amount_due AS schedule_amount_due,
+      rec.first_name AS receiver_first_name,
+      rec.last_name AS receiver_last_name
+    FROM fee_payments p
+    INNER JOIN schools sch ON sch.id = p.school_id
+    INNER JOIN students st ON st.id = p.student_id
+    LEFT JOIN classes cls ON cls.id = st.class_id
+    INNER JOIN fee_schedules fs ON fs.id = p.schedule_id
+    LEFT JOIN users rec ON rec.id = p.received_by
+    WHERE p.id = ${paymentId}
+      AND p.school_id = ${schoolId}
+    LIMIT 1
+  `
+
+  const row = rows[0]
+  if (!row) {
+    return null
+  }
+
+  return {
+    id: row.payment_id,
+    paymentNumber: row.payment_number,
+    amountPaid: Number(row.amount_paid),
+    paymentDate: row.payment_date,
+    notes: row.notes,
+    school: {
+      name: row.school_name,
     },
-    include: {
-      school: {
-        select: {
-          name: true,
-        },
-      },
-      student: {
-        select: {
-          firstName: true,
-          lastName: true,
-          admissionNumber: true,
-          class: {
-            select: {
-              name: true,
-            },
-          },
-        },
-      },
-      schedule: {
-        select: {
-          periodType: true,
-          year: true,
-          month: true,
-          semester: true,
-          amountDue: true,
-        },
-      },
-      receiver: {
-        select: {
-          firstName: true,
-          lastName: true,
-        },
+    student: {
+      firstName: row.student_first_name,
+      lastName: row.student_last_name,
+      admissionNumber: row.student_admission_number,
+      class: {
+        name: row.class_name,
       },
     },
-  })
+    schedule: {
+      periodType: row.schedule_period_type,
+      year: Number(row.schedule_year),
+      month: row.schedule_month === null ? null : Number(row.schedule_month),
+      semester: row.schedule_semester === null ? null : Number(row.schedule_semester),
+      amountDue: Number(row.schedule_amount_due),
+    },
+    receiver: {
+      firstName: row.receiver_first_name,
+      lastName: row.receiver_last_name,
+    },
+  }
 }
 
 export default async function FeeInvoicePage({ params }: { params: Promise<{ id: string }> }) {

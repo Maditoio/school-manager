@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Select } from '@/components/ui/Form'
+import Table from '@/components/ui/Table'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
@@ -39,6 +38,9 @@ export default function AttendancePage() {
   const [selectedClass, setSelectedClass] = useState('')
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [loading, setLoading] = useState(true)
+  const [tableSearch, setTableSearch] = useState('')
+  const [tablePage, setTablePage] = useState(1)
+  const pageSize = 10
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -49,20 +51,7 @@ export default function AttendancePage() {
     }
   }, [session, status])
 
-  useEffect(() => {
-    if (session) {
-      fetchClasses()
-    }
-  }, [session])
-
-  useEffect(() => {
-    if (selectedClass) {
-      fetchStudents()
-      fetchAttendance()
-    }
-  }, [selectedClass, selectedDate])
-
-  const fetchClasses = async () => {
+  const fetchClasses = useCallback(async () => {
     try {
       const res = await fetch('/api/classes')
       if (res.ok) {
@@ -81,9 +70,9 @@ export default function AttendancePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     try {
       const res = await fetch(`/api/students?classId=${selectedClass}`)
       if (res.ok) {
@@ -96,9 +85,9 @@ export default function AttendancePage() {
       console.error('Failed to fetch students:', error)
       setStudents([])
     }
-  }
+  }, [selectedClass])
 
-  const fetchAttendance = async () => {
+  const fetchAttendance = useCallback(async () => {
     try {
       const res = await fetch(`/api/attendance?date=${selectedDate}&classId=${selectedClass}`)
       if (res.ok) {
@@ -113,11 +102,24 @@ export default function AttendancePage() {
     } catch (error) {
       console.error('Failed to fetch attendance:', error)
     }
-  }
+  }, [selectedClass, selectedDate])
 
-  const handleAttendanceChange = (studentId: string, status: string) => {
+  useEffect(() => {
+    if (session) {
+      fetchClasses()
+    }
+  }, [fetchClasses, session])
+
+  useEffect(() => {
+    if (selectedClass) {
+      fetchStudents()
+      fetchAttendance()
+    }
+  }, [fetchAttendance, fetchStudents, selectedClass])
+
+  const handleAttendanceChange = useCallback((studentId: string, status: string) => {
     setAttendance({ ...attendance, [studentId]: status })
-  }
+  }, [attendance])
 
   const handleSaveAttendance = async () => {
     try {
@@ -146,6 +148,90 @@ export default function AttendancePage() {
     }
   }
 
+  const filteredStudents = useMemo(() => {
+    const query = tableSearch.trim().toLowerCase()
+    if (!query) return students
+
+    return students.filter((student) => {
+      const fullName = `${student.firstName} ${student.lastName}`.toLowerCase()
+      return (
+        fullName.includes(query) ||
+        String(student.admissionNumber || '')
+          .toLowerCase()
+          .includes(query)
+      )
+    })
+  }, [students, tableSearch])
+
+  const paginatedStudents = useMemo(() => {
+    const start = (tablePage - 1) * pageSize
+    return filteredStudents.slice(start, start + pageSize)
+  }, [filteredStudents, tablePage])
+
+  const attendanceColumns = useMemo(
+    () => [
+      {
+        key: 'admissionNumber',
+        label: 'Admission No',
+        sortable: true,
+      },
+      {
+        key: 'student',
+        label: 'Student',
+        sortable: true,
+        renderCell: (student: Student) => {
+          const initials = `${student.firstName?.[0] || ''}${student.lastName?.[0] || ''}`.toUpperCase() || 'S'
+          return (
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/10 text-xs font-semibold text-slate-100">
+                {initials}
+              </div>
+              <div className="flex flex-col">
+                <span className="font-medium text-slate-100">
+                  {student.firstName} {student.lastName}
+                </span>
+                <span className="text-xs text-slate-400">{student.class?.name || 'No class assigned'}</span>
+              </div>
+            </div>
+          )
+        },
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        renderCell: (student: Student) => (
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={attendance[student.id] === 'PRESENT' ? 'primary' : 'ghost'}
+              onClick={() => handleAttendanceChange(student.id, 'PRESENT')}
+            >
+              Present
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={attendance[student.id] === 'ABSENT' ? 'danger' : 'ghost'}
+              onClick={() => handleAttendanceChange(student.id, 'ABSENT')}
+            >
+              Absent
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={attendance[student.id] === 'LATE' ? 'secondary' : 'ghost'}
+              onClick={() => handleAttendanceChange(student.id, 'LATE')}
+            >
+              Late
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [attendance, handleAttendanceChange]
+  )
+
   if (status === 'loading' || !session) {
     return <div>Loading...</div>
   }
@@ -172,113 +258,52 @@ export default function AttendancePage() {
       navItems={navItems}
     >
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Attendance Management</h1>
-          <p className="text-gray-600 mt-2">Mark and manage student attendance</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Attendance Management</h1>
+            <p className="text-gray-600 mt-2">Mark and manage student attendance</p>
+          </div>
+          <Button onClick={handleSaveAttendance}>Save Attendance</Button>
         </div>
 
-        <Card className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select Class</label>
-              <Select
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
-              >
-                <option value="">Select Class</option>
-                {classes.map((cls) => (
-                  <option key={cls.id} value={cls.id}>
-                    {cls.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+        <Table
+          title="Attendance Records"
+          columns={attendanceColumns}
+          data={paginatedStudents}
+          loading={loading}
+          totalCount={filteredStudents.length}
+          page={tablePage}
+          pageSize={pageSize}
+          onSearch={setTableSearch}
+          onPageChange={setTablePage}
+          headerControls={
+            <label className="relative">
               <input
                 type="date"
                 value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                onChange={(e) => {
+                  setSelectedDate(e.target.value)
+                  setTablePage(1)
+                }}
+                className="h-8 rounded-lg border border-white/10 bg-white/5 px-2.5 text-[12px] text-slate-100 transition-all duration-200 ease-in-out outline-none focus:border-indigo-300/60 focus:shadow-[0_0_0_3px_rgba(99,102,241,0.15)]"
+                style={{ colorScheme: 'dark' }}
+                aria-label="Filter attendance by date"
               />
-            </div>
-            <div className="flex items-end justify-end">
-              <Button onClick={handleSaveAttendance}>
-                Save Attendance
-              </Button>
-            </div>
-          </div>
-
-          {loading ? (
-            <div>Loading...</div>
-          ) : selectedClass && students.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full bg-white border border-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Admission No
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Student Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Class
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {students.map((student) => (
-                    <tr key={student.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {student.admissionNumber}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {student.firstName} {student.lastName}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {student.class?.name || 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={attendance[student.id] === 'PRESENT' ? 'primary' : 'ghost'}
-                            onClick={() => handleAttendanceChange(student.id, 'PRESENT')}
-                          >
-                            Present
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={attendance[student.id] === 'ABSENT' ? 'danger' : 'ghost'}
-                            onClick={() => handleAttendanceChange(student.id, 'ABSENT')}
-                          >
-                            Absent
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={attendance[student.id] === 'LATE' ? 'secondary' : 'ghost'}
-                            onClick={() => handleAttendanceChange(student.id, 'LATE')}
-                          >
-                            Late
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>          ) : selectedClass ? (
-            <div className="text-center text-gray-500 py-8">No students in this class</div>          ) : (
-            <div className="text-center text-gray-500">Please select a class</div>
-          )}
-        </Card>
+            </label>
+          }
+          filterLabel="Class"
+          filterOptions={[
+            { value: '', label: 'All classes' },
+            ...classes.map((cls) => ({ value: cls.id, label: cls.name })),
+          ]}
+          activeFilter={selectedClass}
+          onFilterChange={(value: string) => {
+            setSelectedClass(value)
+            setTablePage(1)
+          }}
+          emptyMessage={selectedClass ? 'No students in this class' : 'No students found.'}
+          rowKey="id"
+        />
       </div>
     </DashboardLayout>
   )

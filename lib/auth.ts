@@ -9,9 +9,12 @@ async function getUserAuthFlags(userId: string) {
     preferred_language: string | null
     must_reset_password: boolean | null
   }>>`
-    SELECT preferred_language, must_reset_password
-    FROM users
-    WHERE id = ${userId}
+    SELECT
+      COALESCE(us.preferred_language, u.preferred_language, 'en') AS preferred_language,
+      u.must_reset_password
+    FROM users u
+    LEFT JOIN user_settings us ON us.user_id = u.id
+    WHERE u.id = ${userId}
     LIMIT 1
   `
 

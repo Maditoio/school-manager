@@ -1,4 +1,5 @@
 import React from 'react'
+import { getClientLocale, translateNode } from '@/lib/client-i18n'
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost'
@@ -16,6 +17,8 @@ export function Button({
   disabled,
   ...props
 }: ButtonProps) {
+  const locale = getClientLocale()
+
   const baseClasses = 'ui-button inline-flex items-center justify-center focus:outline-none shadow-[0_2px_10px_rgba(15,23,42,0.06)]'
 
   const variantClasses = {
@@ -61,7 +64,7 @@ export function Button({
           />
         </svg>
       )}
-      {children}
+      {translateNode(children, locale)}
     </button>
   )
 }

@@ -200,6 +200,8 @@ export default function ClassStudentsPage() {
     }
   }
 
+  const canMoveSelected = !!targetClassId && selectedAssignedIds.length > 0 && !transferring
+
   const navItems = useMemo(
     () => [
       { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
@@ -253,12 +255,12 @@ export default function ClassStudentsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Class Students</h1>
-            <p className="text-gray-600 mt-2">Add or move students for this class enrollment</p>
+            <h1 className="text-3xl font-bold ui-text-primary">Class Students</h1>
+            <p className="ui-text-secondary mt-2">Add or move students for this class enrollment</p>
           </div>
           <a
             href="/admin/classes"
-            className="px-4 py-2 text-sm rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+            className="px-4 py-2 text-sm rounded border border-(--border-subtle) bg-(--surface-soft) ui-text-secondary hover:ui-text-primary transition-colors"
           >
             Back to Classes
           </a>
@@ -269,7 +271,7 @@ export default function ClassStudentsPage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Enrolled Students ({assigned.length})</h2>
+              <h2 className="text-lg font-semibold ui-text-primary mb-4">Enrolled Students ({assigned.length})</h2>
               <div className="mb-3 space-y-2">
                 <div className="flex gap-2">
                   <Button onClick={selectAllAssigned} className="text-sm">
@@ -283,7 +285,7 @@ export default function ClassStudentsPage() {
                   <select
                     value={targetClassId}
                     onChange={(e) => setTargetClassId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+                    className="w-full px-3 py-2 border border-(--border-subtle) rounded-lg bg-(--surface) ui-text-primary"
                   >
                     <option value="">Select target class</option>
                     {classes.map((classItem) => (
@@ -294,7 +296,7 @@ export default function ClassStudentsPage() {
                       </option>
                     ))}
                   </select>
-                  <Button onClick={transferSelectedStudents} disabled={transferring}>
+                  <Button onClick={transferSelectedStudents} disabled={!canMoveSelected} className="whitespace-nowrap">
                     {transferring
                       ? 'Moving...'
                       : `Move Selected (${selectedAssignedIds.length})`}
@@ -306,12 +308,12 @@ export default function ClassStudentsPage() {
                 value={assignedSearch}
                 onChange={(e) => setAssignedSearch(e.target.value)}
                 placeholder="Search by student name or admission number"
-                className="w-full mb-3 px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+                className="w-full mb-3 px-3 py-2 border border-(--border-subtle) rounded-lg bg-(--surface) ui-text-primary"
               />
               <div className="space-y-3 max-h-112 overflow-auto">
                 {filteredAssigned.length > 0 ? (
                   filteredAssigned.map((student) => (
-                    <div key={student.id} className="flex items-center justify-between border rounded-lg p-3">
+                    <div key={student.id} className="flex items-center justify-between border border-(--border-subtle) bg-(--surface-soft) rounded-lg p-3">
                       <label className="flex items-center gap-3 flex-1 cursor-pointer">
                         <input
                           type="checkbox"
@@ -319,33 +321,33 @@ export default function ClassStudentsPage() {
                           onChange={() => toggleAssignedSelect(student.id)}
                         />
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium ui-text-primary">
                             {student.firstName} {student.lastName}
                           </p>
-                          <p className="text-xs text-gray-500">{student.admissionNumber || 'No admission number'}</p>
+                          <p className="text-xs ui-text-secondary">{student.admissionNumber || 'No admission number'}</p>
                         </div>
                       </label>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-gray-500">No students enrolled in this class yet.</p>
+                  <p className="text-sm ui-text-secondary">No students enrolled in this class yet.</p>
                 )}
               </div>
             </Card>
 
             <Card className="p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Available Students ({available.length})</h2>
+              <h2 className="text-lg font-semibold ui-text-primary mb-4">Available Students ({available.length})</h2>
               <input
                 type="text"
                 value={availableSearch}
                 onChange={(e) => setAvailableSearch(e.target.value)}
                 placeholder="Search by student name or admission number"
-                className="w-full mb-3 px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+                className="w-full mb-3 px-3 py-2 border border-(--border-subtle) rounded-lg bg-(--surface) ui-text-primary"
               />
               <div className="space-y-3 max-h-88 overflow-auto">
                 {filteredAvailable.length > 0 ? (
                   filteredAvailable.map((student) => (
-                    <label key={student.id} className="flex items-center justify-between border rounded-lg p-3">
+                    <label key={student.id} className="flex items-center justify-between rounded-lg border border-(--border-subtle) bg-(--surface-soft) p-3 hover:bg-(--surface)">
                       <div className="flex items-center gap-3">
                         <input
                           type="checkbox"
@@ -353,10 +355,10 @@ export default function ClassStudentsPage() {
                           onChange={() => toggleAvailableSelect(student.id)}
                         />
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium ui-text-primary">
                             {student.firstName} {student.lastName}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs ui-text-secondary">
                             {student.admissionNumber || 'No admission number'}
                             {student.class?.name ? ` • Primary: ${student.class.name}` : ''}
                           </p>
@@ -365,7 +367,7 @@ export default function ClassStudentsPage() {
                     </label>
                   ))
                 ) : (
-                  <p className="text-sm text-gray-500">No available students to add.</p>
+                  <p className="text-sm ui-text-secondary">No available students to add.</p>
                 )}
               </div>
 

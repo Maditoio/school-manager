@@ -1,11 +1,14 @@
 'use client'
 
-import { Sidebar, MobileNav } from '@/components/layout/Navigation'
+import { BottomSidebarNav, Sidebar } from '@/components/layout/Navigation'
+import Toolbar from '@/components/layout/Toolbar'
 import { signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useToast } from '@/components/ui/Toast'
+import { type ClientLocale, translateNode, translateText } from '@/lib/client-i18n'
+import { useLocale } from '@/lib/locale-context'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -25,16 +28,79 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
   const router = useRouter()
   const { data: session, update } = useSession()
   const { showToast } = useToast()
-  const [preferredLanguage, setPreferredLanguage] = useState('en')
+  const { locale, setLocale } = useLocale()
   const [theme, setTheme] = useState('light')
   const [isSavingLanguage, setIsSavingLanguage] = useState(false)
+  const [desktopSidebarWidth, setDesktopSidebarWidth] = useState(240)
+  const [schoolName, setSchoolName] = useState('School Dashboard')
+  const [isSchoolSuspended, setIsSchoolSuspended] = useState(false)
+  const [suspensionReason, setSuspensionReason] = useState<string | null>(null)
+  const [checkingStatus, setCheckingStatus] = useState(true)
+  const isSidebarOpen = desktopSidebarWidth > 120
+  const isParentView = session?.user?.role === 'PARENT' || user.role.toLowerCase() === 'parent'
 
   useEffect(() => {
-    if (session?.user?.preferredLanguage) {
-      setPreferredLanguage(session.user.preferredLanguage)
-    }
-  }, [session?.user?.preferredLanguage])
+    // Only check suspension status for non-super-admins
+    if (session?.user?.role !== 'SUPER_ADMIN') {
+      const checkSuspensionStatus = async () => {
+        try {
+          const res = await fetch('/api/schools/suspension-status')
+          if (res.ok) {
+            const data = await res.json()
+            setIsSchoolSuspended(data.suspended)
+            setSuspensionReason(data.reason)
+          }
+        } catch (error) {
+          console.error('Failed to check school suspension status:', error)
+        } finally {
+          setCheckingStatus(false)
+        }
+      }
 
+      checkSuspensionStatus()
+    } else {
+      setCheckingStatus(false)
+    }
+  }, [session?.user?.role])
+
+  useEffect(() => {
+    if (isSchoolSuspended) {
+      router.push('/school-suspended')
+    }
+  }, [isSchoolSuspended, router])
+
+  useEffect(() => {
+    const schoolId = session?.user?.schoolId
+
+    if (!schoolId) {
+      if (session?.user?.role === 'SUPER_ADMIN') {
+        setSchoolName('Super Admin Portal')
+      }
+      return
+    }
+
+    let active = true
+
+    const loadSchoolName = async () => {
+      try {
+        const response = await fetch(`/api/schools/${schoolId}`)
+        if (!response.ok) return
+        const data = await response.json()
+        const resolvedName = data?.school?.name
+        if (active && typeof resolvedName === 'string' && resolvedName.trim()) {
+          setSchoolName(resolvedName)
+        }
+      } catch (error) {
+        console.error('Failed to load school name:', error)
+      }
+    }
+
+    loadSchoolName()
+
+    return () => {
+      active = false
+    }
+  }, [session?.user?.role, session?.user?.schoolId])
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem('ui-theme') || 'light'
@@ -52,7 +118,9 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
   }
 
   const handleLanguageChange = async (nextLanguage: string) => {
-    setPreferredLanguage(nextLanguage)
+    const nextLocale = nextLanguage as ClientLocale
+    const previousLocale = locale
+    setLocale(nextLocale)
 
     try {
       setIsSavingLanguage(true)
@@ -65,22 +133,17 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
       const data = await res.json()
 
       if (!res.ok) {
-        showToast(data.error || 'Failed to save language preference', 'error')
-        if (session?.user?.preferredLanguage) {
-          setPreferredLanguage(session.user.preferredLanguage)
-        }
+        showToast(data.error || translateText('Failed to save language preference', previousLocale), 'error')
+        setLocale(previousLocale)
         return
       }
 
-      document.cookie = `NEXT_LOCALE=${nextLanguage}; path=/; max-age=${60 * 60 * 24 * 365}`
-      await update({ preferredLanguage: nextLanguage })
-      showToast('Language preference saved', 'success')
+      await update({ preferredLanguage: nextLocale })
+      showToast(translateText('Language preference saved', nextLocale), 'success')
     } catch (error) {
       console.error('Failed to update language preference:', error)
-      showToast('Failed to save language preference', 'error')
-      if (session?.user?.preferredLanguage) {
-        setPreferredLanguage(session.user.preferredLanguage)
-      }
+      showToast(translateText('Failed to save language preference', previousLocale), 'error')
+      setLocale(previousLocale)
     } finally {
       setIsSavingLanguage(false)
     }
@@ -96,54 +159,59 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
     document.documentElement.setAttribute('data-theme', nextTheme)
   }
 
+  const handleThemeToggle = () => {
+    const nextTheme = theme === 'light' ? 'dark' : 'light'
+    handleThemeChange(nextTheme)
+  }
+
+  const translatedNavItems = useMemo(
+    () => navItems.map((item) => ({ ...item, label: translateText(item.label, locale) })),
+    [navItems, locale]
+  )
+
+  const translatedUser = useMemo(
+    () => ({
+      ...user,
+      role: translateText(user.role, locale),
+    }),
+    [user, locale]
+  )
+
   return (
-    <div className="flex h-screen bg-background ui-text-primary">
-      {/* Desktop Sidebar */}
-      <div className="hidden md:block w-64 shrink-0">
-        <Sidebar items={navItems} user={user} onLogout={handleLogout} />
-      </div>
+    <div className="min-h-screen bg-background ui-text-primary">
+      {!isParentView ? (
+        <Sidebar
+          items={translatedNavItems}
+          user={translatedUser}
+          onLogout={handleLogout}
+          onDesktopWidthChange={setDesktopSidebarWidth}
+        />
+      ) : null}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="border-b border-(--border-subtle) bg-(--surface-soft) px-4 py-4 md:px-8 flex items-center justify-end">
-          <div className="flex items-center gap-3">
-            <label htmlFor="theme-select" className="text-sm ui-text-secondary">
-              Theme
-            </label>
-            <select
-              id="theme-select"
-              value={theme}
-              onChange={(e) => handleThemeChange(e.target.value)}
-              className="ui-select w-32"
-            >
-              <option value="light">Light</option>
-              <option value="calm">Calm</option>
-              <option value="dark">Dark</option>
-            </select>
-
-            <label htmlFor="language-select" className="text-sm ui-text-secondary">
-              Language
-            </label>
-            <select
-              id="language-select"
-              value={preferredLanguage}
-              onChange={(e) => handleLanguageChange(e.target.value)}
-              disabled={isSavingLanguage}
-              className="ui-select w-32"
-            >
-              <option value="en">English</option>
-              <option value="fr">Français</option>
-              <option value="sw">Kiswahili</option>
-            </select>
-          </div>
-        </div>
-        <main className="flex-1 overflow-auto p-4 md:p-6 pb-20 md:pb-6">
-          {children}
+      <div
+        className="flex min-h-screen flex-col overflow-hidden"
+        style={{
+          marginLeft: isParentView ? 0 : desktopSidebarWidth,
+          transition: 'margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      >
+        {!isParentView ? (
+          <Toolbar
+            sidebarOpen={isSidebarOpen}
+            schoolName={schoolName}
+            theme={theme}
+            onThemeToggle={handleThemeToggle}
+            language={locale}
+            onLanguageChange={handleLanguageChange}
+          />
+        ) : null}
+        <main className={`flex-1 overflow-auto p-4 ${isParentView ? 'pt-4 pb-24 md:pt-6 md:pb-24' : 'pt-20 pb-20 md:p-6 md:pt-22 md:pb-6'}`}>
+          {translateNode(children, locale)}
         </main>
+        {isParentView ? (
+          <BottomSidebarNav items={translatedNavItems} />
+        ) : null}
       </div>
-
-      {/* Mobile Navigation */}
-      <MobileNav items={navItems} />
     </div>
   )
 }

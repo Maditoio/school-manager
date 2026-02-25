@@ -53,6 +53,18 @@ enum FeePeriodType {
   YEARLY
 }
 
+enum StudentEnrollmentStatus {
+  ACTIVE
+  LEFT
+}
+
+enum StudentLeaveReason {
+  SUSPENSION
+  GRADUATION
+  TRANSFERRED_SCHOOL
+  OTHER
+}
+
 // ============================================
 // CORE TABLES
 // ============================================
@@ -62,6 +74,9 @@ model School {
   name       String
   plan       SubscriptionPlan @default(BASIC)
   active     Boolean          @default(true)
+  suspended  Boolean          @default(false)
+  suspensionReason String?      @map("suspension_reason") @db.Text
+  suspendedAt DateTime?        @map("suspended_at")
   createdAt  DateTime         @default(now()) @map("created_at")
   updatedAt  DateTime         @updatedAt @map("updated_at")
 
@@ -95,6 +110,8 @@ model User {
   preferredLanguage String @default("en") @map("preferred_language")
   firstName    String?  @map("first_name")
   lastName     String?  @map("last_name")
+  title        String?  // e.g., "Mr.", "Mrs.", "Dr."
+  phone        String?
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -106,6 +123,7 @@ model User {
   assessmentsCreated Assessment[] @relation("TeacherAssessments")
   sentMessages       Message[]      @relation("SentMessages")
   receivedMessages   Message[]      @relation("ReceivedMessages")
+  studentStatusChanges StudentStatusHistory[] @relation("StudentStatusChangedBy")
   announcements      Announcement[] @relation("AnnouncementCreator")
   classAnnouncements ClassAnnouncement[] @relation("ClassAnnouncementCreator")
   parentInteractions ParentInteraction[] @relation("ParentInteractions")
@@ -114,10 +132,23 @@ model User {
   deletionRequestsApproved DeletionRequest[] @relation("DeleteRequestsApproved")
   feeSchedulesCreated FeeSchedule[] @relation("FeeScheduleCreatedBy")
   feePaymentsReceived FeePayment[] @relation("FeePaymentReceivedBy")
+  settings UserSettings?
 
   @@index([schoolId])
   @@index([email])
   @@map("users")
+}
+
+model UserSettings {
+  id                String   @id @default(uuid())
+  userId            String   @unique @map("user_id")
+  preferredLanguage String   @default("en") @map("preferred_language")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
 }
 
 model Class {
@@ -155,10 +186,16 @@ model Student {
   parentName String?  @map("parent_name")
   parentEmail String? @map("parent_email")
   parentPhone String? @map("parent_phone")
+  emergencyContactName String? @map("emergency_contact_name")
+  emergencyContactPhone String? @map("emergency_contact_phone")
   firstName  String   @map("first_name")
   lastName   String   @map("last_name")
   dateOfBirth DateTime? @map("date_of_birth")
   admissionNumber String? @map("admission_number")
+  status StudentEnrollmentStatus @default(ACTIVE)
+  statusReason StudentLeaveReason? @map("status_reason")
+  statusDate DateTime? @map("status_date")
+  statusNotes String? @map("status_notes") @db.Text
   academicYear Int @map("academic_year")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
@@ -171,6 +208,7 @@ model Student {
   results    Result[]
   studentAssessments StudentAssessment[]
   classHistory StudentClassHistory[]
+  statusHistory StudentStatusHistory[]
   feePayments FeePayment[]
 
   @@index([schoolId])
@@ -180,6 +218,26 @@ model Student {
   @@index([parentEmail])
   @@unique([schoolId, admissionNumber, academicYear])
   @@map("students")
+}
+
+model StudentStatusHistory {
+  id          String                  @id @default(uuid())
+  studentId   String                  @map("student_id")
+  status      StudentEnrollmentStatus
+  reason      StudentLeaveReason?
+  effectiveAt DateTime                @map("effective_at")
+  notes       String?                 @db.Text
+  changedById String?                 @map("changed_by_id")
+  createdAt   DateTime                @default(now()) @map("created_at")
+
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  changedBy User?   @relation("StudentStatusChangedBy", fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([studentId])
+  @@index([status])
+  @@index([effectiveAt])
+  @@index([changedById])
+  @@map("student_status_history")
 }
 
 model StudentClassHistory {

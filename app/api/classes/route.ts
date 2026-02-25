@@ -80,7 +80,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const validation = createClassSchema.safeParse(body)
+    const normalizedBody = {
+      ...body,
+      teacherId:
+        typeof body.teacherId === 'string' && body.teacherId.trim() === ''
+          ? undefined
+          : body.teacherId,
+    }
+    const validation = createClassSchema.safeParse(normalizedBody)
 
     if (!validation.success) {
       return NextResponse.json(

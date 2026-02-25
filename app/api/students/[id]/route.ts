@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { hasRole } from "@/lib/auth-utils"
+import { Prisma } from "@prisma/client"
 import { hash } from "bcryptjs"
 
 const DEFAULT_PARENT_PASSWORD = 'parent1234'
@@ -66,27 +67,38 @@ async function ensureParentUser(params: {
 
 async function generateAdmissionNumber(schoolId: string, academicYear: number): Promise<string> {
   const prefix = `ADM-${academicYear}-`
-  let sequence = (await prisma.student.count({ where: { schoolId, academicYear } })) + 1
-
-  for (let attempt = 0; attempt < 5000; attempt += 1) {
-    const candidate = `${prefix}${String(sequence).padStart(4, '0')}`
-    const exists = await prisma.student.findFirst({
-      where: {
-        schoolId,
-        academicYear,
-        admissionNumber: candidate,
+  const existingAdmissionNumbers = await prisma.student.findMany({
+    where: {
+      schoolId,
+      academicYear,
+      admissionNumber: {
+        startsWith: prefix,
       },
-      select: { id: true },
-    })
+    },
+    select: {
+      admissionNumber: true,
+    },
+  })
 
-    if (!exists) {
-      return candidate
+  const usedCodes = new Set<string>()
+  const pattern = new RegExp(`^ADM-${academicYear}-(\\d{4})$`)
+
+  for (const row of existingAdmissionNumbers) {
+    const admissionNumber = row.admissionNumber || ''
+    const match = admissionNumber.match(pattern)
+    if (match?.[1]) {
+      usedCodes.add(match[1])
     }
-
-    sequence += 1
   }
 
-  return `${prefix}${Date.now()}`
+  for (let number = 0; number < 10000; number += 1) {
+    const code = String(number).padStart(4, '0')
+    if (!usedCodes.has(code)) {
+      return `${prefix}${code}`
+    }
+  }
+
+  throw new Error(`Admission number space exhausted for academic year ${academicYear}`)
 }
 
 // GET /api/students/[id] - Get student details
@@ -177,8 +189,14 @@ export async function PUT(
 
     const existingStudent = await prisma.student.findUnique({
       where: { id: studentId },
-      select: { schoolId: true, classId: true, academicYear: true, admissionNumber: true },
-    })
+      select: { schoolId: true, classId: true, academicYear: true, admissionNumber: true, status: true },
+    } as Prisma.StudentFindUniqueArgs) as {
+      schoolId: string
+      classId: string
+      academicYear: number
+      admissionNumber: string | null
+      status?: string
+    } | null
 
     if (!existingStudent) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 })
@@ -205,6 +223,12 @@ export async function PUT(
       existingStudent.admissionNumber ||
       (await generateAdmissionNumber(resolvedSchoolId, resolvedAcademicYear))
 
+    const allowedStatuses = new Set(['ACTIVE', 'LEFT'])
+    const resolvedStatus =
+      typeof body.status === 'string' && allowedStatuses.has(body.status)
+        ? body.status
+        : undefined
+
     const student = await prisma.student.update({
       where: { id: studentId },
       data: {
@@ -214,6 +238,10 @@ export async function PUT(
         admissionNumber: resolvedAdmissionNumber,
         classId: body.classId,
         academicYear: resolvedAcademicYear,
+        status: resolvedStatus,
+        statusReason: resolvedStatus === 'LEFT' ? 'OTHER' : resolvedStatus === 'ACTIVE' ? null : undefined,
+        statusDate: resolvedStatus ? new Date() : undefined,
+        statusNotes: resolvedStatus ? 'Updated via student edit form' : undefined,
         parentId: linkedParentId,
         parentName: body.parentName !== undefined ? String(body.parentName || '').trim() || null : undefined,
         parentEmail:
@@ -221,7 +249,15 @@ export async function PUT(
             ? String(body.parentEmail || '').trim().toLowerCase() || null
             : undefined,
         parentPhone: body.parentPhone !== undefined ? String(body.parentPhone || '').trim() || null : undefined,
-      },
+        emergencyContactName:
+          body.emergencyContactName !== undefined
+            ? String(body.emergencyContactName || '').trim() || null
+            : undefined,
+        emergencyContactPhone:
+          body.emergencyContactPhone !== undefined
+            ? String(body.emergencyContactPhone || '').trim() || null
+            : undefined,
+      } as Prisma.StudentUncheckedUpdateInput,
       include: {
         class: {
           select: {
@@ -251,6 +287,27 @@ export async function PUT(
           reason: 'Class updated by admin',
         },
       })
+    }
+
+    if (resolvedStatus && resolvedStatus !== existingStudent.status) {
+      const prismaAny = prisma as unknown as {
+        studentStatusHistory?: {
+          create: (args: unknown) => Promise<unknown>
+        }
+      }
+
+      if (prismaAny.studentStatusHistory?.create) {
+        await prismaAny.studentStatusHistory.create({
+          data: {
+            studentId,
+            status: resolvedStatus,
+            reason: resolvedStatus === 'LEFT' ? 'OTHER' : null,
+            effectiveAt: new Date(),
+            notes: 'Updated via student edit form',
+            changedById: session.user.id,
+          },
+        })
+      }
     }
 
     return NextResponse.json({ student })

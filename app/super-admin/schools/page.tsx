@@ -19,6 +19,9 @@ interface School {
   subscriptionStatus: string
   active: boolean
   createdAt: string
+  suspended: boolean
+  suspensionReason?: string
+  suspendedAt?: string
 }
 
 export default function SchoolsPage() {
@@ -28,6 +31,10 @@ export default function SchoolsPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingSchool, setEditingSchool] = useState<School | null>(null)
+    const [showSuspensionModal, setShowSuspensionModal] = useState(false)
+    const [suspensionAction, setSuspensionAction] = useState<{ schoolId: string; action: 'suspend' | 'unsuspend' } | null>(null)
+    const [suspensionReason, setSuspensionReason] = useState('')
+    const [suspensionLoading, setSuspensionLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     plan: 'BASIC',
@@ -116,6 +123,50 @@ export default function SchoolsPage() {
     }
   }
 
+  const handleSuspensionClick = (schoolId: string, isSuspended: boolean) => {
+    setSuspensionAction({ schoolId, action: isSuspended ? 'unsuspend' : 'suspend' })
+    setSuspensionReason('')
+    setShowSuspensionModal(true)
+  }
+
+  const handleSuspensionSubmit = async () => {
+    if (!suspensionAction) return
+
+    if (suspensionAction.action === 'suspend' && !suspensionReason.trim()) {
+      showToast('Suspension reason is required', 'error')
+      return
+    }
+
+    setSuspensionLoading(true)
+    try {
+      const res = await fetch(`/api/schools/${suspensionAction.schoolId}/suspend`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          suspended: suspensionAction.action === 'suspend',
+          suspensionReason: suspensionReason.trim(),
+        }),
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        await fetchSchools()
+        setShowSuspensionModal(false)
+        setSuspensionAction(null)
+        setSuspensionReason('')
+        showToast(data.message || 'School suspension status updated', 'success')
+      } else {
+        showToast(data.error || 'Failed to update school suspension status', 'error')
+      }
+    } catch (error) {
+      console.error('Failed to update school suspension:', error)
+      showToast('Failed to update school suspension status', 'error')
+    } finally {
+      setSuspensionLoading(false)
+    }
+  }
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -173,13 +224,20 @@ export default function SchoolsPage() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-start">
                     <h3 className="text-xl font-semibold text-gray-900">{school.name}</h3>
-                    <span
-                      className={`px-2 py-1 text-xs rounded ${
-                        school.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {school.active ? 'Active' : 'Inactive'}
-                    </span>
+                    <div className="flex gap-2">
+                      <span
+                        className={`px-2 py-1 text-xs rounded ${
+                          school.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {school.active ? 'Active' : 'Inactive'}
+                      </span>
+                      {school.suspended && (
+                        <span className="px-2 py-1 text-xs rounded bg-orange-100 text-orange-800">
+                          Suspended
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-1 text-sm text-gray-600">
                     <p>📧 {school.email}</p>
@@ -187,10 +245,19 @@ export default function SchoolsPage() {
                     <p>📍 {school.address}</p>
                     <p>📦 Plan: {school.subscriptionPlan}</p>
                     <p>💳 Status: {school.subscriptionStatus}</p>
+                                      {school.suspended && school.suspensionReason && (
+                                        <p className="text-orange-700 font-medium">Reason: {school.suspensionReason}</p>
+                                      )}
                   </div>
                   <div className="flex gap-2 pt-3">
                     <Button variant="secondary" onClick={handleEdit}>
                       Edit
+                                        <Button
+                                          variant={school.suspended ? 'secondary' : 'danger'}
+                                          onClick={() => handleSuspensionClick(school.id, school.suspended)}
+                                        >
+                                          {school.suspended ? 'Unsuspend' : 'Suspend'}
+                                        </Button>
                     </Button>
                     <Button variant="danger" onClick={() => handleDelete(school.id)}>
                       Delete
@@ -277,6 +344,60 @@ export default function SchoolsPage() {
                   <Button type="submit">{editingSchool ? 'Update' : 'Create'}</Button>
                 </div>
               </form>
+            </Card>
+          </div>
+        )}
+
+        {showSuspensionModal && suspensionAction && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-md p-6">
+              <h2 className="text-2xl font-bold mb-4">
+                {suspensionAction.action === 'suspend' ? 'Suspend School' : 'Unsuspend School'}
+              </h2>
+              <div className="space-y-4">
+                {suspensionAction.action === 'suspend' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Suspension Reason
+                    </label>
+                    <textarea
+                      value={suspensionReason}
+                      onChange={(e) => setSuspensionReason(e.target.value)}
+                      placeholder="Enter reason for suspending this school..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows={4}
+                      required
+                    />
+                  </div>
+                )}
+                {suspensionAction.action === 'unsuspend' && (
+                  <p className="text-gray-600">
+                    Are you sure you want to unsuspend this school? School admins and teachers will be able to access the system again.
+                  </p>
+                )}
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setShowSuspensionModal(false)
+                      setSuspensionAction(null)
+                      setSuspensionReason('')
+                    }}
+                    disabled={suspensionLoading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={suspensionAction.action === 'suspend' ? 'danger' : 'secondary'}
+                    onClick={handleSuspensionSubmit}
+                    isLoading={suspensionLoading}
+                  >
+                    {suspensionAction.action === 'suspend' ? 'Suspend' : 'Unsuspend'}
+                  </Button>
+                </div>
+              </div>
             </Card>
           </div>
         )}

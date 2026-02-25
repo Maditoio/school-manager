@@ -3,6 +3,7 @@
 import { SessionProvider } from 'next-auth/react'
 import { Session } from 'next-auth'
 import { ToastProvider } from '@/components/ui/Toast'
+import { LocaleProvider } from '@/lib/locale-context'
 
 export function Providers({ 
   children, 
@@ -13,9 +14,11 @@ export function Providers({
 }) {
   return (
     <SessionProvider session={session}>
-      <ToastProvider>
-        {children}
-      </ToastProvider>
+      <LocaleProvider>
+        <ToastProvider>
+          {children}
+        </ToastProvider>
+      </LocaleProvider>
     </SessionProvider>
   )
 }

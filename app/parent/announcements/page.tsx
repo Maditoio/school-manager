@@ -204,12 +204,7 @@ export default function ParentAnnouncementsPage() {
                 ))}
               </div>
             </section>
-          ) : (
-            <section className="rounded-2xl border border-dashed border-slate-300 bg-linear-to-br from-slate-50 to-slate-100 p-6 text-center">
-              <div className="text-4xl mb-2">📭</div>
-              <p className="text-sm text-slate-600">No announcements yet</p>
-            </section>
-          )}
+          ) : null}
         </div>
       </div>
     </DashboardLayout>

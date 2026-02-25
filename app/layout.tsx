@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { auth } from "@/lib/auth";
+import { cookies } from "next/headers";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -30,9 +31,14 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await auth();
+  const cookieStore = await cookies();
+  const localeCookie = cookieStore.get('NEXT_LOCALE')?.value;
+  const htmlLang = localeCookie === 'fr' || localeCookie === 'sw' || localeCookie === 'en'
+    ? localeCookie
+    : 'en';
   
   return (
-    <html lang="en" data-theme="light">
+    <html lang={htmlLang} data-theme="light">
       <head>
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/icon-192x192.png" />

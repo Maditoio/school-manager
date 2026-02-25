@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card, StatCard } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import Table from '@/components/ui/Table'
 import { useToast } from '@/components/ui/Toast'
 import { AlertTriangle, CircleCheck, Plus, Receipt, Users, Wallet } from 'lucide-react'
 
@@ -92,8 +93,12 @@ export default function AdminFeesPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [tableSearchQuery, setTableSearchQuery] = useState('')
   const [tableClassFilter, setTableClassFilter] = useState('')
+  const [statusTablePage, setStatusTablePage] = useState(1)
+  const [recentSearchQuery, setRecentSearchQuery] = useState('')
+  const [recentPaymentsPage, setRecentPaymentsPage] = useState(1)
   const [paymentModalSearchQuery, setPaymentModalSearchQuery] = useState('')
   const [showPaymentStudentDropdown, setShowPaymentStudentDropdown] = useState(false)
+  const pageSize = 10
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -142,6 +147,113 @@ export default function AdminFeesPage() {
   const uniqueClasses = useMemo(
     () => Array.from(new Set(studentStatuses.map((s) => s.className))).sort(),
     [studentStatuses]
+  )
+
+  const filteredRecentPayments = useMemo(() => {
+    const query = recentSearchQuery.trim().toLowerCase()
+    if (!query) return recentPayments
+
+    return recentPayments.filter((payment) => {
+      return (
+        payment.paymentNumber.toLowerCase().includes(query) ||
+        payment.studentName.toLowerCase().includes(query) ||
+        payment.className.toLowerCase().includes(query) ||
+        String(payment.admissionNumber || '')
+          .toLowerCase()
+          .includes(query)
+      )
+    })
+  }, [recentPayments, recentSearchQuery])
+
+  const statusPageRows = useMemo(() => {
+    const start = (statusTablePage - 1) * pageSize
+    return filteredStudentStatuses.slice(start, start + pageSize)
+  }, [filteredStudentStatuses, statusTablePage])
+
+  const recentPageRows = useMemo(() => {
+    const start = (recentPaymentsPage - 1) * pageSize
+    return filteredRecentPayments.slice(start, start + pageSize)
+  }, [filteredRecentPayments, recentPaymentsPage])
+
+  const statusColumns = useMemo(
+    () => [
+      {
+        key: 'studentName',
+        label: 'Student',
+        sortable: true,
+        renderCell: (student: StudentStatus) => (
+          <div className="flex flex-col">
+            <span className="font-medium text-slate-100">{student.studentName}</span>
+            <span className="text-xs text-slate-400">{student.admissionNumber || 'No admission number'}</span>
+          </div>
+        ),
+      },
+      { key: 'className', label: 'Class', sortable: true },
+      {
+        key: 'amountDue',
+        label: 'Due',
+        sortable: true,
+        renderCell: (student: StudentStatus) => student.amountDue.toFixed(2),
+      },
+      {
+        key: 'totalPaid',
+        label: 'Paid',
+        sortable: true,
+        renderCell: (student: StudentStatus) => student.totalPaid.toFixed(2),
+      },
+      {
+        key: 'balance',
+        label: 'Balance',
+        sortable: true,
+        renderCell: (student: StudentStatus) => student.balance.toFixed(2),
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        sortable: true,
+        renderCell: (student: StudentStatus) => (student.status === 'NOT_PAID' ? 'NOT PAID' : student.status),
+      },
+    ],
+    []
+  )
+
+  const recentColumns = useMemo(
+    () => [
+      { key: 'paymentNumber', label: 'Payment #', sortable: true },
+      {
+        key: 'studentName',
+        label: 'Student',
+        sortable: true,
+        renderCell: (payment: RecentPayment) => (
+          <div className="flex flex-col">
+            <span className="font-medium text-slate-100">{payment.studentName}</span>
+            <span className="text-xs text-slate-400">{payment.className}</span>
+          </div>
+        ),
+      },
+      {
+        key: 'amountPaid',
+        label: 'Amount',
+        sortable: true,
+        renderCell: (payment: RecentPayment) => payment.amountPaid.toFixed(2),
+      },
+      {
+        key: 'paymentDate',
+        label: 'Date',
+        sortable: true,
+        renderCell: (payment: RecentPayment) => new Date(payment.paymentDate).toLocaleDateString(),
+      },
+      {
+        key: 'invoice',
+        label: 'Invoice',
+        renderCell: (payment: RecentPayment) => (
+          <Link href={`/admin/fees/invoice/${payment.id}`} target="_blank" className="text-indigo-300 hover:underline">
+            View Invoice
+          </Link>
+        ),
+      },
+    ],
+    []
   )
 
   const fetchFeesData = useCallback(async (scheduleId?: string) => {
@@ -662,145 +774,53 @@ export default function AdminFeesPage() {
           <p className="mt-1 text-sm ui-text-secondary">Amount still to be collected for selected period.</p>
         </Card>
 
-        <Card title="Payment Status by Student">
-          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end">
-            <div className="flex-1">
-              <label className="mb-1 block text-sm font-medium ui-text-secondary">Search by Name or Admission #</label>
-              <input
-                type="text"
-                value={tableSearchQuery}
-                onChange={(e) => setTableSearchQuery(e.target.value)}
-                placeholder="e.g., John or ADM-2024-001..."
-                className="ui-input"
-              />
-            </div>
-            <div className="flex-1">
-              <label className="mb-1 block text-sm font-medium ui-text-secondary">Filter by Class</label>
-              <input
-                type="text"
-                value={tableClassFilter}
-                onChange={(e) => setTableClassFilter(e.target.value)}
-                placeholder="Start typing class name..."
-                list="class-suggestions"
-                className="ui-input"
-              />
-              <datalist id="class-suggestions">
-                {uniqueClasses.map((className) => (
-                  <option key={className} value={className} />
-                ))}
-              </datalist>
-            </div>
-            {(tableSearchQuery || tableClassFilter) && (
-              <button
-                onClick={() => {
-                  setTableSearchQuery('')
-                  setTableClassFilter('')
-                }}
-                className="ui-button ui-button-secondary"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-          <div className="text-xs ui-text-secondary mb-2">
-            Showing {filteredStudentStatuses.length} of {studentStatuses.length} students
-          </div>
-          <div className="ui-table-wrap overflow-x-auto">
-            <table className="ui-table">
-              <thead>
-                <tr>
-                  <th>Student</th>
-                  <th>Class</th>
-                  <th>Due</th>
-                  <th>Paid</th>
-                  <th>Balance</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredStudentStatuses.map((student) => (
-                  <tr key={student.studentId}>
-                    <td>
-                      {student.studentName}
-                      <div className="text-xs ui-text-secondary">{student.admissionNumber || 'No admission number'}</div>
-                    </td>
-                    <td>{student.className}</td>
-                    <td>{student.amountDue.toFixed(2)}</td>
-                    <td>{student.totalPaid.toFixed(2)}</td>
-                    <td>{student.balance.toFixed(2)}</td>
-                    <td>
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                          student.status === 'PAID'
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : student.status === 'PARTIAL'
-                              ? 'bg-amber-100 text-amber-700'
-                              : 'bg-rose-100 text-rose-700'
-                        }`}
-                      >
-                        {student.status === 'NOT_PAID' ? 'NOT PAID' : student.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {filteredStudentStatuses.length === 0 && !loading && (
-                  <tr>
-                    <td colSpan={6} className="text-center text-sm ui-text-secondary">
-                      {tableSearchQuery || tableClassFilter ? 'No students match your filters.' : 'No students found for this schedule year.'}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <Table
+          title="Payment Status by Student"
+          columns={statusColumns}
+          data={statusPageRows}
+          loading={loading}
+          totalCount={filteredStudentStatuses.length}
+          page={statusTablePage}
+          pageSize={pageSize}
+          onSearch={(value: string) => {
+            setTableSearchQuery(value)
+            setStatusTablePage(1)
+          }}
+          onPageChange={setStatusTablePage}
+          filterOptions={[{ value: '', label: 'All classes' }, ...uniqueClasses.map((className) => ({ value: className, label: className }))]}
+          activeFilter={tableClassFilter}
+          onFilterChange={(value: string) => {
+            setTableClassFilter(value)
+            setStatusTablePage(1)
+          }}
+          emptyMessage={
+            tableSearchQuery || tableClassFilter
+              ? 'No students match your filters.'
+              : 'No students found for this schedule year.'
+          }
+          rowKey="studentId"
+        />
 
-        <Card title="Recent Payments">
-          <div className="ui-table-wrap overflow-x-auto">
-            <table className="ui-table">
-              <thead>
-                <tr>
-                  <th>Payment #</th>
-                  <th>Student</th>
-                  <th>Amount</th>
-                  <th>Date</th>
-                  <th>Invoice</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentPayments.map((payment) => (
-                  <tr key={payment.id}>
-                    <td>{payment.paymentNumber}</td>
-                    <td>
-                      {payment.studentName}
-                      <div className="text-xs ui-text-secondary">{payment.className}</div>
-                    </td>
-                    <td>{payment.amountPaid.toFixed(2)}</td>
-                    <td>
-                      {new Date(payment.paymentDate).toLocaleDateString()}
-                    </td>
-                    <td>
-                      <Link
-                        href={`/admin/fees/invoice/${payment.id}`}
-                        target="_blank"
-                        className="ui-text-primary hover:underline"
-                      >
-                        View Invoice
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-                {recentPayments.length === 0 && !loading && (
-                  <tr>
-                    <td colSpan={5} className="text-center text-sm ui-text-secondary">
-                      No payments recorded yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <Table
+          title="Recent Payments"
+          columns={recentColumns}
+          data={recentPageRows}
+          loading={loading}
+          totalCount={filteredRecentPayments.length}
+          page={recentPaymentsPage}
+          pageSize={pageSize}
+          onSearch={(value: string) => {
+            setRecentSearchQuery(value)
+            setRecentPaymentsPage(1)
+          }}
+          onPageChange={setRecentPaymentsPage}
+          onFilterClick={() => {
+            setRecentSearchQuery('')
+            setRecentPaymentsPage(1)
+          }}
+          emptyMessage="No payments recorded yet."
+          rowKey="id"
+        />
       </div>
     </DashboardLayout>
   )

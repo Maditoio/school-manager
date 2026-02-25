@@ -2,12 +2,11 @@
 
 import { useState } from 'react'
 import { signOut, useSession } from 'next-auth/react'
-import { redirect, useRouter } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Form'
 
 export default function ResetPasswordPage() {
-  const router = useRouter()
   const { data: session, status } = useSession()
 
   const [currentPassword, setCurrentPassword] = useState('')
@@ -61,9 +60,11 @@ export default function ResetPasswordPage() {
       }
 
       setSuccess('Password updated successfully. Please sign in again.')
-      await signOut({ redirect: false })
-      router.push('/login')
-      router.refresh()
+      
+      // Sign out and redirect to login
+      setTimeout(async () => {
+        await signOut({ callbackUrl: '/login' })
+      }, 1000)
     } catch {
       setError('Failed to update password')
     } finally {

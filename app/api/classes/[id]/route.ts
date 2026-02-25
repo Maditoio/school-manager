@@ -64,13 +64,18 @@ export async function PUT(
     const body = await request.json()
     const { id: classId } = await params
 
+    const resolvedTeacherId =
+      typeof body.teacherId === 'string' && body.teacherId.trim() === ''
+        ? null
+        : body.teacherId
+
     const classData = await prisma.class.update({
       where: { id: classId },
       data: {
         name: body.name,
         academicYear: body.academicYear,
         grade: body.grade,
-        teacherId: body.teacherId,
+        teacherId: resolvedTeacherId,
       },
       include: {
         teacher: {

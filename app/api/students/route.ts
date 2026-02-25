@@ -68,27 +68,38 @@ async function ensureParentUser(params: {
 
 async function generateAdmissionNumber(schoolId: string, academicYear: number): Promise<string> {
   const prefix = `ADM-${academicYear}-`
-  let sequence = (await prisma.student.count({ where: { schoolId, academicYear } })) + 1
-
-  for (let attempt = 0; attempt < 5000; attempt += 1) {
-    const candidate = `${prefix}${String(sequence).padStart(4, '0')}`
-    const exists = await prisma.student.findFirst({
-      where: {
-        schoolId,
-        academicYear,
-        admissionNumber: candidate,
+  const existingAdmissionNumbers = await prisma.student.findMany({
+    where: {
+      schoolId,
+      academicYear,
+      admissionNumber: {
+        startsWith: prefix,
       },
-      select: { id: true },
-    })
+    },
+    select: {
+      admissionNumber: true,
+    },
+  })
 
-    if (!exists) {
-      return candidate
+  const usedCodes = new Set<string>()
+  const pattern = new RegExp(`^ADM-${academicYear}-(\\d{4})$`)
+
+  for (const row of existingAdmissionNumbers) {
+    const admissionNumber = row.admissionNumber || ''
+    const match = admissionNumber.match(pattern)
+    if (match?.[1]) {
+      usedCodes.add(match[1])
     }
-
-    sequence += 1
   }
 
-  return `${prefix}${Date.now()}`
+  for (let number = 0; number < 10000; number += 1) {
+    const code = String(number).padStart(4, '0')
+    if (!usedCodes.has(code)) {
+      return `${prefix}${code}`
+    }
+  }
+
+  throw new Error(`Admission number space exhausted for academic year ${academicYear}`)
 }
 
 // GET /api/students - List students
@@ -103,6 +114,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const classId = searchParams.get('classId')
     const parentId = searchParams.get('parentId')
+    const statusReason = (searchParams.get('statusReason') || '').trim()
+    const statusDateFrom = (searchParams.get('statusDateFrom') || '').trim()
+    const statusDateTo = (searchParams.get('statusDateTo') || '').trim()
 
     const where: Prisma.StudentWhereInput = {}
 
@@ -149,6 +163,36 @@ export async function GET(request: NextRequest) {
     // Filter by class
     if (classId && session.user.role !== 'TEACHER') {
       where.classId = classId
+    }
+
+    const whereAny = where as Record<string, unknown>
+
+    if (statusReason) {
+      whereAny.status = 'LEFT'
+      whereAny.statusReason = statusReason
+    }
+
+    if (statusDateFrom || statusDateTo) {
+      const dateFilter: { gte?: Date; lte?: Date } = {}
+
+      if (statusDateFrom) {
+        const parsedFrom = new Date(statusDateFrom)
+        if (!Number.isNaN(parsedFrom.getTime())) {
+          dateFilter.gte = parsedFrom
+        }
+      }
+
+      if (statusDateTo) {
+        const parsedTo = new Date(statusDateTo)
+        if (!Number.isNaN(parsedTo.getTime())) {
+          parsedTo.setHours(23, 59, 59, 999)
+          dateFilter.lte = parsedTo
+        }
+      }
+
+      if (dateFilter.gte || dateFilter.lte) {
+        whereAny.statusDate = dateFilter
+      }
     }
 
     const query = (searchParams.get('q') || '').trim()
@@ -272,10 +316,13 @@ export async function POST(request: NextRequest) {
       firstName,
       lastName,
       classId,
+      status,
       parentId,
       parentName,
       parentEmail,
       parentPhone,
+      emergencyContactName,
+      emergencyContactPhone,
       dateOfBirth,
       admissionNumber,
     } = validation.data
@@ -304,10 +351,8 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const generatedAdmissionNumber = await generateAdmissionNumber(
-      classData.schoolId,
-      resolvedAcademicYear
-    )
+    const generatedAdmissionNumber = await generateAdmissionNumber(classData.schoolId, resolvedAcademicYear)
+    const resolvedAdmissionNumber = String(admissionNumber || '').trim() || generatedAdmissionNumber
 
     const student = await prisma.student.create({
       data: {
@@ -319,10 +364,14 @@ export async function POST(request: NextRequest) {
         parentName: parentName?.trim() || null,
         parentEmail: parentEmail?.trim().toLowerCase() || null,
         parentPhone: parentPhone?.trim() || null,
+        emergencyContactName: emergencyContactName?.trim() || null,
+        emergencyContactPhone: emergencyContactPhone?.trim() || null,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
-        admissionNumber: generatedAdmissionNumber || admissionNumber || null,
+        admissionNumber: resolvedAdmissionNumber,
+        status: status || 'ACTIVE',
+        statusDate: new Date(),
         academicYear: resolvedAcademicYear,
-      },
+      } as Prisma.StudentUncheckedCreateInput,
       include: {
         class: true,
         parent: {
@@ -345,6 +394,25 @@ export async function POST(request: NextRequest) {
         reason: 'Initial class assignment',
       },
     })
+
+    const prismaAny = prisma as unknown as {
+      studentStatusHistory?: {
+        create: (args: unknown) => Promise<unknown>
+      }
+    }
+
+    if (prismaAny.studentStatusHistory?.create) {
+      await prismaAny.studentStatusHistory.create({
+        data: {
+          studentId: student.id,
+          status: status || 'ACTIVE',
+          reason: null,
+          effectiveAt: new Date(),
+          notes: 'Initial enrollment status',
+          changedById: session.user.id,
+        },
+      })
+    }
 
     return NextResponse.json({ student }, { status: 201 })
   } catch (error) {

@@ -1,6 +1,8 @@
 'use client'
 
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import { translateText } from '@/lib/client-i18n'
+import { useLocale } from '@/lib/locale-context'
 
 type ToastType = 'success' | 'error' | 'info' | 'warning'
 
@@ -26,10 +28,11 @@ export function useToast() {
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
+  const { locale } = useLocale()
 
   const showToast = useCallback((message: string, type: ToastType = 'info') => {
     const id = Math.random().toString(36).substring(7)
-    const newToast = { id, message, type }
+    const newToast = { id, message: translateText(message, locale), type }
     
     setToasts((prev) => [...prev, newToast])
 
@@ -37,7 +40,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id))
     }, 4000)
-  }, [])
+  }, [locale])
 
   const removeToast = (id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id))
@@ -74,19 +77,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       
       {/* Toast Container */}
-      <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
+      <div className="fixed top-4 right-4 z-9999 flex flex-col gap-2 pointer-events-none">
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg animate-slide-in-right min-w-[300px] max-w-md ${getToastStyles(toast.type)}`}
+            className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg animate-slide-in-right min-w-75 max-w-md ${getToastStyles(toast.type)}`}
           >
-            <span className="text-xl font-bold flex-shrink-0">
+            <span className="text-xl font-bold shrink-0">
               {getIcon(toast.type)}
             </span>
             <p className="flex-1 text-sm font-medium">{toast.message}</p>
             <button
               onClick={() => removeToast(toast.id)}
-              className="flex-shrink-0 text-lg hover:opacity-70 transition-opacity"
+              className="shrink-0 text-lg hover:opacity-70 transition-opacity"
             >
               ×
             </button>

@@ -1,14 +1,18 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Form'
+import Table from '@/components/ui/Table'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
+import enMessages from '@/messages/en.json'
+import frMessages from '@/messages/fr.json'
+import swMessages from '@/messages/sw.json'
 
 interface Student {
   id: string
@@ -16,12 +20,18 @@ interface Student {
   lastName: string
   dateOfBirth: string | null
   admissionNumber: string | null
+  status: 'ACTIVE' | 'LEFT'
+  statusReason?: 'SUSPENSION' | 'GRADUATION' | 'TRANSFERRED_SCHOOL' | 'OTHER' | null
+  statusDate?: string | null
+  statusNotes?: string | null
   classId: string
   class?: { id: string; name: string }
   parentId: string | null
   parentName?: string | null
   parentEmail?: string | null
   parentPhone?: string | null
+  emergencyContactName?: string | null
+  emergencyContactPhone?: string | null
   parent?: { firstName: string; lastName: string } | null
 }
 
@@ -39,14 +49,19 @@ export default function StudentsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedClassId, setSelectedClassId] = useState('')
+  const [selectedStatusReason, setSelectedStatusReason] = useState('')
+  const [statusDateFrom, setStatusDateFrom] = useState('')
+  const [statusDateTo, setStatusDateTo] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
-  const [totalPages, setTotalPages] = useState(1)
+  const pageSize = 10
   const [totalCount, setTotalCount] = useState(0)
-  const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null)
 
   const [showModal, setShowModal] = useState(false)
   const [editingStudent, setEditingStudent] = useState<Student | null>(null)
+  const [showStatusModal, setShowStatusModal] = useState(false)
+  const [statusTargetStudent, setStatusTargetStudent] = useState<Student | null>(null)
+  const [showEmergencyModal, setShowEmergencyModal] = useState(false)
+  const [emergencyTargetStudent, setEmergencyTargetStudent] = useState<Student | null>(null)
 
   const [uploading, setUploading] = useState(false)
   const [uploadFile, setUploadFile] = useState<File | null>(null)
@@ -64,6 +79,30 @@ export default function StudentsPage() {
     parentEmail: '',
     parentPhone: '',
   })
+
+  const [statusFormData, setStatusFormData] = useState({
+    status: 'LEFT' as 'ACTIVE' | 'LEFT',
+    reason: 'SUSPENSION' as 'SUSPENSION' | 'GRADUATION' | 'TRANSFERRED_SCHOOL' | 'OTHER',
+    effectiveAt: new Date().toISOString().split('T')[0],
+    notes: '',
+  })
+
+  const [emergencyFormData, setEmergencyFormData] = useState({
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+  })
+
+  const preferredLanguage = session?.user?.preferredLanguage || 'en'
+  const studentsPageMessages = useMemo(() => {
+    const currentMessages =
+      preferredLanguage === 'fr' ? frMessages : preferredLanguage === 'sw' ? swMessages : enMessages
+    return (currentMessages as Record<string, unknown>).studentsPage as Record<string, string> | undefined
+  }, [preferredLanguage])
+
+  const t = useCallback(
+    (key: string, fallback: string) => studentsPageMessages?.[key] || fallback,
+    [studentsPageMessages]
+  )
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -84,7 +123,10 @@ export default function StudentsPage() {
     page = currentPage,
     size = pageSize,
     query = searchTerm,
-    classFilter = selectedClassId
+    classFilter = selectedClassId,
+    reasonFilter = selectedStatusReason,
+    dateFromFilter = statusDateFrom,
+    dateToFilter = statusDateTo
   ) => {
     try {
       setLoading(true)
@@ -102,6 +144,18 @@ export default function StudentsPage() {
         params.set('classId', classFilter)
       }
 
+      if (reasonFilter) {
+        params.set('statusReason', reasonFilter)
+      }
+
+      if (dateFromFilter) {
+        params.set('statusDateFrom', dateFromFilter)
+      }
+
+      if (dateToFilter) {
+        params.set('statusDateTo', dateToFilter)
+      }
+
       const res = await fetch(`/api/students?${params.toString()}`)
       if (res.ok) {
         const data = await res.json()
@@ -110,7 +164,6 @@ export default function StudentsPage() {
         const pagination = data.pagination
         if (pagination) {
           setTotalCount(Number(pagination.totalCount) || 0)
-          setTotalPages(Math.max(1, Number(pagination.totalPages) || 1))
 
           const serverPage = Number(pagination.page) || 1
           if (serverPage !== page) {
@@ -119,28 +172,33 @@ export default function StudentsPage() {
         } else {
           const count = Array.isArray(data.students) ? data.students.length : 0
           setTotalCount(count)
-          setTotalPages(1)
         }
       } else {
         setStudents([])
         setTotalCount(0)
-        setTotalPages(1)
       }
     } catch (error) {
       console.error('Failed to fetch students:', error)
       setStudents([])
       setTotalCount(0)
-      setTotalPages(1)
     } finally {
       setLoading(false)
     }
-  }, [currentPage, pageSize, searchTerm, selectedClassId])
+  }, [currentPage, pageSize, searchTerm, selectedClassId, selectedStatusReason, statusDateFrom, statusDateTo])
 
   useEffect(() => {
     if (session) {
-      fetchStudents(currentPage, pageSize, searchTerm, selectedClassId)
+      fetchStudents(
+        currentPage,
+        pageSize,
+        searchTerm,
+        selectedClassId,
+        selectedStatusReason,
+        statusDateFrom,
+        statusDateTo
+      )
     }
-  }, [session, currentPage, pageSize, searchTerm, selectedClassId, fetchStudents])
+  }, [session, currentPage, pageSize, searchTerm, selectedClassId, selectedStatusReason, statusDateFrom, statusDateTo, fetchStudents])
 
   const fetchClasses = async () => {
     try {
@@ -182,28 +240,41 @@ export default function StudentsPage() {
       })
 
       if (res.ok) {
-        await fetchStudents(currentPage, pageSize, searchTerm, selectedClassId)
+        await fetchStudents(
+          currentPage,
+          pageSize,
+          searchTerm,
+          selectedClassId,
+          selectedStatusReason,
+          statusDateFrom,
+          statusDateTo
+        )
         setShowModal(false)
         resetForm()
-        showToast(`Student ${editingStudent ? 'updated' : 'created'} successfully`, 'success')
+        showToast(
+          editingStudent
+            ? t('toastStudentUpdated', 'Student updated successfully')
+            : t('toastStudentCreated', 'Student created successfully'),
+          'success'
+        )
       } else {
         const error = await res.json()
-        showToast(error.error || 'Failed to save student', 'error')
+        showToast(error.error || t('toastFailedSaveStudent', 'Failed to save student'), 'error')
       }
     } catch (error) {
       console.error('Failed to save student:', error)
-      showToast('Failed to save student', 'error')
+      showToast(t('toastFailedSaveStudent', 'Failed to save student'), 'error')
     }
   }
 
   const handleExcelUpload = async () => {
     if (!uploadFile) {
-      showToast('Please choose an Excel file', 'warning')
+      showToast(t('toastChooseExcel', 'Please choose an Excel file'), 'warning')
       return
     }
 
     if (uploadFile.size > 5 * 1024 * 1024) {
-      showToast('File is too large. Maximum supported size is 5MB.', 'error')
+      showToast(t('toastFileTooLarge', 'File is too large. Maximum supported size is 5MB.'), 'error')
       return
     }
 
@@ -237,11 +308,19 @@ export default function StudentsPage() {
 
         setUploadSummary({ created: result.created || 0, failed: result.failed || 0 })
         setUploadErrors(detailedErrors)
-        showToast(result.error || result.message || 'Bulk upload failed', 'error')
+        showToast(result.error || result.message || t('toastBulkFailed', 'Bulk upload failed'), 'error')
         return
       }
 
-      await fetchStudents(currentPage, pageSize, searchTerm, selectedClassId)
+      await fetchStudents(
+        currentPage,
+        pageSize,
+        searchTerm,
+        selectedClassId,
+        selectedStatusReason,
+        statusDateFrom,
+        statusDateTo
+      )
       setUploadFile(null)
       const created = result.created || 0
       const failed = result.failed || 0
@@ -253,13 +332,13 @@ export default function StudentsPage() {
       setUploadErrors(detailedErrors)
 
       if (failed > 0) {
-        showToast(`Upload processed: ${created} created, ${failed} failed`, created > 0 ? 'warning' : 'error')
+        showToast(`${t('toastUploadProcessed', 'Upload processed')}: ${created} ${t('created', 'created')}, ${failed} ${t('failed', 'failed')}`, created > 0 ? 'warning' : 'error')
       } else {
-        showToast(`Upload complete: ${created} created`, 'success')
+        showToast(`${t('toastUploadComplete', 'Upload complete')}: ${created} ${t('created', 'created')}`, 'success')
       }
     } catch (error) {
       console.error('Failed to upload students:', error)
-      showToast('Network error during upload. Please refresh and try again.', 'error')
+      showToast(t('toastNetworkUploadError', 'Network error during upload. Please refresh and try again.'), 'error')
     } finally {
       setUploading(false)
     }
@@ -282,27 +361,9 @@ export default function StudentsPage() {
     setShowModal(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this student?')) return
-
-    try {
-      const res = await fetch(`/api/students/${id}`, { method: 'DELETE' })
-      if (res.ok) {
-        await fetchStudents(currentPage, pageSize, searchTerm, selectedClassId)
-        showToast('Student deleted successfully', 'success')
-      } else {
-        const error = await res.json()
-        showToast(error.error || 'Failed to delete student', 'error')
-      }
-    } catch (error) {
-      console.error('Failed to delete student:', error)
-      showToast('Failed to delete student', 'error')
-    }
-  }
-
   const handleResetParentPassword = async (student: Student) => {
     if (!student.parentId) {
-      showToast('No linked parent account for this student', 'warning')
+      showToast(t('toastNoParentLinked', 'No linked parent account for this student'), 'warning')
       return
     }
 
@@ -310,7 +371,7 @@ export default function StudentsPage() {
     if (!newPassword) return
 
     if (newPassword.length < 6) {
-      showToast('Password must be at least 6 characters', 'error')
+      showToast(t('toastPasswordMin', 'Password must be at least 6 characters'), 'error')
       return
     }
 
@@ -323,14 +384,14 @@ export default function StudentsPage() {
 
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        showToast(data.error || 'Failed to reset parent password', 'error')
+        showToast(data.error || t('toastFailedResetParentPassword', 'Failed to reset parent password'), 'error')
         return
       }
 
-      showToast('Parent password reset. Parent must change it on first login.', 'success')
+      showToast(t('toastParentResetSuccess', 'Parent password reset. Parent must change it on first login.'), 'success')
     } catch (error) {
       console.error('Failed to reset parent password:', error)
-      showToast('Failed to reset parent password', 'error')
+      showToast(t('toastFailedResetParentPassword', 'Failed to reset parent password'), 'error')
     }
   }
 
@@ -348,13 +409,265 @@ export default function StudentsPage() {
     setEditingStudent(null)
   }
 
+  const fetchNextAdmissionNumber = useCallback(async (classId: string) => {
+    if (!classId) {
+      setFormData((prev) => ({ ...prev, admissionNumber: '' }))
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/students/next-admission?classId=${encodeURIComponent(classId)}`)
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => ({}))
+        showToast(errorBody.error || t('toastFailedAdmission', 'Failed to generate admission number'), 'warning')
+        return
+      }
+
+      const payload = await res.json()
+      if (payload?.admissionNumber) {
+        setFormData((prev) => ({ ...prev, admissionNumber: payload.admissionNumber }))
+      }
+    } catch (error) {
+      console.error('Failed to fetch next admission number:', error)
+    }
+  }, [showToast, t])
+
+  const handleClassChangeInForm = (classId: string) => {
+    setFormData((prev) => ({ ...prev, classId }))
+    if (!editingStudent) {
+      fetchNextAdmissionNumber(classId)
+    }
+  }
+
+  const resetStatusForm = () => {
+    setStatusFormData({
+      status: 'LEFT',
+      reason: 'SUSPENSION',
+      effectiveAt: new Date().toISOString().split('T')[0],
+      notes: '',
+    })
+  }
+
+  const handleOpenStatusModal = (student: Student) => {
+    setStatusTargetStudent(student)
+    setStatusFormData({
+      status: student.status,
+      reason: student.statusReason || 'SUSPENSION',
+      effectiveAt: student.statusDate ? student.statusDate.split('T')[0] : new Date().toISOString().split('T')[0],
+      notes: student.statusNotes || '',
+    })
+    setShowStatusModal(true)
+  }
+
+  const handleStatusSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!statusTargetStudent) return
+
+    if (statusFormData.status === 'LEFT' && !statusFormData.reason) {
+      showToast(t('toastSelectReason', 'Please select a reason for leaving'), 'warning')
+      return
+    }
+
+    try {
+      const statusPayload = {
+        status: statusFormData.status,
+        reason: statusFormData.status === 'LEFT' ? statusFormData.reason : undefined,
+        effectiveAt: statusFormData.effectiveAt,
+        notes: statusFormData.notes || undefined,
+      }
+
+      const res = await fetch(`/api/students/${statusTargetStudent.id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(statusPayload),
+      })
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}))
+        console.error('Status update failed', {
+          studentId: statusTargetStudent.id,
+          httpStatus: res.status,
+          response: error,
+          payload: statusPayload,
+        })
+
+        const combinedMessage = [error.error, error.details, error.requestId ? `Ref: ${error.requestId}` : '']
+          .filter(Boolean)
+          .join(' • ')
+
+        showToast(combinedMessage || t('toastFailedStatusUpdate', 'Failed to update student status'), 'error')
+        return
+      }
+
+      await fetchStudents(
+        currentPage,
+        pageSize,
+        searchTerm,
+        selectedClassId,
+        selectedStatusReason,
+        statusDateFrom,
+        statusDateTo
+      )
+      setShowStatusModal(false)
+      setStatusTargetStudent(null)
+      resetStatusForm()
+      showToast(t('toastStatusUpdated', 'Student status updated successfully'), 'success')
+    } catch (error) {
+      console.error('Failed to update student status:', error)
+      showToast(t('toastFailedStatusUpdate', 'Failed to update student status'), 'error')
+    }
+  }
+
+  const handleOpenEmergencyModal = (student: Student) => {
+    setEmergencyTargetStudent(student)
+    setEmergencyFormData({
+      emergencyContactName: student.emergencyContactName || '',
+      emergencyContactPhone: student.emergencyContactPhone || '',
+    })
+    setShowEmergencyModal(true)
+  }
+
+  const resetEmergencyForm = () => {
+    setEmergencyFormData({
+      emergencyContactName: '',
+      emergencyContactPhone: '',
+    })
+  }
+
+  const handleEmergencySubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!emergencyTargetStudent) return
+
+    if (!emergencyFormData.emergencyContactPhone.trim()) {
+      showToast(t('toastEmergencyPhoneRequired', 'Emergency contact phone is required'), 'warning')
+      return
+    }
+
+    try {
+      const payload = {
+        emergencyContactName: emergencyFormData.emergencyContactName || undefined,
+        emergencyContactPhone: emergencyFormData.emergencyContactPhone,
+      }
+
+      const res = await fetch(`/api/students/${emergencyTargetStudent.id}/emergency-contact`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}))
+        showToast(error.error || t('toastFailedEmergencyUpdate', 'Failed to update emergency contact'), 'error')
+        return
+      }
+
+      await fetchStudents(
+        currentPage,
+        pageSize,
+        searchTerm,
+        selectedClassId,
+        selectedStatusReason,
+        statusDateFrom,
+        statusDateTo
+      )
+      setShowEmergencyModal(false)
+      setEmergencyTargetStudent(null)
+      resetEmergencyForm()
+      showToast(t('toastEmergencyUpdated', 'Emergency contact updated successfully'), 'success')
+    } catch (error) {
+      console.error('Failed to update emergency contact:', error)
+      showToast(t('toastFailedEmergencyUpdate', 'Failed to update emergency contact'), 'error')
+    }
+  }
+
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, selectedClassId, pageSize])
+  }, [searchTerm, selectedClassId, selectedStatusReason, statusDateFrom, statusDateTo, pageSize])
 
   if (status === 'loading' || !session) {
-    return <div>Loading...</div>
+    return <div>{t('loading', 'Loading...')}</div>
   }
+
+  const studentColumns = [
+    {
+      key: 'admissionNumber',
+      label: t('tableAdmissionNo', 'Admission No'),
+      sortable: true,
+      renderCell: (student: Student) => student.admissionNumber || '-',
+    },
+    {
+      key: 'student',
+      label: t('tableName', 'Name'),
+      sortable: true,
+      renderCell: (student: Student) => (
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/10 text-xs font-semibold text-slate-100">
+            {`${student.firstName?.[0] || ''}${student.lastName?.[0] || ''}`.toUpperCase() || 'S'}
+          </div>
+          <div className="flex flex-col">
+            <Link href={`/admin/students/${student.id}`} className="font-medium text-indigo-200 hover:underline">
+              {student.firstName} {student.lastName}
+            </Link>
+            <span className="text-xs text-slate-400">
+              {student.parentEmail || t('parentEmailOptional', 'Parent Email (optional)')}
+            </span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'className',
+      label: t('tableClass', 'Class'),
+      sortable: true,
+      renderCell: (student: Student) => student.class?.name || 'N/A',
+    },
+    {
+      key: 'status',
+      label: t('tableStatus', 'Status'),
+      sortable: true,
+      renderCell: (student: Student) =>
+        student.status === 'LEFT' ? t('leftSchool', 'Left School') : t('active', 'Active'),
+    },
+    {
+      key: 'actions',
+      label: t('tableActions', 'Actions'),
+    },
+  ]
+
+  const studentRowActions = (student: Student) => [
+    {
+      label: t('viewDetails', 'View Details'),
+      onClick: () => {
+        window.location.href = `/admin/students/${student.id}`
+      },
+    },
+    {
+      label: t('edit', 'Edit'),
+      onClick: () => {
+        handleEdit(student)
+      },
+    },
+    {
+      label: t('updateStatus', 'Update Status'),
+      onClick: () => {
+        handleOpenStatusModal(student)
+      },
+    },
+    {
+      label: t('updateEmergencyContact', 'Update Emergency Contact'),
+      onClick: () => {
+        handleOpenEmergencyModal(student)
+      },
+    },
+    {
+      label: t('resetParentPassword', 'Reset Parent Password'),
+      onClick: () => {
+        handleResetParentPassword(student)
+      },
+    },
+  ]
 
   const navItems = [
     { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
@@ -380,253 +693,76 @@ export default function StudentsPage() {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Students Management</h1>
-            <p className="text-gray-600 mt-2">Manage students, classes, and parent contacts</p>
+            <h1 className="text-[24px] font-bold ui-text-primary">{t('pageTitle', 'Students Management')}</h1>
+            <p className="mt-1 ui-text-secondary">{t('pageSubtitle', 'Manage students, classes, and parent contacts')}</p>
           </div>
-          <Button
-            onClick={() => {
-              resetForm()
-              setShowModal(true)
-            }}
-          >
-            Add Student
-          </Button>
-        </div>
-
-        <Card className="p-3 border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <h2 className="text-sm font-semibold text-gray-900">Bulk Upload (Excel)</h2>
-              <p className="text-xs text-gray-600">Upload many students with template file</p>
-            </div>
-            <Button variant="secondary" onClick={() => setShowBulkUpload((prev) => !prev)}>
-              {showBulkUpload ? 'Hide' : 'Show'}
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowBulkUpload(true)
+                setUploadSummary(null)
+                setUploadErrors([])
+                setUploadFile(null)
+              }}
+            >
+              {t('bulkUpload', 'Bulk Upload')}
+            </Button>
+            <Button
+              onClick={() => {
+                resetForm()
+                setShowModal(true)
+              }}
+            >
+              {t('enrollStudent', 'Enroll Student')}
             </Button>
           </div>
+        </div>
 
-          {showBulkUpload ? (
-            <div className="mt-3 space-y-3">
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/api/students/bulk-upload/template"
-                  title="Download Excel template"
-                  aria-label="Download Excel template"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 transition-colors"
-                >
-                  ⬇️
-                </Link>
-                <Button
-                  onClick={handleExcelUpload}
-                  isLoading={uploading}
-                  title="Upload selected Excel file"
-                  aria-label="Upload selected Excel file"
-                  className="h-9 w-9 p-0"
-                >
-                  ⬆️
-                </Button>
-              </div>
-
-              <p className="text-xs text-gray-600">
-                Required: firstName, lastName, className or classId. Optional: admissionNumber, dateOfBirth,
-                parentName, parentEmail, parentPhone.
-              </p>
-
-              <div className="rounded-lg border border-dashed border-slate-300 bg-white p-2">
-                <Input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                />
-              </div>
-
-              {uploadSummary ? (
-                <div className="rounded-lg border border-slate-200 bg-white p-2 text-xs">
-                  <p className="font-medium text-slate-900">
-                    Upload result: {uploadSummary.created} created, {uploadSummary.failed} failed
-                  </p>
-                  {uploadErrors.length > 0 ? (
-                    <ul className="mt-1 list-disc pl-5 text-rose-700 space-y-1">
-                      {uploadErrors.map((errorLine, index) => (
-                        <li key={`${errorLine}-${index}`}>{errorLine}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-        </Card>
-
-        <Card className="p-3">
-          <div className="flex flex-col lg:flex-row gap-3 lg:items-end lg:justify-between">
-            <div className="w-full lg:max-w-md">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Search students</label>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by name, admission number, class, parent name or email"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-              />
-            </div>
-            <div className="w-full lg:w-56">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Filter by class</label>
-              <select
-                value={selectedClassId}
-                onChange={(e) => setSelectedClassId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-              >
-                <option value="">All classes</option>
-                {classes.map((cls) => (
-                  <option key={cls.id} value={cls.id}>
-                    {cls.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="w-full lg:w-40">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Rows per page</label>
-              <select
-                value={pageSize}
-                onChange={(e) => setPageSize(Number(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-              >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </div>
-          </div>
-        </Card>
-
-        {loading ? (
-          <div>Loading students...</div>
-        ) : students.length > 0 ? (
-          <>
-            <div className="overflow-x-auto overflow-y-visible">
-              <table className="min-w-full bg-white border border-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Admission No</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase w-16">Actions</th>
-                </tr>
-              </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {students.map((student) => {
-                  return (
-                    <tr key={student.id}>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {student.admissionNumber || '-'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        <Link href={`/admin/students/${student.id}`} className="text-blue-700 hover:underline">
-                          {student.firstName} {student.lastName}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                        {student.class?.name || 'N/A'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-right relative">
-                        <button
-                          type="button"
-                          aria-label="Student actions"
-                          className="h-7 w-7 rounded hover:bg-gray-100"
-                          onClick={() =>
-                            setOpenActionMenuId((prev) => (prev === student.id ? null : student.id))
-                          }
-                        >
-                          ⋮
-                        </button>
-                        {openActionMenuId === student.id ? (
-                          <div className="absolute right-3 mt-1 w-56 rounded-md border border-gray-200 bg-white shadow-lg z-50 text-left overflow-hidden">
-                            <Link
-                              href={`/admin/students/${student.id}`}
-                              className="flex w-full items-center justify-start px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                              onClick={() => setOpenActionMenuId(null)}
-                            >
-                              View Details
-                            </Link>
-                            <button
-                              type="button"
-                              className="flex w-full items-center justify-start px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                              onClick={() => {
-                                setOpenActionMenuId(null)
-                                handleEdit(student)
-                              }}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              className="flex w-full items-center justify-start px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
-                              onClick={() => {
-                                setOpenActionMenuId(null)
-                                handleResetParentPassword(student)
-                              }}
-                            >
-                              Reset Parent Password
-                            </button>
-                            <button
-                              type="button"
-                              className="flex w-full items-center justify-start px-3 py-2 text-xs text-red-600 hover:bg-red-50"
-                              onClick={() => {
-                                setOpenActionMenuId(null)
-                                handleDelete(student.id)
-                              }}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        ) : null}
-                      </td>
-                    </tr>
-                  )
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {totalCount > 0 ? (
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600">
-                  Showing {Math.min((currentPage - 1) * pageSize + 1, totalCount)}-
-                  {Math.min((currentPage - 1) * pageSize + students.length, totalCount)} of {totalCount}
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-sm text-gray-700">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <Button
-                    variant="secondary"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Card className="p-6">
-                <p className="text-center text-gray-500">No students match your search.</p>
-              </Card>
-            )}
-          </>
+        {loading || students.length > 0 ? (
+          <Table
+            title={t('pageTitle', 'Students Management')}
+            columns={studentColumns}
+            data={students}
+            loading={loading}
+            totalCount={totalCount}
+            page={currentPage}
+            pageSize={pageSize}
+            onSort={() => {
+              // Server API currently returns sorted results by backend defaults.
+            }}
+            onSearch={(value) => {
+              setSearchTerm(value)
+              setCurrentPage(1)
+            }}
+            onPageChange={setCurrentPage}
+            filterLabel={t('filterByClass', 'Filter by class')}
+            filterOptions={[{ value: '', label: t('allClasses', 'All classes') }, ...classes.map((cls) => ({ value: cls.id, label: cls.name }))]}
+            activeFilter={selectedClassId}
+            onFilterChange={(value) => {
+              setSelectedClassId(value)
+              setCurrentPage(1)
+            }}
+            onFilterClick={() => {
+              setSelectedStatusReason('')
+              setStatusDateFrom('')
+              setStatusDateTo('')
+            }}
+            getRowActions={studentRowActions}
+            rowKey="id"
+            emptyMessage={
+              searchTerm.trim()
+                ? t('noSearchResults', 'No students match your search.')
+                : t('noStudentsFound', 'No students found. Click "Enroll Student" to create one.')
+            }
+            ariaLabel={t('pageTitle', 'Students Management')}
+          />
         ) : (
           <Card className="p-6">
             <p className="text-center text-gray-500">
               {searchTerm.trim()
-                ? 'No students match your search.'
-                : 'No students found. Click "Add Student" to create one.'}
+                ? t('noSearchResults', 'No students match your search.')
+                : t('noStudentsFound', 'No students found. Click "Enroll Student" to create one.')}
             </p>
           </Card>
         )}
@@ -634,17 +770,17 @@ export default function StudentsPage() {
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <Card className="w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-4">{editingStudent ? 'Edit Student' : 'Add Student'}</h2>
+              <h2 className="text-2xl font-bold mb-4">{editingStudent ? t('editStudent', 'Edit Student') : t('enrollStudent', 'Enroll Student')}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <Input
-                    label="First Name"
+                    label={t('firstName', 'First Name')}
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                     required
                   />
                   <Input
-                    label="Last Name"
+                    label={t('lastName', 'Last Name')}
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                     required
@@ -652,25 +788,26 @@ export default function StudentsPage() {
                 </div>
 
                 <Input
-                  label="Admission Number"
+                  label={t('admissionNumber', 'Admission Number')}
                   value={formData.admissionNumber}
-                  onChange={(e) => setFormData({ ...formData, admissionNumber: e.target.value })}
+                  disabled
+                  readOnly
                 />
 
                 <Input
-                  label="Date of Birth"
+                  label={t('dateOfBirth', 'Date of Birth')}
                   type="date"
                   value={formData.dateOfBirth}
                   onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                 />
 
                 <Select
-                  label="Primary Class"
+                  label={t('primaryClass', 'Primary Class')}
                   value={formData.classId}
-                  onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
+                  onChange={(e) => handleClassChangeInForm(e.target.value)}
                   required
                 >
-                  <option value="">Select Class</option>
+                  <option value="">{t('selectClass', 'Select Class')}</option>
                   {classes.map((cls) => (
                     <option key={cls.id} value={cls.id}>
                       {cls.name}
@@ -680,12 +817,12 @@ export default function StudentsPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
-                    label="Parent Name"
+                    label={t('parentName', 'Parent Name')}
                     value={formData.parentName}
                     onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
                   />
                   <Input
-                    label="Parent Email (optional)"
+                    label={t('parentEmailOptional', 'Parent Email (optional)')}
                     type="email"
                     value={formData.parentEmail}
                     onChange={(e) => setFormData({ ...formData, parentEmail: e.target.value })}
@@ -693,7 +830,7 @@ export default function StudentsPage() {
                 </div>
 
                 <Input
-                  label="Parent Phone (optional)"
+                  label={t('parentPhoneOptional', 'Parent Phone (optional)')}
                   value={formData.parentPhone}
                   onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
                 />
@@ -707,15 +844,195 @@ export default function StudentsPage() {
                       resetForm()
                     }}
                   >
-                    Cancel
+                    {t('cancel', 'Cancel')}
                   </Button>
-                  <Button type="submit">{editingStudent ? 'Update' : 'Create'}</Button>
+                  <Button type="submit">{editingStudent ? t('update', 'Update') : t('create', 'Create')}</Button>
                 </div>
               </form>
             </Card>
           </div>
         )}
+
+        {showBulkUpload ? (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold mb-4">{t('bulkUploadStudents', 'Bulk Upload Students')}</h2>
+
+              <div className="space-y-4">
+                <div>
+                  <Button variant="secondary" className="mb-4">
+                    <Link href="/api/students/bulk-upload/template">{t('downloadTemplate', 'Download Template')}</Link>
+                  </Button>
+                  <p className="text-sm ui-text-secondary">
+                    {t('bulkRequirements', 'Required: firstName, lastName, className or classId. Optional: dateOfBirth, parentName, parentEmail, parentPhone, emergencyContactName, emergencyContactPhone.')}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4">
+                  <Input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                  />
+                </div>
+
+                {uploadSummary ? (
+                  <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
+                    <p className="font-medium text-slate-900">
+                      {t('uploadResult', 'Upload result')}: {uploadSummary.created} {t('created', 'created')}, {uploadSummary.failed} {t('failed', 'failed')}
+                    </p>
+                    {uploadErrors.length > 0 ? (
+                      <ul className="mt-2 list-disc pl-5 text-rose-700 space-y-1">
+                        {uploadErrors.map((errorLine, index) => (
+                          <li key={`${errorLine}-${index}`}>{errorLine}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setShowBulkUpload(false)
+                      setUploadSummary(null)
+                      setUploadErrors([])
+                      setUploadFile(null)
+                    }}
+                  >
+                    {t('close', 'Close')}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleExcelUpload}
+                    isLoading={uploading}
+                  >
+                    {t('upload', 'Upload')}
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        ) : null}
+
+        {showStatusModal && statusTargetStudent ? (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+            <Card className="w-[min(92vw,30rem)] max-w-none p-6 max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold mb-2">{t('updateStudentStatusTitle', 'Update Student Status')}</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                {statusTargetStudent.firstName} {statusTargetStudent.lastName}
+              </p>
+
+              <form onSubmit={handleStatusSubmit} className="space-y-4">
+                <Select
+                  label={t('status', 'Status')}
+                  value={statusFormData.status}
+                  onChange={(e) => setStatusFormData((prev) => ({ ...prev, status: e.target.value as 'ACTIVE' | 'LEFT' }))}
+                >
+                  <option value="ACTIVE">{t('activeCurrentlyEnrolled', 'Active (currently enrolled)')}</option>
+                  <option value="LEFT">{t('leftSchoolLower', 'Left school')}</option>
+                </Select>
+
+                {statusFormData.status === 'LEFT' ? (
+                  <Select
+                    label={t('reasonForLeaving', 'Reason for Leaving')}
+                    value={statusFormData.reason}
+                    onChange={(e) =>
+                      setStatusFormData((prev) => ({
+                        ...prev,
+                        reason: e.target.value as 'SUSPENSION' | 'GRADUATION' | 'TRANSFERRED_SCHOOL' | 'OTHER',
+                      }))
+                    }
+                    required
+                  >
+                    <option value="SUSPENSION">{t('reasonSuspension', 'Suspension')}</option>
+                    <option value="GRADUATION">{t('reasonGraduation', 'Graduation')}</option>
+                    <option value="TRANSFERRED_SCHOOL">{t('reasonTransfer', 'Change of school')}</option>
+                    <option value="OTHER">{t('reasonOther', 'Other')}</option>
+                  </Select>
+                ) : null}
+
+                <Input
+                  label={t('effectiveDate', 'Effective Date')}
+                  type="date"
+                  value={statusFormData.effectiveAt}
+                  onChange={(e) => setStatusFormData((prev) => ({ ...prev, effectiveAt: e.target.value }))}
+                  required
+                />
+
+                <Input
+                  label={t('notesOptional', 'Notes (optional)')}
+                  value={statusFormData.notes}
+                  onChange={(e) => setStatusFormData((prev) => ({ ...prev, notes: e.target.value }))}
+                />
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setShowStatusModal(false)
+                      setStatusTargetStudent(null)
+                      resetStatusForm()
+                    }}
+                  >
+                    {t('cancel', 'Cancel')}
+                  </Button>
+                  <Button type="submit">{t('saveStatus', 'Save Status')}</Button>
+                </div>
+              </form>
+            </Card>
+          </div>
+        ) : null}
+
+        {showEmergencyModal && emergencyTargetStudent ? (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+            <Card className="w-[min(92vw,30rem)] max-w-none p-6 max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold mb-2">{t('updateEmergencyContactTitle', 'Update Emergency Contact')}</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                {emergencyTargetStudent.firstName} {emergencyTargetStudent.lastName}
+              </p>
+
+              <form onSubmit={handleEmergencySubmit} className="space-y-4">
+                <Input
+                  label={t('emergencyContactNameOptional', 'Emergency Contact Name (optional)')}
+                  value={emergencyFormData.emergencyContactName}
+                  onChange={(e) =>
+                    setEmergencyFormData((prev) => ({ ...prev, emergencyContactName: e.target.value }))
+                  }
+                />
+
+                <Input
+                  label={t('emergencyContactPhone', 'Emergency Contact Phone')}
+                  value={emergencyFormData.emergencyContactPhone}
+                  onChange={(e) =>
+                    setEmergencyFormData((prev) => ({ ...prev, emergencyContactPhone: e.target.value }))
+                  }
+                  required
+                />
+
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setShowEmergencyModal(false)
+                      setEmergencyTargetStudent(null)
+                      resetEmergencyForm()
+                    }}
+                  >
+                    {t('cancel', 'Cancel')}
+                  </Button>
+                  <Button type="submit">{t('saveEmergencyContact', 'Save Emergency Contact')}</Button>
+                </div>
+              </form>
+            </Card>
+          </div>
+        ) : null}
       </div>
+
     </DashboardLayout>
   )
 }
