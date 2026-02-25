@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useToast } from '@/components/ui/Toast'
-import { type ClientLocale, translateNode, translateText } from '@/lib/client-i18n'
+import { type ClientLocale, translateText } from '@/lib/client-i18n'
 import { useLocale } from '@/lib/locale-context'
 
 interface LayoutProps {
@@ -206,7 +206,7 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
           />
         ) : null}
         <main className={`flex-1 overflow-auto p-4 ${isParentView ? 'pt-4 pb-24 md:pt-6 md:pb-24' : 'pt-20 pb-20 md:p-6 md:pt-22 md:pb-6'}`}>
-          {translateNode(children, locale)}
+          {children}
         </main>
         {isParentView ? (
           <BottomSidebarNav items={translatedNavItems} />
