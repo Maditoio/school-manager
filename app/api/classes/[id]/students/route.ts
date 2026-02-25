@@ -185,10 +185,81 @@ export async function DELETE(
     }
 
     const { id: classId } = await context.params
-    return NextResponse.json(
-      { error: 'Students must always belong to a class. Use class transfer (POST) to move a student.' },
-      { status: 400 }
-    )
+    const body = await request.json().catch(() => ({})) as { studentId?: string }
+    const studentId = typeof body.studentId === 'string' ? body.studentId : ''
+
+    if (!studentId) {
+      return NextResponse.json({ error: 'studentId is required' }, { status: 400 })
+    }
+
+    const classData = await prisma.class.findFirst({
+      where: {
+        id: classId,
+        ...(session.user.schoolId ? { schoolId: session.user.schoolId } : {}),
+      },
+      select: { id: true, schoolId: true, academicYear: true },
+    })
+
+    if (!classData) {
+      return NextResponse.json({ error: 'Class not found' }, { status: 404 })
+    }
+
+    const student = await prisma.student.findFirst({
+      where: {
+        id: studentId,
+        classId,
+        schoolId: classData.schoolId,
+      },
+      select: { id: true },
+    })
+
+    if (!student) {
+      return NextResponse.json({ error: 'Student not found in this class' }, { status: 404 })
+    }
+
+    const fallbackClass = await prisma.class.upsert({
+      where: {
+        schoolId_name_academicYear: {
+          schoolId: classData.schoolId,
+          name: 'Unassigned',
+          academicYear: classData.academicYear,
+        },
+      },
+      create: {
+        schoolId: classData.schoolId,
+        name: 'Unassigned',
+        academicYear: classData.academicYear,
+      },
+      update: {},
+      select: { id: true },
+    })
+
+    if (fallbackClass.id === classId) {
+      return NextResponse.json(
+        { error: 'Cannot remove students from the fallback Unassigned class' },
+        { status: 400 }
+      )
+    }
+
+    await prisma.student.update({
+      where: { id: student.id },
+      data: {
+        classId: fallbackClass.id,
+        academicYear: classData.academicYear,
+      },
+    })
+
+    await prisma.studentClassHistory.create({
+      data: {
+        studentId: student.id,
+        fromClassId: classId,
+        toClassId: fallbackClass.id,
+        changedById: session.user.id,
+        reason: 'Removed from class',
+      },
+    })
+
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error removing student from class:', error)
     return NextResponse.json({ error: 'Failed to remove student from class' }, { status: 500 })

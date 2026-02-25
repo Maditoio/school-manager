@@ -11,9 +11,11 @@ export const loginSchema = z.object({
 
 export const createUserSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
+  title: z.string().optional(),
+  phone: z.string().optional(),
   role: z.enum(['SCHOOL_ADMIN', 'TEACHER', 'PARENT']),
   schoolId: z.string().uuid().optional(),
 })

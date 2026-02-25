@@ -5,6 +5,8 @@ import { createUserSchema } from "@/lib/validations"
 import { hasRole } from "@/lib/auth-utils"
 import { hash } from "bcryptjs"
 
+const DEFAULT_TEACHER_PASSWORD = 'default12345'
+
 // GET /api/users - Get users
 export async function GET(request: NextRequest) {
   try {
@@ -87,6 +89,17 @@ export async function POST(request: NextRequest) {
     const normalizedEmail = validation.data.email.trim().toLowerCase()
     const { password, firstName, lastName, role, schoolId } = validation.data
 
+    const trimmedPassword = (password || '').trim()
+    const useDefaultTeacherPassword = role === 'TEACHER' && trimmedPassword.length === 0
+    const finalPassword = useDefaultTeacherPassword ? DEFAULT_TEACHER_PASSWORD : trimmedPassword
+
+    if (!finalPassword) {
+      return NextResponse.json(
+        { error: 'Password is required' },
+        { status: 400 }
+      )
+    }
+
     // Check if email already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: normalizedEmail },
@@ -110,7 +123,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash password
-    const hashedPassword = await hash(password, 12)
+    const hashedPassword = await hash(finalPassword, 12)
 
     const user = await prisma.user.create({
       data: {
@@ -120,6 +133,7 @@ export async function POST(request: NextRequest) {
         lastName,
         role,
         schoolId: finalSchoolId,
+        mustResetPassword: useDefaultTeacherPassword,
       },
       select: {
         id: true,
@@ -132,7 +146,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    if (role === 'TEACHER' || role === 'PARENT') {
+    if (!useDefaultTeacherPassword && (role === 'TEACHER' || role === 'PARENT')) {
       await prisma.$executeRaw`
         UPDATE users
         SET must_reset_password = true

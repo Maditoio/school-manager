@@ -8,6 +8,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
+import { Minus } from 'lucide-react'
+import { useConfirmDialog } from '@/lib/useConfirmDialog'
 
 interface Student {
   id: string
@@ -33,6 +35,7 @@ export default function ClassStudentsPage() {
 
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { confirm } = useConfirmDialog()
 
   const [assigned, setAssigned] = useState<Student[]>([])
   const [available, setAvailable] = useState<Student[]>([])
@@ -43,6 +46,7 @@ export default function ClassStudentsPage() {
   const [assignedSearch, setAssignedSearch] = useState('')
   const [availableSearch, setAvailableSearch] = useState('')
   const [transferring, setTransferring] = useState(false)
+  const [removingStudentId, setRemovingStudentId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -170,7 +174,25 @@ export default function ClassStudentsPage() {
       return
     }
 
-    if (!confirm('Move selected students to the target class?')) return
+    const isConfirmed = await confirm({
+      title: 'Move Selected Students',
+      description:
+        'This will move the selected students to the target class and update their class assignment history. This action cannot be undone from here.',
+      variant: 'warning',
+      confirmLabel: `Move ${selectedAssignedIds.length} Student${selectedAssignedIds.length === 1 ? '' : 's'}`,
+      cancelLabel: 'Cancel',
+      loadingLabel: 'Moving...',
+      entity: {
+        name: `${selectedAssignedIds.length} selected student${selectedAssignedIds.length === 1 ? '' : 's'}`,
+        subtitle: classes.find((classItem) => classItem.id === targetClassId)
+          ? `Target: ${classes.find((classItem) => classItem.id === targetClassId)?.name}`
+          : 'Target class selected',
+      },
+      allowBackdropClose: false,
+      allowEscapeClose: false,
+    })
+
+    if (!isConfirmed) return
 
     try {
       setTransferring(true)
@@ -197,6 +219,51 @@ export default function ClassStudentsPage() {
       showToast('Failed to move students', 'error')
     } finally {
       setTransferring(false)
+    }
+  }
+
+  const removeStudentFromClass = async (student: Student) => {
+    const isConfirmed = await confirm({
+      title: 'Remove from Class',
+      description:
+        `This will remove ${student.firstName} ${student.lastName} from this class and place the student in the Unassigned class for this academic year. This action cannot be undone directly.`,
+      variant: 'danger',
+      confirmLabel: 'Yes, Remove',
+      cancelLabel: 'Cancel',
+      loadingLabel: 'Removing...',
+      entity: {
+        name: `${student.firstName} ${student.lastName}`,
+        subtitle: `${student.admissionNumber || 'No admission number'}`,
+      },
+      allowBackdropClose: false,
+      allowEscapeClose: false,
+    })
+
+    if (!isConfirmed) return
+
+    try {
+      setRemovingStudentId(student.id)
+      const res = await fetch(`/api/classes/${classId}/students`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId: student.id }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        showToast(data.error || 'Failed to remove student from class', 'error')
+        return
+      }
+
+      setSelectedAssignedIds((prev) => prev.filter((id) => id !== student.id))
+      await fetchData()
+      showToast('Student removed from class', 'success')
+    } catch (error) {
+      console.error('Failed to remove student from class:', error)
+      showToast('Failed to remove student from class', 'error')
+    } finally {
+      setRemovingStudentId(null)
     }
   }
 
@@ -327,6 +394,17 @@ export default function ClassStudentsPage() {
                           <p className="text-xs ui-text-secondary">{student.admissionNumber || 'No admission number'}</p>
                         </div>
                       </label>
+
+                      <button
+                        type="button"
+                        aria-label={`Remove ${student.firstName} ${student.lastName} from class`}
+                        title="Remove from class"
+                        onClick={() => removeStudentFromClass(student)}
+                        disabled={removingStudentId === student.id}
+                        className="ml-3 inline-flex h-6 w-6 items-center justify-center ui-text-secondary hover:ui-text-primary disabled:opacity-50"
+                      >
+                        <Minus className="h-5 w-5" />
+                      </button>
                     </div>
                   ))
                 ) : (

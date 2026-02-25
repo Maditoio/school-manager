@@ -30,9 +30,36 @@ interface Child {
   admissionNumber?: string | null
 }
 
+interface ClassMoveLog {
+  id: string
+  studentId: string
+  fromClassId: string | null
+  toClassId: string
+  reason: string | null
+  effectiveAt: string
+  createdAt: string
+  student: {
+    firstName: string
+    lastName: string
+    admissionNumber: string | null
+  }
+  fromClass: {
+    name: string
+  } | null
+  toClass: {
+    name: string
+  }
+  changedBy: {
+    firstName: string | null
+    lastName: string | null
+    email: string
+  } | null
+}
+
 export default function AdminInteractionLogsPage() {
   const { data: session, status } = useSession()
   const [logs, setLogs] = useState<InteractionLog[]>([])
+  const [classMoveLogs, setClassMoveLogs] = useState<ClassMoveLog[]>([])
   const [children, setChildren] = useState<Child[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -48,6 +75,7 @@ export default function AdminInteractionLogsPage() {
   useEffect(() => {
     if (session?.user?.role === 'SCHOOL_ADMIN') {
       fetchLogs()
+      fetchClassMoveLogs()
       fetchChildren()
     }
   }, [session])
@@ -63,6 +91,18 @@ export default function AdminInteractionLogsPage() {
       console.error('Failed to fetch interaction logs:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchClassMoveLogs = async () => {
+    try {
+      const res = await fetch('/api/class-move-logs?take=200')
+      if (res.ok) {
+        const data = await res.json()
+        setClassMoveLogs(Array.isArray(data.logs) ? data.logs : [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch class move logs:', error)
     }
   }
 
@@ -162,6 +202,52 @@ export default function AdminInteractionLogsPage() {
                             <div className="mt-1">{JSON.stringify(log.metadata)}</div>
                           ) : null}
                         </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-0 overflow-hidden">
+          {loading ? (
+            <div className="p-6">Loading class move logs...</div>
+          ) : classMoveLogs.length === 0 ? (
+            <div className="p-6 text-gray-500">No class move logs yet.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Time</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Student</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">From</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">To</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Changed By</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Reason</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {classMoveLogs.map((log) => {
+                    const studentLabel = `${log.student.firstName} ${log.student.lastName}${
+                      log.student.admissionNumber ? ` (${log.student.admissionNumber})` : ''
+                    }`
+                    const changedByLabel = log.changedBy
+                      ? `${log.changedBy.firstName || ''} ${log.changedBy.lastName || ''}`.trim() || log.changedBy.email
+                      : 'System'
+
+                    return (
+                      <tr key={log.id}>
+                        <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-900">{studentLabel}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{log.fromClass?.name || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{log.toClass?.name || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{changedByLabel}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{log.reason || '-'}</td>
                       </tr>
                     )
                   })}

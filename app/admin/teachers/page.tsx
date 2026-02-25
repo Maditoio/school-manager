@@ -85,7 +85,13 @@ export default function TeachersPage() {
         showToast('Teacher created successfully!', 'success')
       } else {
         const error = await res.json()
-        showToast(error.error || 'Failed to save teacher', 'error')
+        const apiError =
+          Array.isArray(error.error) && error.error[0]?.message
+            ? String(error.error[0].message)
+            : typeof error.error === 'string'
+              ? error.error
+              : 'Failed to save teacher'
+        showToast(apiError, 'error')
       }
     } catch (error) {
       console.error('Failed to save teacher:', error)
