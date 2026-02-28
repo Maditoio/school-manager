@@ -46,6 +46,7 @@ export default function ClassStudentsPage() {
   const [assignedSearch, setAssignedSearch] = useState('')
   const [availableSearch, setAvailableSearch] = useState('')
   const [transferring, setTransferring] = useState(false)
+  const [addingStudents, setAddingStudents] = useState(false)
   const [removingStudentId, setRemovingStudentId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -142,6 +143,7 @@ export default function ClassStudentsPage() {
     }
 
     try {
+      setAddingStudents(true)
       const res = await fetch(`/api/classes/${classId}/students`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -160,6 +162,8 @@ export default function ClassStudentsPage() {
     } catch (error) {
       console.error('Failed to add students:', error)
       showToast('Failed to add students', 'error')
+    } finally {
+      setAddingStudents(false)
     }
   }
 
@@ -450,7 +454,7 @@ export default function ClassStudentsPage() {
               </div>
 
               <div className="mt-4">
-                <Button onClick={addSelectedStudents}>
+                <Button onClick={addSelectedStudents} isLoading={addingStudents} disabled={selectedAvailableIds.length === 0}>
                   Add Selected Students ({selectedAvailableIds.length})
                 </Button>
               </div>

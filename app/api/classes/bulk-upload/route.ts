@@ -14,6 +14,7 @@ type RowData = {
   name?: string
   academicYear?: string
   teacherEmail?: string
+  capacity?: string
 }
 
 function normalizeHeader(value: string) {
@@ -30,6 +31,7 @@ function mapRow(raw: Record<string, unknown>): RowData {
     if (normalizedKey === 'name' || normalizedKey === 'classname') mapped.name = stringValue
     if (normalizedKey === 'academicyear' || normalizedKey === 'year') mapped.academicYear = stringValue
     if (normalizedKey === 'teacheremail' || normalizedKey === 'teacher_email') mapped.teacherEmail = stringValue
+    if (normalizedKey === 'capacity' || normalizedKey === 'maxcapacity') mapped.capacity = stringValue
   })
 
   return mapped
@@ -122,6 +124,16 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      let capacity: number | undefined = undefined
+      if (row.capacity) {
+        const parsedCapacity = parseInt(row.capacity, 10)
+        if (isNaN(parsedCapacity) || parsedCapacity < 1 || parsedCapacity > 500) {
+          errors.push({ row: rowNumber, error: 'Capacity must be a number between 1 and 500' })
+          continue
+        }
+        capacity = parsedCapacity
+      }
+
       try {
         const cls = await prisma.class.create({
           data: {
@@ -129,6 +141,7 @@ export async function POST(request: NextRequest) {
             name: row.name.trim(),
             academicYear,
             teacherId,
+            capacity,
           } as Prisma.ClassUncheckedCreateInput,
         })
 

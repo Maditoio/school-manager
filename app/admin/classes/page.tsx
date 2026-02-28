@@ -18,6 +18,7 @@ interface Class {
   name: string
   academicYear: number
   teacherId: string | null
+  capacity?: number | null
   teacher?: { firstName: string; lastName: string }
   _count?: { students: number }
 }
@@ -46,6 +47,7 @@ export default function ClassesPage() {
     name: '',
     academicYear: new Date().getFullYear().toString(),
     teacherId: '',
+    capacity: '',
   })
 
   const preferredLanguage = session?.user?.preferredLanguage || 'en'
@@ -129,8 +131,9 @@ export default function ClassesPage() {
 
       const payload = {
         name: formData.name,
-        academicYear: parseInt(formData.academicYear, 10),
+        academicYear: formData.academicYear,
         teacherId: formData.teacherId || undefined,
+        capacity: formData.capacity || undefined,
       }
 
       const res = await fetch(url, {
@@ -146,7 +149,13 @@ export default function ClassesPage() {
         showToast(tAdmin('classSaved', 'Class saved successfully!'), 'success')
       } else {
         const error = await res.json()
-        showToast(error.error || tAdmin('failedSaveClass', 'Failed to save class'), 'error')
+        const apiError =
+          Array.isArray(error.error) && error.error[0]?.message
+            ? String(error.error[0].message)
+            : typeof error.error === 'string'
+              ? error.error
+              : tAdmin('failedSaveClass', 'Failed to save class')
+        showToast(apiError, 'error')
       }
     } catch (error) {
       console.error('Failed to save class:', error)
@@ -160,6 +169,7 @@ export default function ClassesPage() {
       name: cls.name,
       academicYear: cls.academicYear.toString(),
       teacherId: cls.teacherId || '',
+      capacity: cls.capacity ? cls.capacity.toString() : '',
     })
     setShowModal(true)
   }
@@ -250,6 +260,7 @@ export default function ClassesPage() {
       name: '',
       academicYear: new Date().getFullYear().toString(),
       teacherId: '',
+      capacity: '',
     })
     setEditingClass(null)
   }
@@ -412,6 +423,7 @@ export default function ClassesPage() {
                     <p className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
                       {tAdmin('students', 'Students:')} {cls._count?.students || 0}
+                      {cls.capacity ? ` / ${cls.capacity}` : ''}
                     </p>
                   </div>
                 </div>
@@ -459,6 +471,15 @@ export default function ClassesPage() {
                     </option>
                   ))}
                 </Select>
+                <Input
+                  label={tAdmin('classCapacity', 'Class Capacity')}
+                  type="number"
+                  value={formData.capacity}
+                  onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
+                  min={1}
+                  max={500}
+                  placeholder={tAdmin('egCapacity', 'e.g., 40')}
+                />
                 <div className="flex gap-2 justify-end">
                   <Button
                     type="button"

@@ -13,6 +13,15 @@ import { AlertTriangle, CircleCheck, Plus, Receipt, Users, Wallet } from 'lucide
 
 type FeePeriodType = 'MONTHLY' | 'SEMESTER' | 'YEARLY'
 type FeeStatus = 'PAID' | 'PARTIAL' | 'NOT_PAID'
+type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'M_PESA' | 'ORANGE_MONEY' | 'OTHER'
+
+function formatPaymentMethod(method: PaymentMethod) {
+  if (method === 'CASH') return 'Cash'
+  if (method === 'BANK_TRANSFER') return 'Bank Transfer'
+  if (method === 'M_PESA') return 'M-Pesa'
+  if (method === 'ORANGE_MONEY') return 'Orange Money'
+  return 'Other'
+}
 
 type Schedule = {
   id: string
@@ -46,6 +55,7 @@ type StudentStatus = {
 
 type RecentPayment = {
   id: string
+  paymentMethod: PaymentMethod
   paymentNumber: string
   amountPaid: number
   paymentDate: string
@@ -82,6 +92,7 @@ export default function AdminFeesPage() {
   const [paymentForm, setPaymentForm] = useState({
     studentId: '',
     amountPaid: '',
+    paymentMethod: 'CASH' as PaymentMethod,
     paymentDate: new Date().toISOString().slice(0, 10),
     notes: '',
   })
@@ -156,6 +167,7 @@ export default function AdminFeesPage() {
     return recentPayments.filter((payment) => {
       return (
         payment.paymentNumber.toLowerCase().includes(query) ||
+        formatPaymentMethod(payment.paymentMethod).toLowerCase().includes(query) ||
         payment.studentName.toLowerCase().includes(query) ||
         payment.className.toLowerCase().includes(query) ||
         String(payment.admissionNumber || '')
@@ -230,6 +242,12 @@ export default function AdminFeesPage() {
             <span className="text-xs text-slate-400">{payment.className}</span>
           </div>
         ),
+      },
+      {
+        key: 'paymentMethod',
+        label: 'Method',
+        sortable: true,
+        renderCell: (payment: RecentPayment) => formatPaymentMethod(payment.paymentMethod),
       },
       {
         key: 'amountPaid',
@@ -437,6 +455,7 @@ export default function AdminFeesPage() {
           scheduleId: selectedScheduleId,
           studentId: paymentForm.studentId,
           amountPaid,
+          paymentMethod: paymentForm.paymentMethod,
           paymentDate: paymentForm.paymentDate,
           notes: paymentForm.notes,
         }),
@@ -453,7 +472,7 @@ export default function AdminFeesPage() {
       }
 
       setLastInvoiceId(data?.payment?.id || '')
-      setPaymentForm({ studentId: '', amountPaid: '', paymentDate: new Date().toISOString().slice(0, 10), notes: '' })
+      setPaymentForm({ studentId: '', amountPaid: '', paymentMethod: 'CASH', paymentDate: new Date().toISOString().slice(0, 10), notes: '' })
       setPaymentModalSearchQuery('')
       showToast('Payment recorded successfully', 'success')
       setShowPaymentModal(false)
@@ -718,6 +737,25 @@ export default function AdminFeesPage() {
                       onChange={(e) => setPaymentForm((prev) => ({ ...prev, amountPaid: e.target.value }))}
                       className="ui-input"
                     />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium ui-text-secondary">Payment Method</label>
+                    <select
+                      value={paymentForm.paymentMethod}
+                      onChange={(e) =>
+                        setPaymentForm((prev) => ({
+                          ...prev,
+                          paymentMethod: e.target.value as PaymentMethod,
+                        }))
+                      }
+                      className="ui-select"
+                    >
+                      <option value="CASH">Cash</option>
+                      <option value="BANK_TRANSFER">Bank Transfer</option>
+                      <option value="M_PESA">M-Pesa</option>
+                      <option value="ORANGE_MONEY">Orange Money</option>
+                      <option value="OTHER">Other</option>
+                    </select>
                   </div>
                   <div>
                     <label className="mb-1 block text-sm font-medium ui-text-secondary">Payment Date</label>

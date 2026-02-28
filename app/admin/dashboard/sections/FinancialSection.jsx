@@ -8,7 +8,7 @@ const metricCards = [
   { key: 'totalCollected', label: 'Total Collected', icon: TrendingUp, color: '#34d399', format: 'currency' },
   { key: 'outstandingBalance', label: 'Outstanding Balance', icon: AlertTriangle, color: '#fbbf24', format: 'currency' },
   { key: 'collectedToday', label: 'Collected Today', icon: Banknote, color: '#6366f1', format: 'currency' },
-  { key: 'termTarget', label: 'Term Target', icon: Target, color: '#94a3b8', format: 'currency' },
+  { key: 'termTarget', label: 'Year Target', icon: Target, color: '#94a3b8', format: 'currency' },
 ]
 
 function formatRand(value) {
@@ -33,6 +33,10 @@ function FinancialSkeleton() {
 
 export default function FinancialSection({ data, loading }) {
   const [progress, setProgress] = useState(0)
+  const progressLabel = data.progressLabel || `${data.progressPercent}%`
+  const paymentMethodsTotal = Number.isFinite(Number(data.paymentMethodsTotal))
+    ? Number(data.paymentMethodsTotal)
+    : Number(data.totalCollected?.value || 0)
 
   useEffect(() => {
     if (loading) return
@@ -73,7 +77,7 @@ export default function FinancialSection({ data, loading }) {
         <div className="rounded-2xl border p-4" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }}>
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-semibold text-slate-200">Fee Collection Progress</p>
-            <p className="text-xs text-slate-400">82% · R 1.24M of R 1.56M</p>
+            <p className="text-xs text-slate-400">{progressLabel}</p>
           </div>
           <div className="h-2 w-full rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
             <div
@@ -116,7 +120,7 @@ export default function FinancialSection({ data, loading }) {
           </ResponsiveContainer>
           <div className="-mt-[150px] text-center pointer-events-none">
             <p className="text-xs text-slate-400">Total</p>
-            <p className="text-xl font-extrabold text-slate-100">R 1,240,000</p>
+            <p className="text-xl font-extrabold text-slate-100">{formatRand(paymentMethodsTotal)}</p>
           </div>
         </div>
 

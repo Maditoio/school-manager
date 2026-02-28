@@ -80,6 +80,7 @@ export default async function TeacherDashboard() {
     { label: 'Students', href: '/teacher/students', icon: '👨‍🎓' },
     { label: 'Assessments', href: '/teacher/assessments', icon: '📋' },
     { label: 'Attendance', href: '/teacher/attendance', icon: '📅' },
+    { label: 'Off Days', href: '/teacher/off-days', icon: '🛌' },
     { label: 'Results', href: '/teacher/results', icon: '📝' },
     { label: 'Announcements', href: '/teacher/announcements', icon: '📢' },
     { label: 'Messages', href: '/teacher/messages', icon: '💬' },
@@ -140,6 +141,14 @@ export default async function TeacherDashboard() {
               <div className="text-2xl mb-2">📝</div>
               <h3 className="font-semibold text-gray-900">Enter Results</h3>
               <p className="text-sm text-gray-600 mt-1">Add test and exam scores</p>
+            </a>
+            <a
+              href="/teacher/off-days"
+              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <div className="text-2xl mb-2">🛌</div>
+              <h3 className="font-semibold text-gray-900">Book Off Day</h3>
+              <p className="text-sm text-gray-600 mt-1">Submit your leave date range</p>
             </a>
           </div>
         </Card>

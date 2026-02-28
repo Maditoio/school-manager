@@ -7,9 +7,14 @@ export async function GET(request: NextRequest) {
   try {
     // Optional: Add authentication if needed for security
     const authHeader = request.headers.get('authorization')
-    const expectedToken = process.env.INTERNAL_API_TOKEN
+    const acceptedTokens = [process.env.INTERNAL_API_TOKEN, process.env.CRON_SECRET].filter(
+      (value): value is string => typeof value === 'string' && value.length > 0
+    )
 
-    if (expectedToken && authHeader !== `Bearer ${expectedToken}`) {
+    if (
+      acceptedTokens.length > 0 &&
+      !acceptedTokens.some((token) => authHeader === `Bearer ${token}`)
+    ) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

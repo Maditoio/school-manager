@@ -32,11 +32,20 @@ export default function StaffSection({ data, loading }) {
   const [showAttendanceModal, setShowAttendanceModal] = useState(false)
   const [attendance, setAttendance] = useState(() => Object.fromEntries(data.teachers.map((t) => [t.id, t.status])))
 
+  const openAction = (href) => {
+    if (href) {
+      window.open(href, '_self')
+    }
+  }
+
   const unattendedClasses = useMemo(() => {
     return data.teachers
       .filter((teacher) => attendance[teacher.id] === 'Absent')
       .map((teacher) => `${teacher.subject} classes unattended`)
   }, [data.teachers, attendance])
+
+  const visibleTeachers = useMemo(() => data.teachers.slice(0, 5), [data.teachers])
+  const hiddenTeachersCount = Math.max(0, data.teachers.length - visibleTeachers.length)
 
   if (loading) return <StaffSkeleton />
 
@@ -48,8 +57,11 @@ export default function StaffSection({ data, loading }) {
             <p className="text-sm font-semibold text-slate-200">Teacher Status Today</p>
             <button
               className="h-8 rounded-[10px] border px-3 text-xs font-semibold text-slate-300 transition hover:text-white"
-              style={{ background: '#161924', borderColor: 'rgba(255,255,255,0.08)' }}
-              onClick={() => setShowAttendanceModal(true)}
+              style={{ background: '#161924', borderColor: 'rgba(255,255,255,0.08)', opacity: 0.5, cursor: 'not-allowed' }}
+              disabled
+              aria-disabled="true"
+              title="Temporarily unavailable"
+              onClick={() => {}}
             >
               Mark Attendance
             </button>
@@ -62,11 +74,10 @@ export default function StaffSection({ data, loading }) {
                   <th className="px-3 py-2 font-medium">Teacher</th>
                   <th className="px-3 py-2 font-medium">Subject</th>
                   <th className="px-3 py-2 font-medium">Today</th>
-                  <th className="px-3 py-2 font-medium">Pending Results</th>
                 </tr>
               </thead>
               <tbody>
-                {data.teachers.slice(0, 6).map((teacher) => {
+                {visibleTeachers.map((teacher) => {
                   const absent = attendance[teacher.id] === 'Absent'
                   return (
                     <tr
@@ -83,7 +94,9 @@ export default function StaffSection({ data, loading }) {
                           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-700 text-[11px] font-semibold text-slate-200">
                             {teacher.name.split(' ').map((p) => p[0]).slice(0, 2).join('')}
                           </span>
-                          {teacher.name}
+                          <a href={`/admin/teachers/${teacher.id}`} className="hover:text-indigo-300 transition-colors">
+                            {teacher.name}
+                          </a>
                         </div>
                       </td>
                       <td className="px-3 py-2 text-sm text-slate-300">{teacher.subject}</td>
@@ -97,7 +110,6 @@ export default function StaffSection({ data, loading }) {
                           {attendance[teacher.id]}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-sm text-slate-300">{teacher.pendingResults}</td>
                     </tr>
                   )
                 })}
@@ -105,7 +117,14 @@ export default function StaffSection({ data, loading }) {
             </table>
           </div>
 
-          <a href="/admin/teachers" className="mt-3 inline-block text-sm font-semibold text-indigo-400 hover:text-indigo-300">View all 42 teachers →</a>
+          {hiddenTeachersCount > 0 ? (
+            <div className="mt-3 flex items-center justify-between text-sm text-slate-400">
+              <p>{hiddenTeachersCount} more teachers not shown.</p>
+              <a href="/admin/teachers" className="font-semibold text-indigo-400 hover:text-indigo-300">View the rest →</a>
+            </div>
+          ) : null}
+
+          <a href="/admin/teachers" className="mt-3 inline-block text-sm font-semibold text-indigo-400 hover:text-indigo-300">View all {data.teachers.length} teachers →</a>
         </div>
 
         <div className="xl:col-span-2 space-y-3">
@@ -133,6 +152,7 @@ export default function StaffSection({ data, loading }) {
                   <button
                     className="rounded-lg border px-2 py-1 text-[11px] font-semibold text-slate-300 hover:text-slate-100"
                     style={{ borderColor: 'rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)' }}
+                    onClick={() => openAction(card.actionHref)}
                   >
                     {card.action}
                   </button>

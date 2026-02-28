@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { hasRole } from '@/lib/auth-utils'
 import { createFeeScheduleSchema, recordFeePaymentSchema } from '@/lib/validations'
+import { CurrentTermNotSetError, getCurrentEditableTermForSchool, TermLockedError } from '@/lib/term-utils'
 
 type FeeScheduleRow = {
   id: string
@@ -22,6 +23,7 @@ type FeePaymentRow = {
   school_id: string
   schedule_id: string
   student_id: string
+  payment_method: 'CASH' | 'BANK_TRANSFER' | 'M_PESA' | 'ORANGE_MONEY' | 'OTHER'
   payment_number: string
   amount_paid: number
   payment_date: Date
@@ -72,6 +74,7 @@ function normalizePaymentRow(row: FeePaymentRow) {
     schoolId: row.school_id,
     scheduleId: row.schedule_id,
     studentId: row.student_id,
+    paymentMethod: row.payment_method,
     paymentNumber: row.payment_number,
     amountPaid: Number(row.amount_paid),
     paymentDate: new Date(row.payment_date),
@@ -121,6 +124,7 @@ async function getFeePaymentsForSchedule(schoolId: string, scheduleId: string) {
       select: {
         id: true,
         studentId: true,
+        paymentMethod: true,
         paymentNumber: true,
         amountPaid: true,
         paymentDate: true,
@@ -129,6 +133,7 @@ async function getFeePaymentsForSchedule(schoolId: string, scheduleId: string) {
     })) as Array<{
       id: string
       studentId: string
+      paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'M_PESA' | 'ORANGE_MONEY' | 'OTHER'
       paymentNumber: string
       amountPaid: number
       paymentDate: Date
@@ -136,7 +141,7 @@ async function getFeePaymentsForSchedule(schoolId: string, scheduleId: string) {
   }
 
   const rows = await prisma.$queryRaw<FeePaymentRow[]>`
-    SELECT id, school_id, schedule_id, student_id, payment_number, amount_paid, payment_date
+    SELECT id, school_id, schedule_id, student_id, payment_method, payment_number, amount_paid, payment_date
     FROM fee_payments
     WHERE school_id = ${schoolId} AND schedule_id = ${scheduleId}
     ORDER BY payment_date DESC
@@ -147,6 +152,7 @@ async function getFeePaymentsForSchedule(schoolId: string, scheduleId: string) {
     return {
       id: payment.id,
       studentId: payment.studentId,
+      paymentMethod: payment.paymentMethod,
       paymentNumber: payment.paymentNumber,
       amountPaid: payment.amountPaid,
       paymentDate: payment.paymentDate,
@@ -358,6 +364,7 @@ export async function GET(request: NextRequest) {
       const student = paymentStudentById.get(payment.studentId)
       return {
         id: payment.id,
+        paymentMethod: payment.paymentMethod,
         paymentNumber: payment.paymentNumber,
         amountPaid: payment.amountPaid,
         paymentDate: payment.paymentDate,
@@ -547,7 +554,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const { scheduleId, studentId, amountPaid, paymentDate, notes } = validation.data
+      const { scheduleId, studentId, amountPaid, paymentMethod, paymentDate, notes } = validation.data
 
       const delegates = getPrismaDelegates()
       const [schedule, student] = await Promise.all([
@@ -573,10 +580,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Student not found' }, { status: 404 })
       }
 
+      const currentTerm = await getCurrentEditableTermForSchool(schoolId)
+
       const paymentPayload = {
         schoolId,
         scheduleId,
         studentId,
+        termId: currentTerm.id,
+        paymentMethod,
         paymentNumber: createPaymentNumber(),
         amountPaid,
         paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
@@ -591,12 +602,14 @@ export async function POST(request: NextRequest) {
         : await (async () => {
             const insertedId = crypto.randomUUID()
             const rows = await prisma.$queryRaw<FeePaymentRow[]>`
-              INSERT INTO fee_payments (id, school_id, schedule_id, student_id, payment_number, amount_paid, payment_date, notes, received_by, created_at)
+              INSERT INTO fee_payments (id, school_id, schedule_id, student_id, term_id, payment_method, payment_number, amount_paid, payment_date, notes, received_by, created_at)
               VALUES (
                 ${insertedId},
                 ${paymentPayload.schoolId},
                 ${paymentPayload.scheduleId},
                 ${paymentPayload.studentId},
+                ${paymentPayload.termId},
+                ${paymentPayload.paymentMethod}::"PaymentMethod",
                 ${paymentPayload.paymentNumber},
                 ${paymentPayload.amountPaid},
                 ${paymentPayload.paymentDate},
@@ -604,7 +617,7 @@ export async function POST(request: NextRequest) {
                 ${paymentPayload.receivedBy},
                 NOW()
               )
-              RETURNING id, school_id, schedule_id, student_id, payment_number, amount_paid, payment_date
+              RETURNING id, school_id, schedule_id, student_id, payment_method, payment_number, amount_paid, payment_date
             `
 
             const inserted = normalizePaymentRow(rows[0])
@@ -613,6 +626,7 @@ export async function POST(request: NextRequest) {
               schoolId: inserted.schoolId,
               scheduleId: inserted.scheduleId,
               studentId: inserted.studentId,
+              paymentMethod: inserted.paymentMethod,
               paymentNumber: inserted.paymentNumber,
               amountPaid: inserted.amountPaid,
               paymentDate: inserted.paymentDate,
@@ -625,6 +639,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   } catch (error) {
     console.error('Error handling fees:', error)
+    if (error instanceof CurrentTermNotSetError || error instanceof TermLockedError) {
+      return NextResponse.json({ error: error.message }, { status: 409 })
+    }
     const message = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
       {

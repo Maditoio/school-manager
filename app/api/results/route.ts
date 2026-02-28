@@ -5,6 +5,9 @@ import { resultSchema } from "@/lib/validations"
 import { hasRole } from "@/lib/auth-utils"
 import { calculateGrade } from "@/lib/utils"
 import { Prisma } from "@prisma/client"
+import { CurrentTermNotSetError, getCurrentEditableTermForSchool, TermLockedError } from '@/lib/term-utils'
+import { enqueueAcademicAggregation, processAcademicAggregationEvents } from '@/lib/academic-aggregation'
+import { invalidateSchoolAdminCachedStats } from '@/lib/dashboard-cache'
 
 // GET /api/results - Get results
 export async function GET(request: NextRequest) {
@@ -133,8 +136,6 @@ export async function POST(request: NextRequest) {
       examType, 
       score, 
       maxScore, 
-      term = 'Term 1', 
-      year = new Date().getFullYear(), 
       grade, 
       comment 
     } = validation.data
@@ -164,6 +165,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    const currentTerm = await getCurrentEditableTermForSchool(student.schoolId)
+    const term = currentTerm.name
+    const year = currentTerm.academicYear.year
+
     // Map examType to appropriate field and calculate total score
     const testScore = examType === 'QUIZ' || examType === 'ASSIGNMENT' ? score : examType === 'MIDTERM' ? score : undefined
     const examScore = examType === 'FINAL' ? score : undefined
@@ -183,6 +188,7 @@ export async function POST(request: NextRequest) {
         },
       },
       update: {
+        termId: currentTerm.id,
         examType,
         testScore,
         examScore,
@@ -195,6 +201,7 @@ export async function POST(request: NextRequest) {
         schoolId: student.schoolId,
         studentId,
         subjectId,
+        termId: currentTerm.id,
         term,
         year,
         examType,
@@ -221,9 +228,19 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    await enqueueAcademicAggregation({
+      schoolId: student.schoolId,
+      termId: currentTerm.id,
+    })
+    void processAcademicAggregationEvents(1)
+    invalidateSchoolAdminCachedStats(student.schoolId)
+
     return NextResponse.json({ result }, { status: 201 })
   } catch (error) {
     console.error('Error adding result:', error)
+    if (error instanceof CurrentTermNotSetError || error instanceof TermLockedError) {
+      return NextResponse.json({ error: error.message }, { status: 409 })
+    }
     const details =
       process.env.NODE_ENV !== 'production' && error instanceof Error
         ? error.message

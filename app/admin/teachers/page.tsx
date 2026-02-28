@@ -17,6 +17,7 @@ interface Teacher {
   title?: string
   phone?: string
   createdAt: string
+  availability: 'Available' | 'Away'
 }
 
 export default function TeachersPage() {
@@ -28,6 +29,9 @@ export default function TeachersPage() {
   const [showBulkModal, setShowBulkModal] = useState(false)
   const [bulkUploadLoading, setBulkUploadLoading] = useState(false)
   const [bulkUploadErrors, setBulkUploadErrors] = useState<Array<{ row: number; error: string }>>([])
+  const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'Available' | 'Away'>('ALL')
+  const [searchQuery, setSearchQuery] = useState('')
   const [formData, setFormData] = useState({
     title: '',
     firstName: '',
@@ -54,13 +58,42 @@ export default function TeachersPage() {
 
   const fetchTeachers = async () => {
     try {
-      const res = await fetch('/api/users?role=TEACHER')
-      if (res.ok) {
-        const data = await res.json()
-        setTeachers(Array.isArray(data.users) ? data.users : [])
-      } else {
+      const today = new Date().toISOString().slice(0, 10)
+      const [teachersResponse, offDaysResponse] = await Promise.all([
+        fetch('/api/users?role=TEACHER'),
+        fetch(`/api/teacher-off-days?activeOn=${encodeURIComponent(today)}`),
+      ])
+
+      if (!teachersResponse.ok) {
         setTeachers([])
+        return
       }
+
+      const teachersPayload = await teachersResponse.json()
+      const users = Array.isArray(teachersPayload.users) ? teachersPayload.users : []
+
+      const offDaySet = new Set<string>()
+      if (offDaysResponse.ok) {
+        const offDaysPayload = await offDaysResponse.json()
+        const offDays = Array.isArray(offDaysPayload.offDays) ? offDaysPayload.offDays : []
+        offDays.forEach((row: { teacherId?: string }) => {
+          if (row.teacherId) offDaySet.add(row.teacherId)
+        })
+      }
+
+      const rows: Teacher[] = users
+        .map((teacher: Omit<Teacher, 'availability'>) => ({
+          ...teacher,
+          availability: offDaySet.has(teacher.id) ? 'Away' : 'Available',
+        }))
+        .sort((a: Teacher, b: Teacher) => {
+          if (a.availability !== b.availability) {
+            return a.availability === 'Away' ? -1 : 1
+          }
+          return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
+        })
+
+      setTeachers(rows)
     } catch (error) {
       console.error('Failed to fetch teachers:', error)
       setTeachers([])
@@ -228,6 +261,28 @@ export default function TeachersPage() {
     { label: 'Messages', href: '/admin/messages', icon: '💬' },
   ]
 
+  const statusFilteredTeachers =
+    statusFilter === 'ALL'
+      ? teachers
+      : teachers.filter((teacher) => teacher.availability === statusFilter)
+
+  const normalizedSearch = searchQuery.trim().toLowerCase()
+  const filteredTeachers =
+    normalizedSearch.length === 0
+      ? statusFilteredTeachers
+      : statusFilteredTeachers.filter((teacher) => {
+          const fullName = `${teacher.title ? `${teacher.title} ` : ''}${teacher.firstName} ${teacher.lastName}`.toLowerCase()
+          const email = teacher.email.toLowerCase()
+          const phone = (teacher.phone || '').toLowerCase()
+          return fullName.includes(normalizedSearch) || email.includes(normalizedSearch) || phone.includes(normalizedSearch)
+        })
+
+  const teacherTotals = {
+    total: teachers.length,
+    available: teachers.filter((teacher) => teacher.availability === 'Available').length,
+    away: teachers.filter((teacher) => teacher.availability === 'Away').length,
+  }
+
   return (
     <DashboardLayout
       user={{
@@ -238,64 +293,203 @@ export default function TeachersPage() {
       navItems={navItems}
     >
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Teachers Management</h1>
-            <p className="text-gray-600 mt-2">Manage all teachers in your school</p>
+        <div className="rounded-2xl border border-slate-700/60 bg-slate-900 p-5 shadow-lg shadow-black/20 md:p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">School Pulse</p>
+              <h1 className="text-3xl font-bold text-slate-100">Teachers Management</h1>
+              <p className="mt-2 text-sm text-slate-400">Manage all teachers in your school</p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowBulkModal(true)
+                  setBulkUploadErrors([])
+                }}
+              >
+                Bulk Upload
+              </Button>
+              <Button
+                onClick={() => {
+                  resetForm()
+                  setShowModal(true)
+                }}
+              >
+                Add Teacher
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setShowBulkModal(true)
-                setBulkUploadErrors([])
-              }}
-            >
-              Bulk Upload
-            </Button>
-            <Button
-              onClick={() => {
-                resetForm()
-                setShowModal(true)
-              }}
-            >
-              Add Teacher
-            </Button>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-200">
+              Total: {teacherTotals.total}
+            </span>
+            <span className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+              Available: {teacherTotals.available}
+            </span>
+            <span className="inline-flex items-center rounded-full border border-rose-400/30 bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-300">
+              Away: {teacherTotals.away}
+            </span>
           </div>
         </div>
 
+        {!loading ? (
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm ui-text-secondary">{filteredTeachers.length} teacher(s)</p>
+            <div className="flex items-center gap-2">
+              <label htmlFor="teachers-status-filter" className="text-sm ui-text-secondary">Filter</label>
+              <select
+                id="teachers-status-filter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'Available' | 'Away')}
+                className="ui-select h-8 min-w-36"
+              >
+                <option value="ALL">All</option>
+                <option value="Available">Available</option>
+                <option value="Away">Away</option>
+              </select>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search teacher..."
+                className="ui-input h-8 w-56"
+              />
+            </div>
+          </div>
+        ) : null}
+
         {loading ? (
-          <div>Loading teachers...</div>
-        ) : teachers.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {teachers.map((teacher) => (
-              <Card key={teacher.id} className="p-6">
-                <div className="space-y-3">
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    {teacher.title ? `${teacher.title} ` : ''}{teacher.firstName} {teacher.lastName}
-                  </h3>
-                  <div className="space-y-1 text-sm text-gray-600">
-                    <p>📧 {teacher.email}</p>
-                    {teacher.phone && <p>📱 {teacher.phone}</p>}
-                    <p>📅 Joined: {new Date(teacher.createdAt).toLocaleDateString()}</p>
-                  </div>
-                  <div className="flex gap-2 pt-3">
-                    <Button variant="secondary" onClick={() => handleResetPassword(teacher)}>
-                      Reset Password
-                    </Button>
-                    <Button variant="danger" onClick={() => handleDelete(teacher.id)}>
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
+          <div className="min-h-[52vh] flex items-center justify-center">
+            <div className="w-full space-y-3">
+              <div className="flex items-center justify-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-(--accent) animate-pulse" />
+                <p className="text-sm ui-text-secondary">Loading teachers...</p>
+              </div>
+              <div className="overflow-x-auto rounded-xl border border-(--border-subtle) bg-(--surface)">
+                <table className="ui-table min-w-full">
+                  <thead>
+                    <tr>
+                      <th>Teacher</th>
+                      <th>Email</th>
+                      <th>Phone</th>
+                      <th>Status</th>
+                      <th>Joined</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.from({ length: 6 }).map((_, index) => (
+                      <tr key={`teacher-loading-${index}`}>
+                        <td><div className="h-3.5 w-40 rounded bg-(--surface-soft) animate-pulse" /></td>
+                        <td><div className="h-3.5 w-52 rounded bg-(--surface-soft) animate-pulse" /></td>
+                        <td><div className="h-3.5 w-28 rounded bg-(--surface-soft) animate-pulse" /></td>
+                        <td><div className="h-5 w-16 rounded-full bg-(--surface-soft) animate-pulse" /></td>
+                        <td><div className="h-3.5 w-24 rounded bg-(--surface-soft) animate-pulse" /></td>
+                        <td><div className="h-8 w-8 rounded-lg bg-(--surface-soft) animate-pulse" /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        ) : filteredTeachers.length > 0 ? (
+          <div className="overflow-x-auto rounded-xl border border-(--border-subtle) bg-(--surface) teachers-no-hover" onClick={() => setOpenActionMenuId(null)}>
+            <table className="ui-table min-w-full">
+              <thead>
+                <tr>
+                  <th>Teacher</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Status</th>
+                  <th>Joined</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTeachers.map((teacher) => (
+                  <tr key={teacher.id}>
+                    <td>
+                      <a href={`/admin/teachers/${teacher.id}`} className="font-medium ui-text-primary no-hover-link">
+                        {teacher.title ? `${teacher.title} ` : ''}{teacher.firstName} {teacher.lastName}
+                      </a>
+                    </td>
+                    <td>{teacher.email}</td>
+                    <td>{teacher.phone || 'N/A'}</td>
+                    <td>
+                      <span
+                        className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${
+                          teacher.availability === 'Away'
+                            ? 'bg-rose-100 text-rose-700'
+                            : 'bg-emerald-100 text-emerald-700'
+                        }`}
+                      >
+                        {teacher.availability}
+                      </span>
+                    </td>
+                    <td>{new Date(teacher.createdAt).toLocaleDateString()}</td>
+                    <td className="relative" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        aria-label="Teacher actions"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-(--border-subtle) bg-(--surface-soft) text-base leading-none ui-text-secondary hover:ui-text-primary"
+                        onClick={() => setOpenActionMenuId((current) => (current === teacher.id ? null : teacher.id))}
+                      >
+                        ⋯
+                      </button>
+
+                      {openActionMenuId === teacher.id ? (
+                        <div className="absolute right-0 top-9 z-30 min-w-44 rounded-[10px] border border-(--border-subtle) bg-(--surface) p-1.5 shadow-(--shadow-soft)">
+                          <button
+                            type="button"
+                            className="flex w-full items-center rounded-md px-3 py-2 text-left text-sm ui-text-secondary hover:bg-(--surface-soft) hover:ui-text-primary"
+                            onClick={() => {
+                              setOpenActionMenuId(null)
+                              handleResetPassword(teacher)
+                            }}
+                          >
+                            Reset Password
+                          </button>
+                          <button
+                            type="button"
+                            className="flex w-full items-center rounded-md px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
+                            onClick={() => {
+                              setOpenActionMenuId(null)
+                              handleDelete(teacher.id)
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
           <Card className="p-6">
-            <p className="text-center text-gray-500">No teachers found. Click &quot;Add Teacher&quot; to create one.</p>
+            <p className="text-center text-gray-500">No teachers match this filter.</p>
           </Card>
         )}
+
+        <style jsx global>{`
+          .teachers-no-hover .ui-table tbody tr:hover {
+            background: inherit !important;
+          }
+
+          .teachers-no-hover .ui-table tbody tr:hover td {
+            color: inherit !important;
+          }
+
+          .teachers-no-hover .no-hover-link:hover {
+            text-decoration: none !important;
+            color: inherit !important;
+          }
+        `}</style>
 
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

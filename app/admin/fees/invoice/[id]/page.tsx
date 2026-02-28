@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 
 type InvoicePageRow = {
   payment_id: string
+  payment_method: 'CASH' | 'BANK_TRANSFER' | 'M_PESA' | 'ORANGE_MONEY' | 'OTHER'
   payment_number: string
   amount_paid: number
   payment_date: Date
@@ -20,6 +21,14 @@ type InvoicePageRow = {
   schedule_amount_due: number
   receiver_first_name: string | null
   receiver_last_name: string | null
+}
+
+function formatPaymentMethod(method: 'CASH' | 'BANK_TRANSFER' | 'M_PESA' | 'ORANGE_MONEY' | 'OTHER') {
+  if (method === 'CASH') return 'Cash'
+  if (method === 'BANK_TRANSFER') return 'Bank Transfer'
+  if (method === 'M_PESA') return 'M-Pesa'
+  if (method === 'ORANGE_MONEY') return 'Orange Money'
+  return 'Other'
 }
 
 function periodLabel(periodType: 'MONTHLY' | 'SEMESTER' | 'YEARLY', year: number, month: number | null, semester: number | null) {
@@ -39,6 +48,7 @@ async function getInvoiceData(paymentId: string, schoolId: string) {
   const rows = await prisma.$queryRaw<InvoicePageRow[]>`
     SELECT
       p.id AS payment_id,
+      p.payment_method,
       p.payment_number,
       p.amount_paid,
       p.payment_date,
@@ -73,6 +83,7 @@ async function getInvoiceData(paymentId: string, schoolId: string) {
 
   return {
     id: row.payment_id,
+    paymentMethod: row.payment_method,
     paymentNumber: row.payment_number,
     amountPaid: Number(row.amount_paid),
     paymentDate: row.payment_date,
@@ -164,6 +175,7 @@ export default async function FeeInvoicePage({ params }: { params: Promise<{ id:
               <p><span className="font-medium">Fee Period:</span> {scheduleLabel}</p>
               <p><span className="font-medium">Amount Due:</span> {payment.schedule.amountDue.toFixed(2)}</p>
               <p><span className="font-medium">Amount Paid:</span> {payment.amountPaid.toFixed(2)}</p>
+              <p><span className="font-medium">Payment Method:</span> {formatPaymentMethod(payment.paymentMethod)}</p>
               <p><span className="font-medium">Received By:</span> {receivedBy}</p>
             </div>
           </div>

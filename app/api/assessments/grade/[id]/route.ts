@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { assertTermEditableById, assertTermEditableByLegacyValues, TermLockedError } from '@/lib/term-utils'
+import { calculateGrade } from '@/lib/utils'
+import { enqueueAcademicAggregation, processAcademicAggregationEvents } from '@/lib/academic-aggregation'
+import { invalidateSchoolAdminCachedStats } from '@/lib/dashboard-cache'
 
 // PUT/PATCH grade a student assessment
 export async function PUT(
@@ -60,6 +64,16 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized to grade this assessment' }, { status: 403 })
     }
 
+    await assertTermEditableById({
+      schoolId: studentAssessment.student.schoolId,
+      termId: studentAssessment.assessment.termId,
+    })
+    await assertTermEditableByLegacyValues({
+      schoolId: studentAssessment.student.schoolId,
+      termName: studentAssessment.assessment.term,
+      academicYear: studentAssessment.assessment.academicYear,
+    })
+
     // Validate score doesn't exceed total marks
     if (parseFloat(score) > studentAssessment.assessment.totalMarks) {
       return NextResponse.json({ 
@@ -67,10 +81,30 @@ export async function PUT(
       }, { status: 400 })
     }
 
+    const numericScore = parseFloat(score)
+    const totalMarks = Number(studentAssessment.assessment.totalMarks)
+    const examType = studentAssessment.assessment.type
+    const isExamType = examType === 'EXAM'
+    let aggregationTermId = studentAssessment.assessment.termId
+
+    if (!aggregationTermId) {
+      const resolvedTerm = await prisma.term.findFirst({
+        where: {
+          schoolId: studentAssessment.student.schoolId,
+          name: studentAssessment.assessment.term,
+          academicYear: {
+            year: studentAssessment.assessment.academicYear,
+          },
+        },
+        select: { id: true },
+      })
+      aggregationTermId = resolvedTerm?.id || null
+    }
+
     const updated = await prisma.studentAssessment.update({
       where: { id },
       data: {
-        score: parseFloat(score),
+        score: numericScore,
         feedback: feedback || null,
         graded: true,
         gradedAt: new Date(),
@@ -78,9 +112,58 @@ export async function PUT(
       }
     })
 
+    const computedGrade = calculateGrade(numericScore, totalMarks)
+
+    await prisma.result.upsert({
+      where: {
+        studentId_subjectId_term_year: {
+          studentId: studentAssessment.studentId,
+          subjectId: studentAssessment.assessment.subjectId,
+          term: studentAssessment.assessment.term,
+          year: studentAssessment.assessment.academicYear,
+        },
+      },
+      update: {
+        termId: aggregationTermId,
+        examType,
+        testScore: isExamType ? null : numericScore,
+        examScore: isExamType ? numericScore : null,
+        totalScore: numericScore,
+        maxScore: totalMarks,
+        grade: computedGrade,
+        comment: feedback || null,
+      },
+      create: {
+        schoolId: studentAssessment.student.schoolId,
+        studentId: studentAssessment.studentId,
+        subjectId: studentAssessment.assessment.subjectId,
+        termId: aggregationTermId,
+        term: studentAssessment.assessment.term,
+        year: studentAssessment.assessment.academicYear,
+        examType,
+        testScore: isExamType ? null : numericScore,
+        examScore: isExamType ? numericScore : null,
+        totalScore: numericScore,
+        maxScore: totalMarks,
+        grade: computedGrade,
+        comment: feedback || null,
+        published: false,
+      },
+    })
+
+    await enqueueAcademicAggregation({
+      schoolId: studentAssessment.student.schoolId,
+      termId: aggregationTermId,
+    })
+    void processAcademicAggregationEvents(1)
+    invalidateSchoolAdminCachedStats(studentAssessment.student.schoolId)
+
     return NextResponse.json({ studentAssessment: updated })
   } catch (error) {
     console.error('Error grading assessment:', error)
+    if (error instanceof TermLockedError) {
+      return NextResponse.json({ error: error.message }, { status: 409 })
+    }
     return NextResponse.json({ error: 'Failed to grade assessment' }, { status: 500 })
   }
 }

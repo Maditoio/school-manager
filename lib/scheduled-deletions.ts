@@ -53,40 +53,68 @@ export async function executeScheduledDeletions() {
 }
 
 async function deleteResource(deletionRequest: {
+  schoolId: string
   resourceType: string
   resourceId: string
 }) {
   if (deletionRequest.resourceType === 'class') {
-    // Delete in transaction: first delete related records, then students, then class
     await prisma.$transaction(async (tx) => {
-      // Find all students in the class
+      const classData = await tx.class.findFirst({
+        where: {
+          id: deletionRequest.resourceId,
+          schoolId: deletionRequest.schoolId,
+        },
+        select: {
+          id: true,
+          schoolId: true,
+          academicYear: true,
+          name: true,
+        },
+      })
+
+      if (!classData) {
+        return
+      }
+
       const students = await tx.student.findMany({
         where: { classId: deletionRequest.resourceId },
         select: { id: true },
       })
 
-      const studentIds = students.map((s) => s.id)
-
-      // Delete attendance records for these students
-      if (studentIds.length > 0) {
-        await tx.attendance.deleteMany({
-          where: { studentId: { in: studentIds } },
+      if (students.length > 0) {
+        const fallbackClass = await tx.class.upsert({
+          where: {
+            schoolId_name_academicYear: {
+              schoolId: classData.schoolId,
+              name: 'Unassigned',
+              academicYear: classData.academicYear,
+            },
+          },
+          create: {
+            schoolId: classData.schoolId,
+            name: 'Unassigned',
+            academicYear: classData.academicYear,
+            grade: 'Unassigned',
+          },
+          update: {},
+          select: { id: true },
         })
 
-        // Delete results for these students
-        await tx.result.deleteMany({
-          where: { studentId: { in: studentIds } },
+        if (fallbackClass.id === classData.id) {
+          throw new Error('Cannot delete the Unassigned class while it has students.')
+        }
+
+        await tx.student.updateMany({
+          where: { classId: classData.id },
+          data: {
+            classId: fallbackClass.id,
+            academicYear: classData.academicYear,
+          },
         })
       }
 
-      // Delete students
-      await tx.student.deleteMany({
-        where: { classId: deletionRequest.resourceId },
-      })
-
-      // Delete the class
       await tx.class.delete({
-        where: { id: deletionRequest.resourceId },
+        where: { id: classData.id },
       })
     })
   }

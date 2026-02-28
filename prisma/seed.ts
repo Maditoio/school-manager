@@ -37,6 +37,96 @@ async function main() {
 
   console.log('✅ Created School:', school.name)
 
+  const currentAcademicYear = await prisma.academicYear.upsert({
+    where: {
+      schoolId_year: {
+        schoolId: school.id,
+        year: academicYear,
+      },
+    },
+    update: {
+      name: `Academic Year ${academicYear}`,
+      isCurrent: true,
+    },
+    create: {
+      schoolId: school.id,
+      year: academicYear,
+      name: `Academic Year ${academicYear}`,
+      isCurrent: true,
+    },
+  })
+
+  const term1 = await prisma.term.upsert({
+    where: { id: '990e8400-e29b-41d4-a716-446655440001' },
+    update: {
+      schoolId: school.id,
+      academicYearId: currentAcademicYear.id,
+      name: 'Term 1',
+      startDate: new Date(`${academicYear}-01-01`),
+      endDate: new Date(`${academicYear}-04-30`),
+      isCurrent: true,
+      isLocked: false,
+    },
+    create: {
+      id: '990e8400-e29b-41d4-a716-446655440001',
+      schoolId: school.id,
+      academicYearId: currentAcademicYear.id,
+      name: 'Term 1',
+      startDate: new Date(`${academicYear}-01-01`),
+      endDate: new Date(`${academicYear}-04-30`),
+      isCurrent: true,
+      isLocked: false,
+    },
+  })
+
+  await prisma.term.upsert({
+    where: { id: '990e8400-e29b-41d4-a716-446655440002' },
+    update: {
+      schoolId: school.id,
+      academicYearId: currentAcademicYear.id,
+      name: 'Term 2',
+      startDate: new Date(`${academicYear}-05-01`),
+      endDate: new Date(`${academicYear}-08-31`),
+      isCurrent: false,
+      isLocked: false,
+    },
+    create: {
+      id: '990e8400-e29b-41d4-a716-446655440002',
+      schoolId: school.id,
+      academicYearId: currentAcademicYear.id,
+      name: 'Term 2',
+      startDate: new Date(`${academicYear}-05-01`),
+      endDate: new Date(`${academicYear}-08-31`),
+      isCurrent: false,
+      isLocked: false,
+    },
+  })
+
+  await prisma.term.upsert({
+    where: { id: '990e8400-e29b-41d4-a716-446655440003' },
+    update: {
+      schoolId: school.id,
+      academicYearId: currentAcademicYear.id,
+      name: 'Term 3',
+      startDate: new Date(`${academicYear}-09-01`),
+      endDate: new Date(`${academicYear}-12-31`),
+      isCurrent: false,
+      isLocked: false,
+    },
+    create: {
+      id: '990e8400-e29b-41d4-a716-446655440003',
+      schoolId: school.id,
+      academicYearId: currentAcademicYear.id,
+      name: 'Term 3',
+      startDate: new Date(`${academicYear}-09-01`),
+      endDate: new Date(`${academicYear}-12-31`),
+      isCurrent: false,
+      isLocked: false,
+    },
+  })
+
+  console.log('✅ Created Academic Year and Terms')
+
   // Create School Admin
   const schoolAdmin = await prisma.user.upsert({
     where: { email: 'schooladmin@demo.com' },
@@ -194,6 +284,7 @@ async function main() {
     create: {
       schoolId: school.id,
       studentId: student.id,
+      termId: term1.id,
       date: today,
       status: 'PRESENT',
     },
@@ -210,6 +301,7 @@ async function main() {
     create: {
       schoolId: school.id,
       studentId: student.id,
+      termId: term1.id,
       date: yesterday,
       status: 'PRESENT',
     },
@@ -233,8 +325,9 @@ async function main() {
         schoolId: school.id,
         studentId: student.id,
         subjectId: subject.id,
+        termId: term1.id,
         term: '1',
-        year: 2024,
+        year: academicYear,
         testScore: 45,
         examScore: 80,
         totalScore: 125,

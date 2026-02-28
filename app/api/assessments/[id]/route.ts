@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { assertTermEditableById, assertTermEditableByLegacyValues, TermLockedError } from '@/lib/term-utils'
 
 // GET a single assessment with student grades
 export async function GET(
@@ -144,7 +145,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { title, description, type, totalMarks, dueDate, term, academicYear } = body
+    const { title, description, type, totalMarks, dueDate } = body
 
     // Verify ownership
     const existing = await prisma.assessment.findFirst({
@@ -152,12 +153,25 @@ export async function PUT(
         id,
         schoolId: session.user.schoolId,
         teacherId: session.user.id
-      }
+      },
+      select: {
+        id: true,
+        termId: true,
+        term: true,
+        academicYear: true,
+      },
     })
 
     if (!existing) {
       return NextResponse.json({ error: 'Assessment not found or unauthorized' }, { status: 404 })
     }
+
+    await assertTermEditableById({ schoolId: session.user.schoolId, termId: existing.termId })
+    await assertTermEditableByLegacyValues({
+      schoolId: session.user.schoolId,
+      termName: existing.term,
+      academicYear: existing.academicYear,
+    })
 
     const assessment = await prisma.assessment.update({
       where: { id },
@@ -165,8 +179,6 @@ export async function PUT(
         title,
         description,
         type,
-        term,
-        academicYear: academicYear ? Number(academicYear) : undefined,
         totalMarks: totalMarks ? parseFloat(totalMarks) : undefined,
         dueDate: dueDate ? new Date(dueDate) : null
       },
@@ -178,6 +190,9 @@ export async function PUT(
     return NextResponse.json({ assessment })
   } catch (error) {
     console.error('Error updating assessment:', error)
+    if (error instanceof TermLockedError) {
+      return NextResponse.json({ error: error.message }, { status: 409 })
+    }
     return NextResponse.json({ error: 'Failed to update assessment' }, { status: 500 })
   }
 }
@@ -204,12 +219,25 @@ export async function DELETE(
         id,
         schoolId: session.user.schoolId,
         teacherId: session.user.id
-      }
+      },
+      select: {
+        id: true,
+        termId: true,
+        term: true,
+        academicYear: true,
+      },
     })
 
     if (!existing) {
       return NextResponse.json({ error: 'Assessment not found or unauthorized' }, { status: 404 })
     }
+
+    await assertTermEditableById({ schoolId: session.user.schoolId, termId: existing.termId })
+    await assertTermEditableByLegacyValues({
+      schoolId: session.user.schoolId,
+      termName: existing.term,
+      academicYear: existing.academicYear,
+    })
 
     await prisma.assessment.delete({
       where: { id }
@@ -218,6 +246,9 @@ export async function DELETE(
     return NextResponse.json({ message: 'Assessment deleted successfully' })
   } catch (error) {
     console.error('Error deleting assessment:', error)
+    if (error instanceof TermLockedError) {
+      return NextResponse.json({ error: error.message }, { status: 409 })
+    }
     return NextResponse.json({ error: 'Failed to delete assessment' }, { status: 500 })
   }
 }

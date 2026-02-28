@@ -26,6 +26,21 @@ async function ensureParentUser(params: {
     return undefined
   }
 
+  const existingByEmail = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+    select: {
+      id: true,
+      role: true,
+    },
+  })
+
+  if (existingByEmail) {
+    if (existingByEmail.role !== 'PARENT') {
+      throw new Error('Parent email already belongs to a non-parent account')
+    }
+    return existingByEmail.id
+  }
+
   const existingParent = await prisma.user.findFirst({
     where: {
       schoolId: params.schoolId,

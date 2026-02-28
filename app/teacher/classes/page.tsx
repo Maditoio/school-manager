@@ -49,8 +49,19 @@ export default function TeacherClassesPage() {
     }
   }
 
+  const loadingIndicator = (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="rounded-2xl border border-(--border-subtle) bg-(--surface-soft) px-8 py-6 shadow-[0_12px_36px_rgba(2,6,23,0.14)]">
+        <div className="flex items-center gap-3">
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-(--border-subtle) border-t-(--accent)" />
+          <p className="text-sm font-medium ui-text-primary">Loading classes...</p>
+        </div>
+      </div>
+    </div>
+  )
+
   if (status === 'loading' || !session) {
-    return <div>Loading...</div>
+    return loadingIndicator
   }
 
   const navItems = [
@@ -80,7 +91,7 @@ export default function TeacherClassesPage() {
         </div>
 
         {loading ? (
-          <div>Loading classes...</div>
+          loadingIndicator
         ) : classes.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {classes.map((cls) => (

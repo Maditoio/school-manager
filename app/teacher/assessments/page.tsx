@@ -270,9 +270,24 @@ export default function TeacherAssessmentsPage() {
         </div>
 
         {showCreateForm && (
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Create New Assessment</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--overlay) p-4">
+            <Card className="relative w-full max-w-3xl p-6">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!formLoading) {
+                    setShowCreateForm(false)
+                  }
+                }}
+                disabled={formLoading}
+                className="absolute right-4 top-4 ui-text-secondary hover:ui-text-primary disabled:opacity-50"
+                aria-label="Close create assessment modal"
+              >
+                ✕
+              </button>
+
+              <h2 className="text-xl font-semibold mb-4">Create New Assessment</h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
               <Input
                 label="Title"
                 value={formData.title}
@@ -385,13 +400,15 @@ export default function TeacherAssessmentsPage() {
                 <Button
                   type="button"
                   onClick={() => setShowCreateForm(false)}
+                  disabled={formLoading}
                   className="bg-gray-500 hover:bg-gray-600"
                 >
                   Cancel
                 </Button>
               </div>
-            </form>
-          </Card>
+              </form>
+            </Card>
+          </div>
         )}
 
         <Card className="p-4">

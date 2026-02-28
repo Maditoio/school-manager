@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { ResponsiveContainer, LineChart, Line, Tooltip } from 'recharts'
 import { Users, UserPlus, UserX, AlertCircle, TrendingDown, GraduationCap, BookOpen } from 'lucide-react'
 
@@ -15,7 +16,7 @@ const iconMap = {
   'Unassigned Subjects': BookOpen,
 }
 
-function PulseCard({ item }) {
+function PulseCard({ item, onClick }) {
   const Icon = iconMap[item.label] || Users
   const sparklineData = useMemo(() => item.sparkline.map((value, i) => ({ x: i, y: value })), [item.sparkline])
   const absentThresholdExceeded = item.label === 'Absent Today' && item.value > 62 // >5% of 1245
@@ -23,6 +24,19 @@ function PulseCard({ item }) {
 
   return (
     <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onClick()
+              }
+            }
+          : undefined
+      }
       className="group rounded-2xl border p-4 transition-all duration-200"
       style={{
         background: '#111420',
@@ -31,6 +45,7 @@ function PulseCard({ item }) {
         boxShadow: absentThresholdExceeded ? '0 0 0 1px rgba(239,68,68,0.25), 0 0 24px rgba(239,68,68,0.14)' : '0 8px 28px rgba(0,0,0,0.28)',
         animation: absentThresholdExceeded ? 'pulseGlow 2.2s ease-in-out infinite' : undefined,
         borderLeft: unassignedAttention ? '3px solid #ef4444' : '1px solid rgba(255,255,255,0.07)',
+        cursor: onClick ? 'pointer' : 'default',
       }}
     >
       <div className="flex items-start justify-between gap-3">
@@ -88,7 +103,8 @@ function SchoolPulseSkeleton() {
   )
 }
 
-export default function SchoolPulseSection({ data, loading }) {
+export default function SchoolPulseSection({ data, loading, cardLinks = {} }) {
+  const router = useRouter()
   const items = [
     data.totalStudents,
     data.newThisTerm,
@@ -105,7 +121,11 @@ export default function SchoolPulseSection({ data, loading }) {
   return (
     <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
       {items.map((item, index) => (
-        <PulseCard key={`${item.label}-${index}`} item={item} />
+        <PulseCard
+          key={`${item.label}-${index}`}
+          item={item}
+          onClick={cardLinks[item.label] ? () => router.push(cardLinks[item.label]) : undefined}
+        />
       ))}
     </div>
   )

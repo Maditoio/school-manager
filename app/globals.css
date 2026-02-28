@@ -291,6 +291,22 @@ table tbody tr:hover {
   background: color-mix(in srgb, var(--surface-soft) 88%, var(--background));
 }
 
+.ui-table.no-table-hover tbody tr:hover,
+table.no-table-hover tbody tr:hover {
+  background: inherit !important;
+}
+
+.ui-table.no-table-hover tbody tr:hover td,
+table.no-table-hover tbody tr:hover td {
+  color: inherit !important;
+}
+
+.ui-table.no-table-hover a:hover,
+table.no-table-hover a:hover {
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
 .ui-popover {
   background: var(--surface);
   border: 1px solid var(--border-subtle);

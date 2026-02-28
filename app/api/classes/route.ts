@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { createClassSchema } from "@/lib/validations"
 import { hasRole } from "@/lib/auth-utils"
+import { Prisma } from '@prisma/client'
+import { randomUUID } from 'crypto'
 
 // GET /api/classes - Get classes
 export async function GET() {
@@ -82,10 +84,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const normalizedBody = {
       ...body,
+      name: typeof body.name === 'string' ? body.name.trim() : body.name,
+      academicYear: body.academicYear,
       teacherId:
         typeof body.teacherId === 'string' && body.teacherId.trim() === ''
           ? undefined
           : body.teacherId,
+      capacity:
+        body.capacity === '' || body.capacity === null || body.capacity === undefined
+          ? undefined
+          : body.capacity,
     }
     const validation = createClassSchema.safeParse(normalizedBody)
 
@@ -96,7 +104,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, academicYear, teacherId, grade } = validation.data
+    const { name, academicYear, teacherId, grade, capacity } = validation.data
 
     if (!session.user.schoolId) {
       return NextResponse.json(
@@ -105,14 +113,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const classData = await prisma.class.create({
-      data: {
-        schoolId: session.user.schoolId,
+    const classId = randomUUID()
+
+    await prisma.$executeRaw`
+      INSERT INTO classes (
+        id,
+        school_id,
         name,
-        academicYear,
-        teacherId,
+        academic_year,
+        teacher_id,
         grade,
-      },
+        capacity,
+        created_at,
+        updated_at
+      ) VALUES (
+        ${classId},
+        ${session.user.schoolId},
+        ${name},
+        ${academicYear},
+        ${teacherId ?? null},
+        ${grade ?? null},
+        ${capacity ?? null},
+        NOW(),
+        NOW()
+      )
+    `
+
+    const classData = await prisma.class.findUnique({
+      where: { id: classId },
       include: {
         teacher: {
           select: {
@@ -126,8 +154,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ class: classData }, { status: 201 })
   } catch (error) {
     console.error('Error creating class:', error)
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        return NextResponse.json(
+          { error: 'A class with this name already exists for this academic year.' },
+          { status: 409 }
+        )
+      }
+
+      if (error.code === 'P2003') {
+        return NextResponse.json(
+          { error: 'Selected teacher is invalid for this school.' },
+          { status: 400 }
+        )
+      }
+    }
+
+    const details =
+      process.env.NODE_ENV !== 'production' && error instanceof Error
+        ? error.message
+        : undefined
     return NextResponse.json(
-      { error: 'Failed to create class' },
+      { error: 'Failed to create class', details },
       { status: 500 }
     )
   }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import { CurrentTermNotSetError, getCurrentEditableTermForSchool, TermLockedError } from '@/lib/term-utils'
 
 type AssessmentDelegate = {
   findMany: (args: unknown) => Promise<unknown>
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title, description, type, totalMarks, classId, subjectId, dueDate, academicYear, term } = body
+    const { title, description, type, totalMarks, classId, subjectId, dueDate } = body
 
     if (!session.user.schoolId) {
       return NextResponse.json({ error: 'School ID required' }, { status: 400 })
@@ -100,8 +101,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const resolvedAcademicYear = Number(academicYear) || new Date().getFullYear()
-    const resolvedTerm = typeof term === 'string' && term.trim().length > 0 ? term.trim() : 'Term 1'
+    const currentTerm = await getCurrentEditableTermForSchool(session.user.schoolId)
+    const resolvedAcademicYear = currentTerm.academicYear.year
+    const resolvedTerm = currentTerm.name
 
     const parsedTotalMarks = Number(totalMarks)
     if (!Number.isFinite(parsedTotalMarks) || parsedTotalMarks <= 0) {
@@ -133,6 +135,7 @@ export async function POST(request: NextRequest) {
         totalMarks: parsedTotalMarks,
         classId,
         subjectId,
+        termId: currentTerm.id,
         academicYear: resolvedAcademicYear,
         term: resolvedTerm,
         dueDate: dueDate ? new Date(dueDate) : null,
@@ -181,6 +184,9 @@ export async function POST(request: NextRequest) {
         { error: `Validation error: ${error.message}` },
         { status: 400 }
       )
+    }
+    if (error instanceof CurrentTermNotSetError || error instanceof TermLockedError) {
+      return NextResponse.json({ error: error.message }, { status: 409 })
     }
     if (error instanceof Error) {
       return NextResponse.json(

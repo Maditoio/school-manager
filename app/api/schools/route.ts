@@ -72,7 +72,9 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await hash(adminPassword, 12)
 
-    // Create school with admin user
+    const currentAcademicYear = new Date().getFullYear()
+
+    // Create school with admin user and a default Unassigned class
     const school = await prisma.school.create({
       data: {
         name,
@@ -84,6 +86,13 @@ export async function POST(request: NextRequest) {
             firstName: adminFirstName,
             lastName: adminLastName,
             role: 'SCHOOL_ADMIN',
+          },
+        },
+        classes: {
+          create: {
+            name: 'Unassigned',
+            academicYear: currentAcademicYear,
+            grade: 'Unassigned',
           },
         },
       },

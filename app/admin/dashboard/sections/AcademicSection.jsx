@@ -52,6 +52,15 @@ function AcademicSkeleton() {
 export default function AcademicSection({ data, loading }) {
   if (loading) return <AcademicSkeleton />
 
+  if (!data) {
+    return (
+      <div className="rounded-2xl border p-6 text-center" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }}>
+        <p className="text-sm font-medium text-slate-200">No academic data available for the current term yet.</p>
+        <p className="mt-1 text-xs text-slate-400">Results will appear after assessments are graded for this term.</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">

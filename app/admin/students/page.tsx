@@ -65,7 +65,8 @@ export default function StudentsPage() {
 
   const [uploading, setUploading] = useState(false)
   const [uploadFile, setUploadFile] = useState<File | null>(null)
-  const [uploadSummary, setUploadSummary] = useState<{ created: number; failed: number } | null>(null)
+  const [uploadSummary, setUploadSummary] = useState<{ created: number; skipped: number; failed: number } | null>(null)
+  const [uploadSkipped, setUploadSkipped] = useState<string[]>([])
   const [uploadErrors, setUploadErrors] = useState<string[]>([])
   const [showBulkUpload, setShowBulkUpload] = useState(false)
 
@@ -279,6 +280,7 @@ export default function StudentsPage() {
     }
 
     setUploadSummary(null)
+    setUploadSkipped([])
     setUploadErrors([])
 
     try {
@@ -293,7 +295,15 @@ export default function StudentsPage() {
       })
 
       const responseText = await res.text()
-      let result: { error?: string; message?: string; created?: number; failed?: number; errors?: Array<{ row: number; error: string }> } = {}
+      let result: {
+        error?: string
+        message?: string
+        created?: number
+        skipped?: number
+        failed?: number
+        skippedRows?: Array<{ row: number; reason: string }>
+        errors?: Array<{ row: number; error: string }>
+      } = {}
 
       try {
         result = responseText ? JSON.parse(responseText) : {}
@@ -302,11 +312,15 @@ export default function StudentsPage() {
       }
 
       if (!res.ok) {
+        const detailedSkips = Array.isArray(result.skippedRows)
+          ? result.skippedRows.slice(0, 10).map((item) => `Row ${item.row}: ${item.reason}`)
+          : []
         const detailedErrors = Array.isArray(result.errors)
           ? result.errors.slice(0, 10).map((item) => `Row ${item.row}: ${item.error}`)
           : []
 
-        setUploadSummary({ created: result.created || 0, failed: result.failed || 0 })
+        setUploadSummary({ created: result.created || 0, skipped: result.skipped || 0, failed: result.failed || 0 })
+        setUploadSkipped(detailedSkips)
         setUploadErrors(detailedErrors)
         showToast(result.error || result.message || t('toastBulkFailed', 'Bulk upload failed'), 'error')
         return
@@ -323,16 +337,23 @@ export default function StudentsPage() {
       )
       setUploadFile(null)
       const created = result.created || 0
+      const skipped = result.skipped || 0
       const failed = result.failed || 0
+      const detailedSkips = Array.isArray(result.skippedRows)
+        ? result.skippedRows.slice(0, 10).map((item) => `Row ${item.row}: ${item.reason}`)
+        : []
       const detailedErrors = Array.isArray(result.errors)
         ? result.errors.slice(0, 10).map((item) => `Row ${item.row}: ${item.error}`)
         : []
 
-      setUploadSummary({ created, failed })
+      setUploadSummary({ created, skipped, failed })
+      setUploadSkipped(detailedSkips)
       setUploadErrors(detailedErrors)
 
       if (failed > 0) {
-        showToast(`${t('toastUploadProcessed', 'Upload processed')}: ${created} ${t('created', 'created')}, ${failed} ${t('failed', 'failed')}`, created > 0 ? 'warning' : 'error')
+        showToast(`${t('toastUploadProcessed', 'Upload processed')}: ${created} ${t('created', 'created')}, ${skipped} ${t('skipped', 'skipped')}, ${failed} ${t('failed', 'failed')}`, created > 0 ? 'warning' : 'error')
+      } else if (skipped > 0) {
+        showToast(`${t('toastUploadProcessed', 'Upload processed')}: ${created} ${t('created', 'created')}, ${skipped} ${t('skipped', 'skipped')}`, 'warning')
       } else {
         showToast(`${t('toastUploadComplete', 'Upload complete')}: ${created} ${t('created', 'created')}`, 'success')
       }
@@ -702,6 +723,7 @@ export default function StudentsPage() {
               onClick={() => {
                 setShowBulkUpload(true)
                 setUploadSummary(null)
+                setUploadSkipped([])
                 setUploadErrors([])
                 setUploadFile(null)
               }}
@@ -879,8 +901,15 @@ export default function StudentsPage() {
                 {uploadSummary ? (
                   <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
                     <p className="font-medium text-slate-900">
-                      {t('uploadResult', 'Upload result')}: {uploadSummary.created} {t('created', 'created')}, {uploadSummary.failed} {t('failed', 'failed')}
+                      {t('uploadResult', 'Upload result')}: {uploadSummary.created} {t('created', 'created')}, {uploadSummary.skipped} {t('skipped', 'skipped')}, {uploadSummary.failed} {t('failed', 'failed')}
                     </p>
+                    {uploadSkipped.length > 0 ? (
+                      <ul className="mt-2 list-disc pl-5 text-amber-700 space-y-1">
+                        {uploadSkipped.map((skipLine, index) => (
+                          <li key={`${skipLine}-${index}`}>{skipLine}</li>
+                        ))}
+                      </ul>
+                    ) : null}
                     {uploadErrors.length > 0 ? (
                       <ul className="mt-2 list-disc pl-5 text-rose-700 space-y-1">
                         {uploadErrors.map((errorLine, index) => (
@@ -898,6 +927,7 @@ export default function StudentsPage() {
                     onClick={() => {
                       setShowBulkUpload(false)
                       setUploadSummary(null)
+                      setUploadSkipped([])
                       setUploadErrors([])
                       setUploadFile(null)
                     }}

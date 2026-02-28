@@ -216,13 +216,12 @@ export default function ClassSubjectsPage() {
 
         <Card className="p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Assign Subject to Class</h2>
-          <form onSubmit={handleAssign} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <form onSubmit={handleAssign} noValidate className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <Select
               label="Subject"
               value={formData.subjectId}
               onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
               className="text-gray-900 bg-white"
-              required
             >
               <option value="">Select subject</option>
               {subjects.map((subject) => (
@@ -237,7 +236,6 @@ export default function ClassSubjectsPage() {
               value={formData.teacherId}
               onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
               className="text-gray-900 bg-white"
-              required
             >
               <option value="">Select teacher</option>
               {teachers.map((teacher) => (
@@ -264,11 +262,11 @@ export default function ClassSubjectsPage() {
               {assignments.map((assignment) => (
                 <div
                   key={assignment.id}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 p-4"
+                  className="flex items-center justify-between rounded-lg border border-(--border-subtle) bg-(--surface-soft) p-4"
                 >
                   <div>
-                    <p className="font-semibold text-gray-900">{assignment.subject.name}</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="font-semibold ui-text-primary">{assignment.subject.name}</p>
+                    <p className="text-sm ui-text-secondary">
                       Teacher: {(assignment.teacher.firstName || '')} {(assignment.teacher.lastName || '')}
                     </p>
                   </div>

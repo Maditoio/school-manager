@@ -47,9 +47,22 @@ export const createStudentSchema = z.object({
 
 export const createClassSchema = z.object({
   name: z.string().min(1, 'Class name is required'),
-  academicYear: z.number().int().min(2000).max(2100).default(new Date().getFullYear()),
-  teacherId: z.string().uuid('Invalid teacher ID').optional(),
-  grade: z.string().optional(),
+  academicYear: z.coerce.number().int().min(2000).max(2100).default(new Date().getFullYear()),
+  teacherId: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().uuid('Invalid teacher ID').optional()
+  ),
+  grade: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().optional()
+  ),
+  capacity: z.preprocess(
+    (value) => {
+      if (value === '' || value === null || value === undefined) return undefined
+      return Number(value)
+    },
+    z.number().int().min(1, 'Capacity must be at least 1').max(500, 'Capacity cannot exceed 500').optional()
+  ),
 })
 
 export const createSubjectSchema = z.object({
@@ -100,8 +113,26 @@ export const recordFeePaymentSchema = z.object({
   scheduleId: z.string().uuid('Invalid schedule ID'),
   studentId: z.string().uuid('Invalid student ID'),
   amountPaid: z.coerce.number().positive('Payment amount must be greater than 0'),
+  paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'M_PESA', 'ORANGE_MONEY', 'OTHER']),
   paymentDate: z.string().optional(),
   notes: z.string().optional(),
+})
+
+export const teacherContractSchema = z.object({
+  teacherId: z.string().uuid('Invalid teacher ID'),
+  title: z.string().optional(),
+  startDate: z.string(),
+  endDate: z.string(),
+  status: z.enum(['ACTIVE', 'EXPIRED', 'TERMINATED']).optional(),
+  notes: z.string().optional(),
+})
+
+export const parentComplaintSchema = z.object({
+  parentId: z.string().uuid('Invalid parent ID').optional(),
+  studentId: z.string().uuid('Invalid student ID').optional(),
+  subject: z.string().min(1, 'Subject is required'),
+  description: z.string().min(1, 'Description is required'),
+  status: z.enum(['OPEN', 'IN_REVIEW', 'RESOLVED', 'CLOSED']).optional(),
 })
 
 export type LoginInput = z.infer<typeof loginSchema>
@@ -116,3 +147,5 @@ export type AnnouncementInput = z.infer<typeof announcementSchema>
 export type MessageInput = z.infer<typeof messageSchema>
 export type CreateFeeScheduleInput = z.infer<typeof createFeeScheduleSchema>
 export type RecordFeePaymentInput = z.infer<typeof recordFeePaymentSchema>
+export type TeacherContractInput = z.infer<typeof teacherContractSchema>
+export type ParentComplaintInput = z.infer<typeof parentComplaintSchema>

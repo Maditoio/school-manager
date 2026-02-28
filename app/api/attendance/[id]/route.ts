@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { hasRole } from "@/lib/auth-utils"
+import { assertTermEditableById, TermLockedError } from '@/lib/term-utils'
 
 // GET /api/attendance/[id] - Get attendance record details
 export async function GET(
@@ -59,6 +60,25 @@ export async function PUT(
     const body = await request.json()
     const { id: attendanceId } = await params
 
+    const existing = await prisma.attendance.findUnique({
+      where: { id: attendanceId },
+      select: {
+        id: true,
+        schoolId: true,
+        termId: true,
+      },
+    })
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Attendance not found' }, { status: 404 })
+    }
+
+    if (session.user.schoolId && existing.schoolId !== session.user.schoolId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    await assertTermEditableById({ schoolId: existing.schoolId, termId: existing.termId })
+
     const attendance = await prisma.attendance.update({
       where: { id: attendanceId },
       data: {
@@ -78,6 +98,9 @@ export async function PUT(
     return NextResponse.json({ attendance })
   } catch (error) {
     console.error('Error updating attendance:', error)
+    if (error instanceof TermLockedError) {
+      return NextResponse.json({ error: error.message }, { status: 409 })
+    }
     return NextResponse.json(
       { error: 'Failed to update attendance' },
       { status: 500 }
@@ -99,6 +122,25 @@ export async function DELETE(
 
     const { id: attendanceId } = await params
 
+    const existing = await prisma.attendance.findUnique({
+      where: { id: attendanceId },
+      select: {
+        id: true,
+        schoolId: true,
+        termId: true,
+      },
+    })
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Attendance not found' }, { status: 404 })
+    }
+
+    if (session.user.schoolId && existing.schoolId !== session.user.schoolId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    await assertTermEditableById({ schoolId: existing.schoolId, termId: existing.termId })
+
     await prisma.attendance.delete({
       where: { id: attendanceId },
     })
@@ -106,6 +148,9 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting attendance:', error)
+    if (error instanceof TermLockedError) {
+      return NextResponse.json({ error: error.message }, { status: 409 })
+    }
     return NextResponse.json(
       { error: 'Failed to delete attendance' },
       { status: 500 }

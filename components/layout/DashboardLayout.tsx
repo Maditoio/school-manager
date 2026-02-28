@@ -164,10 +164,23 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
     handleThemeChange(nextTheme)
   }
 
-  const translatedNavItems = useMemo(
-    () => navItems.map((item) => ({ ...item, label: translateText(item.label, locale) })),
-    [navItems, locale]
-  )
+  const translatedNavItems = useMemo(() => {
+    const enhancedNavItems = [...navItems]
+    const isSchoolAdmin = session?.user?.role === 'SCHOOL_ADMIN' || user.role.toLowerCase() === 'school admin'
+
+    if (isSchoolAdmin && !enhancedNavItems.some((item) => item.href === '/admin/terms')) {
+      const insertAfter = enhancedNavItems.findIndex((item) => item.href === '/admin/fees')
+      const termsItem = { label: 'Terms', href: '/admin/terms', icon: '🗓️' }
+
+      if (insertAfter >= 0) {
+        enhancedNavItems.splice(insertAfter + 1, 0, termsItem)
+      } else {
+        enhancedNavItems.push(termsItem)
+      }
+    }
+
+    return enhancedNavItems.map((item) => ({ ...item, label: translateText(item.label, locale) }))
+  }, [navItems, locale, session?.user?.role, user.role])
 
   const translatedUser = useMemo(
     () => ({

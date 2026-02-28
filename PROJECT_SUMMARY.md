@@ -240,7 +240,16 @@ The MVP is complete and functional. Here are suggested enhancements:
    - `DATABASE_URL`: PostgreSQL connection string (use Neon or Supabase)
    - `NEXTAUTH_SECRET`: Random secret key
    - `NEXTAUTH_URL`: Your production URL
+   - `CRON_SECRET`: Secret used by Vercel Cron to authorize internal cron endpoints
 4. Deploy!
+
+### Dashboard Aggregation Cron
+
+The project includes a Vercel cron in [vercel.json](vercel.json) that runs every 5 minutes:
+
+- `GET /api/internal/process-dashboard-aggregations`
+
+For production, change the schedule to 4-hour cadence when ready (e.g. `0 */4 * * *`).
 
 ### Database Setup for Production
 

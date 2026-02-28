@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { hasRole } from "@/lib/auth-utils"
+import { createClassSchema } from '@/lib/validations'
+import { Prisma } from '@prisma/client'
 
 // GET /api/classes/[id] - Get class details
 export async function GET(
@@ -64,19 +66,73 @@ export async function PUT(
     const body = await request.json()
     const { id: classId } = await params
 
-    const resolvedTeacherId =
-      typeof body.teacherId === 'string' && body.teacherId.trim() === ''
-        ? null
-        : body.teacherId
+    if (!session.user.schoolId) {
+      return NextResponse.json({ error: 'School ID required' }, { status: 400 })
+    }
 
-    const classData = await prisma.class.update({
-      where: { id: classId },
-      data: {
-        name: body.name,
-        academicYear: body.academicYear,
-        grade: body.grade,
-        teacherId: resolvedTeacherId,
+    const existingClass = await prisma.class.findFirst({
+      where: {
+        id: classId,
+        schoolId: session.user.schoolId,
       },
+      select: { id: true },
+    })
+
+    if (!existingClass) {
+      return NextResponse.json({ error: 'Class not found' }, { status: 404 })
+    }
+
+    const normalizedBody = {
+      ...body,
+      name: typeof body.name === 'string' ? body.name.trim() : body.name,
+      teacherId:
+        typeof body.teacherId === 'string' && body.teacherId.trim() === ''
+          ? undefined
+          : body.teacherId,
+      capacity:
+        body.capacity === '' || body.capacity === null || body.capacity === undefined
+          ? undefined
+          : body.capacity,
+    }
+
+    const validation = createClassSchema.safeParse(normalizedBody)
+
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error.issues }, { status: 400 })
+    }
+
+    const { name, academicYear, teacherId, grade, capacity } = validation.data
+
+    if (teacherId) {
+      const teacher = await prisma.user.findFirst({
+        where: {
+          id: teacherId,
+          schoolId: session.user.schoolId,
+          role: 'TEACHER',
+        },
+        select: { id: true },
+      })
+
+      if (!teacher) {
+        return NextResponse.json({ error: 'Selected teacher is invalid for this school.' }, { status: 400 })
+      }
+    }
+
+    await prisma.$executeRaw`
+      UPDATE classes
+      SET
+        name = ${name},
+        academic_year = ${academicYear},
+        grade = ${grade ?? null},
+        capacity = ${capacity ?? null},
+        teacher_id = ${teacherId ?? null},
+        updated_at = NOW()
+      WHERE id = ${classId}
+        AND school_id = ${session.user.schoolId}
+    `
+
+    const classData = await prisma.class.findUnique({
+      where: { id: classId },
       include: {
         teacher: {
           select: {
@@ -96,6 +152,21 @@ export async function PUT(
     return NextResponse.json({ class: classData })
   } catch (error) {
     console.error('Error updating class:', error)
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        return NextResponse.json(
+          { error: 'A class with this name already exists for this academic year.' },
+          { status: 409 }
+        )
+      }
+      if (error.code === 'P2003') {
+        return NextResponse.json(
+          { error: 'Selected teacher is invalid for this school.' },
+          { status: 400 }
+        )
+      }
+    }
+
     return NextResponse.json(
       { error: 'Failed to update class' },
       { status: 500 }

@@ -14,32 +14,44 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const templateRows = [
-      {
-        firstName: 'Alice',
-        lastName: 'Johnson',
-        dateOfBirth: '2014-05-15',
-        className: 'Grade 5A',
-        classId: '',
-        parentName: 'Mary Johnson',
-        parentEmail: 'mary.johnson@example.com',
-        parentPhone: '+1234567890',
-        emergencyContactName: 'John Johnson',
-        emergencyContactPhone: '+1234567000',
-      },
-      {
-        firstName: 'Brian',
-        lastName: 'Mensah',
-        dateOfBirth: '2013-09-02',
-        className: 'Grade 5A',
-        classId: '',
-        parentName: 'Kwame Mensah',
-        parentEmail: '',
-        parentPhone: '',
-        emergencyContactName: '',
-        emergencyContactPhone: '',
-      },
+    const sampleStudents = [
+      ['Alice', 'Johnson', '2014-05-15', 'Mary Johnson'],
+      ['Brian', 'Mensah', '2014-01-12', 'Kwame Mensah'],
+      ['Chloe', 'Ndlovu', '2014-07-21', 'Ruth Ndlovu'],
+      ['Daniel', 'Kamau', '2013-11-03', 'Grace Kamau'],
+      ['Ethan', 'Okello', '2014-02-17', 'Sarah Okello'],
+      ['Fatima', 'Hassan', '2013-10-28', 'Amina Hassan'],
+      ['George', 'Banda', '2014-03-09', 'Martha Banda'],
+      ['Hannah', 'Otieno', '2014-06-26', 'Peter Otieno'],
+      ['Isaac', 'Mwangi', '2013-12-14', 'Lucy Mwangi'],
+      ['Jasmine', 'Dube', '2014-04-30', 'Patrick Dube'],
+      ['Kevin', 'Achieng', '2013-09-05', 'Jane Achieng'],
+      ['Lina', 'Moyo', '2014-08-19', 'Tendai Moyo'],
+      ['Michael', 'Phiri', '2013-10-11', 'Mercy Phiri'],
+      ['Nora', 'Chirwa', '2014-01-24', 'Victor Chirwa'],
+      ['Owen', 'Abdi', '2014-02-06', 'Halima Abdi'],
+      ['Priya', 'Patel', '2013-11-22', 'Raj Patel'],
+      ['Quinn', 'Sibanda', '2014-05-03', 'Nomsa Sibanda'],
+      ['Ruth', 'Mthembu', '2014-07-08', 'Sipho Mthembu'],
+      ['Samuel', 'Mutiso', '2013-12-01', 'Ann Mutiso'],
+      ['Tina', 'Zulu', '2014-03-27', 'David Zulu'],
     ]
+
+    const templateRows = sampleStudents.map(([firstName, lastName, dateOfBirth, parentName], index) => {
+      const entryNumber = String(index + 1).padStart(2, '0')
+      return {
+        firstName,
+        lastName,
+        dateOfBirth,
+        className: 'Unassigned',
+        classId: '',
+        parentName,
+        parentEmail: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@parent.example.com`,
+        parentPhone: `+12345678${entryNumber}`,
+        emergencyContactName: `${parentName} (Emergency)`,
+        emergencyContactPhone: `+12345000${entryNumber}`,
+      }
+    })
 
     const workbook = XLSX.utils.book_new()
     const worksheet = XLSX.utils.json_to_sheet(templateRows)

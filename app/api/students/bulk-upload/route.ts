@@ -65,10 +65,29 @@ async function ensureParentUser(params: {
   schoolId: string
   parentEmail?: string | null
   parentName?: string | null
-}): Promise<string | undefined> {
+}): Promise<{ parentId?: string; skipReason?: string }> {
   const normalizedEmail = params.parentEmail?.trim().toLowerCase() || ''
   if (!normalizedEmail) {
-    return undefined
+    return {}
+  }
+
+  const existingByEmail = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+    select: {
+      id: true,
+      schoolId: true,
+      role: true,
+    },
+  })
+
+  if (existingByEmail) {
+    if (existingByEmail.role !== 'PARENT') {
+      return {
+        skipReason: 'Parent email already belongs to a non-parent account. Row skipped.',
+      }
+    }
+
+    return { parentId: existingByEmail.id }
   }
 
   const existingParent = await prisma.user.findFirst({
@@ -84,7 +103,7 @@ async function ensureParentUser(params: {
   })
 
   if (existingParent) {
-    return existingParent.id
+    return { parentId: existingParent.id }
   }
 
   const { firstName, lastName } = splitParentName(params.parentName)
@@ -108,10 +127,17 @@ async function ensureParentUser(params: {
     WHERE id = ${parentUser.id}
   `
 
-  return parentUser.id
+  return { parentId: parentUser.id }
 }
 
-async function generateAdmissionNumber(schoolId: string, academicYear: number): Promise<string> {
+type AdmissionNumberState = {
+  usedCodes: Set<string>
+}
+
+async function loadAdmissionNumberState(
+  schoolId: string,
+  academicYear: number
+): Promise<AdmissionNumberState> {
   const prefix = `ADM-${academicYear}-`
   const existingAdmissionNumbers = await prisma.student.findMany({
     where: {
@@ -137,9 +163,15 @@ async function generateAdmissionNumber(schoolId: string, academicYear: number): 
     }
   }
 
+  return { usedCodes }
+}
+
+function reserveNextAdmissionNumber(state: AdmissionNumberState, academicYear: number): string {
+  const prefix = `ADM-${academicYear}-`
   for (let number = 0; number < 10000; number += 1) {
     const code = String(number).padStart(4, '0')
-    if (!usedCodes.has(code)) {
+    if (!state.usedCodes.has(code)) {
+      state.usedCodes.add(code)
       return `${prefix}${code}`
     }
   }
@@ -211,7 +243,9 @@ export async function POST(request: NextRequest) {
     const classByName = new Map(classes.map((c) => [c.name.trim().toLowerCase(), c.id]))
 
     const createdIds: string[] = []
+    const skippedRows: Array<{ row: number; reason: string }> = []
     const errors: Array<{ row: number; error: string }> = []
+    const admissionNumberStateByYear = new Map<number, AdmissionNumberState>()
 
     for (let index = 0; index < rows.length; index += 1) {
       const rowNumber = index + 2
@@ -237,11 +271,18 @@ export async function POST(request: NextRequest) {
 
       try {
         const normalizedParentEmail = row.parentEmail ? row.parentEmail.trim().toLowerCase() : ''
-        const parentId = await ensureParentUser({
+        const parentResolution = await ensureParentUser({
           schoolId: session.user.schoolId,
           parentEmail: normalizedParentEmail,
           parentName: row.parentName,
         })
+
+        if (parentResolution.skipReason) {
+          skippedRows.push({ row: rowNumber, reason: parentResolution.skipReason })
+          continue
+        }
+
+        const parentId = parentResolution.parentId
 
         const normalizedDateOfBirth = row.dateOfBirth?.trim() || ''
 
@@ -250,28 +291,52 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        const generatedAdmissionNumber = await generateAdmissionNumber(
-          session.user.schoolId,
-          primaryClass.academicYear
-        )
+        let state = admissionNumberStateByYear.get(primaryClass.academicYear)
+        if (!state) {
+          state = await loadAdmissionNumberState(session.user.schoolId, primaryClass.academicYear)
+          admissionNumberStateByYear.set(primaryClass.academicYear, state)
+        }
 
-        const student = await prisma.student.create({
-          data: {
-            schoolId: session.user.schoolId,
-            firstName: row.firstName,
-            lastName: row.lastName,
-            admissionNumber: generatedAdmissionNumber,
-            dateOfBirth: normalizedDateOfBirth ? new Date(normalizedDateOfBirth) : null,
-            classId: primaryClass.id,
-            academicYear: primaryClass.academicYear,
-            parentId,
-            parentName: row.parentName?.trim() || null,
-            parentEmail: normalizedParentEmail || null,
-            parentPhone: row.parentPhone?.trim() || null,
-            emergencyContactName: row.emergencyContactName?.trim() || null,
-            emergencyContactPhone: row.emergencyContactPhone?.trim() || null,
-          } as Prisma.StudentUncheckedCreateInput,
-        })
+        let student: { id: string } | null = null
+        let retries = 0
+
+        while (!student && retries < 5) {
+          const generatedAdmissionNumber = reserveNextAdmissionNumber(state, primaryClass.academicYear)
+
+          try {
+            student = await prisma.student.create({
+              data: {
+                schoolId: session.user.schoolId,
+                firstName: row.firstName,
+                lastName: row.lastName,
+                admissionNumber: generatedAdmissionNumber,
+                dateOfBirth: normalizedDateOfBirth ? new Date(normalizedDateOfBirth) : null,
+                classId: primaryClass.id,
+                academicYear: primaryClass.academicYear,
+                parentId,
+                parentName: row.parentName?.trim() || null,
+                parentEmail: normalizedParentEmail || null,
+                parentPhone: row.parentPhone?.trim() || null,
+                emergencyContactName: row.emergencyContactName?.trim() || null,
+                emergencyContactPhone: row.emergencyContactPhone?.trim() || null,
+              } as Prisma.StudentUncheckedCreateInput,
+              select: { id: true },
+            })
+          } catch (createError) {
+            if (
+              createError instanceof Prisma.PrismaClientKnownRequestError &&
+              createError.code === 'P2002'
+            ) {
+              retries += 1
+              continue
+            }
+            throw createError
+          }
+        }
+
+        if (!student) {
+          throw new Error('Could not allocate a unique admission number. Please retry upload.')
+        }
 
         createdIds.push(student.id)
       } catch (rowError) {
@@ -279,6 +344,23 @@ export async function POST(request: NextRequest) {
           rowError instanceof Prisma.PrismaClientKnownRequestError &&
           rowError.code === 'P2002'
         ) {
+          const target = String((rowError.meta as { target?: unknown } | undefined)?.target || '')
+          if (target.includes('email')) {
+            skippedRows.push({
+              row: rowNumber,
+              reason: 'Parent email already belongs to another user account. Row skipped.',
+            })
+            continue
+          }
+
+          if (target.includes('admission_number')) {
+            skippedRows.push({
+              row: rowNumber,
+              reason: 'Student already exists for this academic year. Row skipped.',
+            })
+            continue
+          }
+
           errors.push({
             row: rowNumber,
             error: 'Duplicate student for this academic year (admission number must be unique).',
@@ -292,18 +374,13 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = {
-      success: true,
+      success: createdIds.length > 0,
       created: createdIds.length,
+      skipped: skippedRows.length,
       failed: errors.length,
+      skippedRows,
       errors,
-      message:
-        createdIds.length === 0 && errors.length > 0
-          ? 'No students were imported. Review row errors.'
-          : 'Bulk upload processed.',
-    }
-
-    if (createdIds.length === 0 && errors.length > 0) {
-      return NextResponse.json(payload, { status: 400 })
+      message: 'Bulk upload processed.',
     }
 
     return NextResponse.json(payload)

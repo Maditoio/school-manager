@@ -36,6 +36,7 @@ export default function TeacherAttendancePage() {
   const [selectedClass, setSelectedClass] = useState('')
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [loading, setLoading] = useState(true)
+  const [isSavingAttendance, setIsSavingAttendance] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -120,6 +121,7 @@ export default function TeacherAttendancePage() {
   }
 
   const handleSaveAttendance = async () => {
+    setIsSavingAttendance(true)
     try {
       const records = students.map((student) => ({
         studentId: student.id,
@@ -143,6 +145,8 @@ export default function TeacherAttendancePage() {
     } catch (error) {
       console.error('Failed to save attendance:', error)
       showToast('Failed to save attendance', 'error')
+    } finally {
+      setIsSavingAttendance(false)
     }
   }
 
@@ -179,7 +183,7 @@ export default function TeacherAttendancePage() {
         <Card className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">Select Class</label>
+              <label className="block text-sm font-medium ui-text-secondary mb-2">Select Class</label>
               <Select
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(e.target.value)}
@@ -193,16 +197,20 @@ export default function TeacherAttendancePage() {
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">Date</label>
+              <label className="block text-sm font-medium ui-text-secondary mb-2">Date</label>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900"
+                className="w-full px-3 py-2 rounded-md border border-(--border-subtle) bg-(--surface-card) ui-text-primary"
               />
             </div>
             <div className="flex items-end justify-end">
-              <Button onClick={handleSaveAttendance}>
+              <Button
+                onClick={handleSaveAttendance}
+                isLoading={isSavingAttendance}
+                disabled={!selectedClass || students.length === 0}
+              >
                 Save Attendance
               </Button>
             </div>
@@ -211,31 +219,31 @@ export default function TeacherAttendancePage() {
           {loading ? (
             <div>Loading...</div>
           ) : selectedClass && students.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full bg-white border border-gray-200">
-                <thead className="bg-gray-50">
+            <div className="overflow-x-auto ui-table-wrap">
+              <table className="ui-table min-w-full">
+                <thead>
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                    <th>
                       Admission No
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                    <th>
                       Student Name
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                    <th>
                       Status
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody>
                   {students.map((student) => (
-                    <tr key={student.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <tr key={student.id} className="hover:bg-(--surface-soft)">
+                      <td>
                         {student.admissionNumber}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td>
                         {student.firstName} {student.lastName}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td>
                         <div className="flex justify-end gap-2">
                           <Button
                             type="button"

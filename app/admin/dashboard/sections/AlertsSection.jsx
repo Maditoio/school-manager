@@ -43,6 +43,12 @@ export default function AlertsSection({ data, loading }) {
 
   if (loading) return <AlertsSkeleton />
 
+  const openAction = (alert) => {
+    if (alert.actionHref) {
+      window.location.href = alert.actionHref
+    }
+  }
+
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
@@ -90,6 +96,7 @@ export default function AlertsSection({ data, loading }) {
                   <button
                     className="rounded-lg border px-2.5 py-1 text-xs font-semibold text-slate-300 hover:text-white"
                     style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.12)' }}
+                    onClick={() => openAction(alert)}
                   >
                     {alert.action}
                   </button>
