@@ -80,10 +80,10 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-gray-600">
+        {/* <div className="mt-6 text-center text-sm text-gray-600">
           <p>Demo Credentials:</p>
           <p className="mt-2">Super Admin: admin@demo.com / password123</p>
-        </div>
+        </div> */}
       </div>
     </div>
   )
