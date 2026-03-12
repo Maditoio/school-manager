@@ -65,7 +65,7 @@ export async function PUT(
       select: {
         id: true,
         schoolId: true,
-        termId: true,
+        term_id: true,
       },
     })
 
@@ -77,7 +77,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    await assertTermEditableById({ schoolId: existing.schoolId, termId: existing.termId })
+    await assertTermEditableById({ schoolId: existing.schoolId, termId: existing.term_id })
 
     const attendance = await prisma.attendance.update({
       where: { id: attendanceId },
@@ -127,7 +127,7 @@ export async function DELETE(
       select: {
         id: true,
         schoolId: true,
-        termId: true,
+        term_id: true,
       },
     })
 
@@ -139,7 +139,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    await assertTermEditableById({ schoolId: existing.schoolId, termId: existing.termId })
+    await assertTermEditableById({ schoolId: existing.schoolId, termId: existing.term_id })
 
     await prisma.attendance.delete({
       where: { id: attendanceId },

@@ -97,9 +97,9 @@ async function getAcademicRowsForTerm(params: {
       assessment: {
         schoolId: params.schoolId,
         OR: [
-          { termId: params.termId },
+          { term_id: params.termId },
           {
-            termId: null,
+            term_id: null,
             term: params.termName,
             academicYear: params.academicYear,
           },
@@ -143,9 +143,9 @@ async function getAcademicRowsForTerm(params: {
     where: {
       schoolId: params.schoolId,
       OR: [
-        { termId: params.termId },
+        { term_id: params.termId },
         {
-          termId: null,
+          term_id: null,
           term: params.termName,
           year: params.academicYear,
         },
@@ -273,36 +273,50 @@ export async function GET(request: NextRequest) {
             },
           },
         }),
-        prisma.teacherOffDay.findMany({
+        prisma.teacher_off_days.findMany({
           where: {
-            schoolId,
-            startDate: { lte: startOfDay },
-            endDate: { gte: startOfDay },
+            school_id: schoolId,
+            start_date: { lte: startOfDay },
+            end_date: { gte: startOfDay },
           },
-          distinct: ['teacherId'],
-          select: { teacherId: true },
+          distinct: ['teacher_id'],
+          select: { teacher_id: true },
         }),
-        prisma.term.findFirst({
-          where: {
-            schoolId,
-            isCurrent: true,
-          },
-          include: {
-            academicYear: {
-              select: {
-                year: true,
+        (async () => {
+          const term = await prisma.terms.findFirst({
+            where: {
+              school_id: schoolId,
+              is_current: true,
+            },
+            include: {
+              academic_years: {
+                select: {
+                  year: true,
+                },
               },
             },
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-        }),
+            orderBy: {
+              created_at: 'desc',
+            },
+          })
+
+          if (!term) return null
+
+          return {
+            id: term.id,
+            name: term.name,
+            startDate: term.start_date,
+            endDate: term.end_date,
+            academicYear: {
+              year: term.academic_years.year,
+            },
+          }
+        })(),
       ])
 
       const attendanceRate = calculateAttendancePercentage(presentCount, todayAttendanceCount)
       const teachersAbsentCount = teacherOffDaysToday.length
-      const offDayTeacherIds = new Set(teacherOffDaysToday.map((row) => row.teacherId))
+      const offDayTeacherIds = new Set(teacherOffDaysToday.map((row) => row.teacher_id))
       const todayWeekday = startOfDay.getUTCDay()
       const isWeekday = todayWeekday >= 1 && todayWeekday <= 5
 
@@ -549,7 +563,7 @@ export async function GET(request: NextRequest) {
               select: {
                 studentId: true,
                 amountPaid: true,
-                paymentMethod: true,
+                payment_method: true,
               },
             })
           : Promise.resolve([]),
@@ -641,7 +655,7 @@ export async function GET(request: NextRequest) {
 
       const methodAmounts = new Map<string, { amount: number; count: number }>()
       for (const payment of yearlyPayments) {
-        const method = paymentMethodLabel(payment.paymentMethod || 'OTHER')
+        const method = paymentMethodLabel(payment.payment_method || 'OTHER')
         const existing = methodAmounts.get(method) || { amount: 0, count: 0 }
         existing.amount += Number(payment.amountPaid || 0)
         existing.count += 1
@@ -714,23 +728,35 @@ export async function GET(request: NextRequest) {
             termName: currentTerm.name,
             academicYear: currentTerm.academicYear.year,
           }),
-          prisma.term.findMany({
-            where: {
-              schoolId,
-              endDate: {
-                lt: currentTerm.startDate,
-              },
-            },
-            include: {
-              academicYear: {
-                select: {
-                  year: true,
+          (async () => {
+            const terms = await prisma.terms.findMany({
+              where: {
+                school_id: schoolId,
+                end_date: {
+                  lt: currentTerm.startDate,
                 },
               },
-            },
-            orderBy: [{ academicYear: { year: 'desc' } }, { startDate: 'desc' }],
-            take: 2,
-          }),
+              include: {
+                academic_years: {
+                  select: {
+                    year: true,
+                  },
+                },
+              },
+              orderBy: [{ academic_years: { year: 'desc' } }, { start_date: 'desc' }],
+              take: 2,
+            })
+
+            return terms.map((term) => ({
+              id: term.id,
+              name: term.name,
+              startDate: term.start_date,
+              endDate: term.end_date,
+              academicYear: {
+                year: term.academic_years.year,
+              },
+            }))
+          })(),
         ])
 
         const validPercents: number[] = []

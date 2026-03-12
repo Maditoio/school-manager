@@ -15,20 +15,20 @@ export class TermLockedError extends Error {
 }
 
 export async function getCurrentTermForSchool(schoolId: string) {
-  const term = await prisma.term.findFirst({
+  const term = await prisma.terms.findFirst({
     where: {
-      schoolId,
-      isCurrent: true,
+      school_id: schoolId,
+      is_current: true,
     },
     include: {
-      academicYear: {
+      academic_years: {
         select: {
           year: true,
         },
       },
     },
     orderBy: {
-      createdAt: 'desc',
+      created_at: 'desc',
     },
   })
 
@@ -36,7 +36,18 @@ export async function getCurrentTermForSchool(schoolId: string) {
     throw new CurrentTermNotSetError()
   }
 
-  return term
+  return {
+    id: term.id,
+    schoolId: term.school_id,
+    name: term.name,
+    startDate: term.start_date,
+    endDate: term.end_date,
+    isCurrent: term.is_current,
+    isLocked: term.is_locked,
+    academicYear: {
+      year: term.academic_years.year,
+    },
+  }
 }
 
 export async function getCurrentEditableTermForSchool(schoolId: string) {
@@ -50,18 +61,18 @@ export async function getCurrentEditableTermForSchool(schoolId: string) {
 export async function assertTermEditableById(params: { schoolId: string; termId?: string | null }) {
   if (!params.termId) return
 
-  const term = await prisma.term.findFirst({
+  const term = await prisma.terms.findFirst({
     where: {
       id: params.termId,
-      schoolId: params.schoolId,
+      school_id: params.schoolId,
     },
     select: {
-      isLocked: true,
+      is_locked: true,
       name: true,
     },
   })
 
-  if (term?.isLocked) {
+  if (term?.is_locked) {
     throw new TermLockedError(term.name)
   }
 }
@@ -73,13 +84,13 @@ export async function assertTermEditableByLegacyValues(params: {
 }) {
   if (!params.termName || !params.academicYear) return
 
-  const term = await prisma.term.findFirst({
+  const term = await prisma.terms.findFirst({
     where: {
-      schoolId: params.schoolId,
+      school_id: params.schoolId,
       name: params.termName,
     },
     include: {
-      academicYear: {
+      academic_years: {
         select: {
           year: true,
         },
@@ -88,9 +99,9 @@ export async function assertTermEditableByLegacyValues(params: {
   })
 
   if (!term) return
-  if (term.academicYear.year !== params.academicYear) return
+  if (term.academic_years.year !== params.academicYear) return
 
-  if (term.isLocked) {
+  if (term.is_locked) {
     throw new TermLockedError(term.name)
   }
 }

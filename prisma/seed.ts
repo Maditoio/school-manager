@@ -2,7 +2,7 @@ import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 import { hash } from 'bcryptjs'
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient() as any
 
 async function main() {
   console.log('🌱 Seeding database...')

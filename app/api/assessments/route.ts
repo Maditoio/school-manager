@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
         totalMarks: parsedTotalMarks,
         classId,
         subjectId,
-        termId: currentTerm.id,
+        term_id: currentTerm.id,
         academicYear: resolvedAcademicYear,
         term: resolvedTerm,
         dueDate: dueDate ? new Date(dueDate) : null,

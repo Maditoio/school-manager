@@ -25,10 +25,10 @@ export async function PATCH(
       return NextResponse.json({ error: 'School ID required' }, { status: 400 })
     }
 
-    const term = await prisma.term.findFirst({
+    const term = await prisma.terms.findFirst({
       where: {
         id,
-        schoolId,
+        school_id: schoolId,
       },
       select: { id: true },
     })
@@ -39,10 +39,10 @@ export async function PATCH(
 
     const updates: {
       name?: string
-      startDate?: Date
-      endDate?: Date
-      isLocked?: boolean
-      isCurrent?: boolean
+      start_date?: Date
+      end_date?: Date
+      is_locked?: boolean
+      is_current?: boolean
     } = {}
 
     if (typeof body?.name === 'string' && body.name.trim()) {
@@ -54,7 +54,7 @@ export async function PATCH(
       if (Number.isNaN(parsed.getTime())) {
         return NextResponse.json({ error: 'Invalid startDate' }, { status: 400 })
       }
-      updates.startDate = parsed
+      updates.start_date = parsed
     }
 
     if (typeof body?.endDate === 'string') {
@@ -62,33 +62,33 @@ export async function PATCH(
       if (Number.isNaN(parsed.getTime())) {
         return NextResponse.json({ error: 'Invalid endDate' }, { status: 400 })
       }
-      updates.endDate = parsed
+      updates.end_date = parsed
     }
 
     if (typeof body?.isLocked === 'boolean') {
-      updates.isLocked = body.isLocked
+      updates.is_locked = body.isLocked
     }
 
     if (body?.isCurrent === true) {
       await prisma.$transaction([
-        prisma.term.updateMany({
-          where: { schoolId },
-          data: { isCurrent: false },
+        prisma.terms.updateMany({
+          where: { school_id: schoolId },
+          data: { is_current: false },
         }),
-        prisma.term.update({
+        prisma.terms.update({
           where: { id },
-          data: { ...updates, isCurrent: true },
+          data: { ...updates, is_current: true },
         }),
       ])
 
-      const updated = await prisma.term.findUnique({
+      const updated = await prisma.terms.findUnique({
         where: { id },
       })
 
       return NextResponse.json({ term: updated })
     }
 
-    const updated = await prisma.term.update({
+    const updated = await prisma.terms.update({
       where: { id },
       data: updates,
     })

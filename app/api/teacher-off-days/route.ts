@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { hasRole } from '@/lib/auth-utils'
 import { invalidateSchoolAdminCachedStats } from '@/lib/dashboard-cache'
 import { Prisma } from '@prisma/client'
+import { randomUUID } from 'crypto'
 
 function toUtcDate(value: string) {
   const iso = `${value}T00:00:00.000Z`
@@ -23,20 +24,20 @@ export async function GET(request: NextRequest) {
     const activeOn = (searchParams.get('activeOn') || '').trim()
 
     const where: {
-      schoolId?: string
-      teacherId?: string
-      startDate?: { lte: Date }
-      endDate?: { gte: Date }
+      school_id?: string
+      teacher_id?: string
+      start_date?: { lte: Date }
+      end_date?: { gte: Date }
     } = {}
 
     if (session.user.schoolId) {
-      where.schoolId = session.user.schoolId
+      where.school_id = session.user.schoolId
     }
 
     if (session.user.role === 'TEACHER') {
-      where.teacherId = session.user.id
+      where.teacher_id = session.user.id
     } else if (teacherId) {
-      where.teacherId = teacherId
+      where.teacher_id = teacherId
     }
 
     if (activeOn) {
@@ -45,14 +46,14 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid activeOn date. Use YYYY-MM-DD' }, { status: 400 })
       }
 
-      where.startDate = { lte: activeDate }
-      where.endDate = { gte: activeDate }
+      where.start_date = { lte: activeDate }
+      where.end_date = { gte: activeDate }
     }
 
-    const offDays = await prisma.teacherOffDay.findMany({
+    const offDays = await prisma.teacher_off_days.findMany({
       where,
       include: {
-        teacher: {
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ start_date: 'desc' }, { created_at: 'desc' }],
     })
 
     return NextResponse.json({ offDays })
@@ -102,12 +103,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'endDate must be on or after startDate' }, { status: 400 })
     }
 
-    const overlap = await prisma.teacherOffDay.findFirst({
+    const overlap = await prisma.teacher_off_days.findFirst({
       where: {
-        schoolId: session.user.schoolId,
-        teacherId: session.user.id,
-        startDate: { lte: endDate },
-        endDate: { gte: startDate },
+        school_id: session.user.schoolId,
+        teacher_id: session.user.id,
+        start_date: { lte: endDate },
+        end_date: { gte: startDate },
       },
       select: { id: true },
     })
@@ -116,13 +117,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'An existing off-day booking overlaps this date range' }, { status: 409 })
     }
 
-    const offDay = await prisma.teacherOffDay.create({
+    const offDay = await prisma.teacher_off_days.create({
       data: {
-        schoolId: session.user.schoolId,
-        teacherId: session.user.id,
-        startDate,
-        endDate,
+        id: randomUUID(),
+        school_id: session.user.schoolId,
+        teacher_id: session.user.id,
+        start_date: startDate,
+        end_date: endDate,
         reason: reason || null,
+        updated_at: new Date(),
       },
     })
 

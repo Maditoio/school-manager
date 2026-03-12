@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { hasRole } from '@/lib/auth-utils'
+import { randomUUID } from 'crypto'
 
 function resolveSchoolId(
   sessionUser: { role: string; schoolId?: string | null },
@@ -29,19 +30,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'School ID required' }, { status: 400 })
     }
 
-    const academicYears = await prisma.academicYear.findMany({
-      where: { schoolId },
+    const academicYears = await prisma.academic_years.findMany({
+      where: { school_id: schoolId },
       include: {
         terms: {
-          orderBy: [{ startDate: 'asc' }, { createdAt: 'asc' }],
+          orderBy: [{ start_date: 'asc' }, { created_at: 'asc' }],
         },
       },
-      orderBy: [{ year: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ year: 'desc' }, { created_at: 'desc' }],
     })
 
     const currentTerm = academicYears
       .flatMap((academicYear) => academicYear.terms.map((term) => ({ ...term, academicYear })))
-      .find((term) => term.isCurrent)
+      .find((term) => term.is_current)
 
     return NextResponse.json({
       academicYears,
@@ -75,20 +76,23 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid academic year' }, { status: 400 })
       }
 
-      const academicYear = await prisma.academicYear.upsert({
+      const academicYear = await prisma.academic_years.upsert({
         where: {
-          schoolId_year: {
-            schoolId,
+          school_id_year: {
+            school_id: schoolId,
             year: parsedYear,
           },
         },
         update: {
           name: body?.name?.trim() || `Academic Year ${parsedYear}`,
+          updated_at: new Date(),
         },
         create: {
-          schoolId,
+          id: randomUUID(),
+          school_id: schoolId,
           year: parsedYear,
           name: body?.name?.trim() || `Academic Year ${parsedYear}`,
+          updated_at: new Date(),
         },
       })
 
@@ -106,8 +110,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'academicYearId, name, startDate and endDate are required' }, { status: 400 })
       }
 
-      const academicYear = await prisma.academicYear.findFirst({
-        where: { id: academicYearId, schoolId },
+      const academicYear = await prisma.academic_years.findFirst({
+        where: { id: academicYearId, school_id: schoolId },
       })
 
       if (!academicYear) {
@@ -115,21 +119,22 @@ export async function POST(request: NextRequest) {
       }
 
       if (isCurrent) {
-        await prisma.term.updateMany({
-          where: { schoolId },
-          data: { isCurrent: false },
+        await prisma.terms.updateMany({
+          where: { school_id: schoolId },
+          data: { is_current: false },
         })
       }
 
-      const term = await prisma.term.create({
+      const term = await prisma.terms.create({
         data: {
-          schoolId,
-          academicYearId,
+          id: randomUUID(),
+          school_id: schoolId,
+          academic_year_id: academicYearId,
           name,
-          startDate,
-          endDate,
-          isCurrent,
-          isLocked: false,
+          start_date: startDate,
+          end_date: endDate,
+          is_current: isCurrent,
+          is_locked: false,
         },
       })
 
@@ -142,10 +147,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'termId is required' }, { status: 400 })
       }
 
-      const targetTerm = await prisma.term.findFirst({
+      const targetTerm = await prisma.terms.findFirst({
         where: {
           id: termId,
-          schoolId,
+          school_id: schoolId,
         },
         select: { id: true },
       })
@@ -155,13 +160,13 @@ export async function POST(request: NextRequest) {
       }
 
       await prisma.$transaction([
-        prisma.term.updateMany({
-          where: { schoolId },
-          data: { isCurrent: false },
+        prisma.terms.updateMany({
+          where: { school_id: schoolId },
+          data: { is_current: false },
         }),
-        prisma.term.update({
+        prisma.terms.update({
           where: { id: termId },
-          data: { isCurrent: true },
+          data: { is_current: true },
         }),
       ])
 

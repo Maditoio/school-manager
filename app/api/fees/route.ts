@@ -124,20 +124,20 @@ async function getFeePaymentsForSchedule(schoolId: string, scheduleId: string) {
       select: {
         id: true,
         studentId: true,
-        paymentMethod: true,
+        payment_method: true,
         paymentNumber: true,
         amountPaid: true,
         paymentDate: true,
       },
       orderBy: { paymentDate: 'desc' },
-    })) as Array<{
-      id: string
-      studentId: string
-      paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'M_PESA' | 'ORANGE_MONEY' | 'OTHER'
-      paymentNumber: string
-      amountPaid: number
-      paymentDate: Date
-    }>
+    })).map((payment) => ({
+      id: payment.id,
+      studentId: payment.studentId,
+      paymentMethod: payment.payment_method,
+      paymentNumber: payment.paymentNumber,
+      amountPaid: payment.amountPaid,
+      paymentDate: payment.paymentDate,
+    }))
   }
 
   const rows = await prisma.$queryRaw<FeePaymentRow[]>`
@@ -586,7 +586,7 @@ export async function POST(request: NextRequest) {
         schoolId,
         scheduleId,
         studentId,
-        termId: currentTerm.id,
+        term_id: currentTerm.id,
         paymentMethod,
         paymentNumber: createPaymentNumber(),
         amountPaid,
@@ -608,7 +608,7 @@ export async function POST(request: NextRequest) {
                 ${paymentPayload.schoolId},
                 ${paymentPayload.scheduleId},
                 ${paymentPayload.studentId},
-                ${paymentPayload.termId},
+                ${paymentPayload.term_id},
                 ${paymentPayload.paymentMethod}::"PaymentMethod",
                 ${paymentPayload.paymentNumber},
                 ${paymentPayload.amountPaid},

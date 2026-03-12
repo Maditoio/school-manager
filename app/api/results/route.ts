@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
         },
       },
       update: {
-        termId: currentTerm.id,
+        term_id: currentTerm.id,
         examType,
         testScore,
         examScore,
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
         schoolId: student.schoolId,
         studentId,
         subjectId,
-        termId: currentTerm.id,
+        term_id: currentTerm.id,
         term,
         year,
         examType,

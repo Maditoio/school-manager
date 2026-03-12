@@ -17,12 +17,12 @@ export async function DELETE(
 
     const { id } = await params
 
-    const offDay = await prisma.teacherOffDay.findUnique({
+    const offDay = await prisma.teacher_off_days.findUnique({
       where: { id },
       select: {
         id: true,
-        schoolId: true,
-        teacherId: true,
+        school_id: true,
+        teacher_id: true,
       },
     })
 
@@ -30,19 +30,19 @@ export async function DELETE(
       return NextResponse.json({ error: 'Off-day booking not found' }, { status: 404 })
     }
 
-    if (session.user.schoolId && offDay.schoolId !== session.user.schoolId) {
+    if (session.user.schoolId && offDay.school_id !== session.user.schoolId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    if (session.user.role === 'TEACHER' && offDay.teacherId !== session.user.id) {
+    if (session.user.role === 'TEACHER' && offDay.teacher_id !== session.user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    await prisma.teacherOffDay.delete({
+    await prisma.teacher_off_days.delete({
       where: { id },
     })
 
-    invalidateSchoolAdminCachedStats(offDay.schoolId)
+    invalidateSchoolAdminCachedStats(offDay.school_id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

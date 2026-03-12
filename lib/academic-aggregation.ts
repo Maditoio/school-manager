@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { randomUUID } from 'crypto'
 
 const ACADEMIC_EVENT_TYPE = 'ACADEMIC_TERM_SUMMARY'
 const PASS_MARK_PERCENT = 50
@@ -79,7 +80,7 @@ async function getTermAggregationRows(params: {
   const resultRows = await prisma.result.findMany({
     where: {
       schoolId: params.schoolId,
-      termId: params.termId,
+      term_id: params.termId,
     },
     select: {
       totalScore: true,
@@ -112,10 +113,10 @@ async function getTermAggregationRows(params: {
         schoolId: params.schoolId,
         OR: [
           {
-            termId: params.termId,
+            term_id: params.termId,
           },
           {
-            termId: null,
+            term_id: null,
             term: params.termName,
             academicYear: params.academicYear,
           },
@@ -155,17 +156,41 @@ async function getTermAggregationRows(params: {
 
 async function getCurrentOrRequestedTerm(schoolId: string, termId?: string | null) {
   if (termId) {
-    return prisma.term.findFirst({
-      where: { id: termId, schoolId },
-      include: { academicYear: { select: { year: true } } },
+    const term = await prisma.terms.findFirst({
+      where: { id: termId, school_id: schoolId },
+      include: { academic_years: { select: { year: true } } },
     })
+
+    if (!term) return null
+
+    return {
+      id: term.id,
+      name: term.name,
+      startDate: term.start_date,
+      endDate: term.end_date,
+      academicYear: {
+        year: term.academic_years.year,
+      },
+    }
   }
 
-  return prisma.term.findFirst({
-    where: { schoolId, isCurrent: true },
-    include: { academicYear: { select: { year: true } } },
-    orderBy: { createdAt: 'desc' },
+  const term = await prisma.terms.findFirst({
+    where: { school_id: schoolId, is_current: true },
+    include: { academic_years: { select: { year: true } } },
+    orderBy: { created_at: 'desc' },
   })
+
+  if (!term) return null
+
+  return {
+    id: term.id,
+    name: term.name,
+    startDate: term.start_date,
+    endDate: term.end_date,
+    academicYear: {
+      year: term.academic_years.year,
+    },
+  }
 }
 
 export async function recomputeAcademicSummaryForTerm(params: { schoolId: string; termId?: string | null }) {
@@ -181,23 +206,35 @@ export async function recomputeAcademicSummaryForTerm(params: { schoolId: string
       termName: term.name,
       academicYear: term.academicYear.year,
     }),
-    prisma.term.findMany({
-      where: {
-        schoolId: params.schoolId,
-        endDate: {
-          lt: term.startDate,
-        },
-      },
-      include: {
-        academicYear: {
-          select: {
-            year: true,
+    (async () => {
+      const terms = await prisma.terms.findMany({
+        where: {
+          school_id: params.schoolId,
+          end_date: {
+            lt: term.startDate,
           },
         },
-      },
-      orderBy: [{ academicYear: { year: 'desc' } }, { startDate: 'desc' }],
-      take: 2,
-    }),
+        include: {
+          academic_years: {
+            select: {
+              year: true,
+            },
+          },
+        },
+        orderBy: [{ academic_years: { year: 'desc' } }, { start_date: 'desc' }],
+        take: 2,
+      })
+
+      return terms.map((item) => ({
+        id: item.id,
+        name: item.name,
+        startDate: item.start_date,
+        endDate: item.end_date,
+        academicYear: {
+          year: item.academic_years.year,
+        },
+      }))
+    })(),
   ])
 
   const validPercents: number[] = []
@@ -305,39 +342,42 @@ export async function recomputeAcademicSummaryForTerm(params: { schoolId: string
 
   const schoolAverageDelta = roundOne(schoolAverage - lastTermAverage)
 
-  await prisma.dashboardAcademicSummary.upsert({
+  await prisma.dashboard_academic_summaries.upsert({
     where: {
-      termId: term.id,
+      term_id: term.id,
     },
     update: {
-      academicYear: term.academicYear.year,
-      termName: term.name,
-      overallPassRate,
-      topClassName: topClass.name,
-      topClassAverage: topClass.average,
-      lowestClassName: lowestClass.name,
-      lowestClassAverage: lowestClass.average,
-      schoolAverageMark: schoolAverage,
-      schoolAverageDelta,
-      gradeAverages: gradeAverages as unknown as Prisma.JsonArray,
-      trendByWeek: trendByWeek as unknown as Prisma.JsonArray,
-      lastAggregatedAt: new Date(),
+      academic_year: term.academicYear.year,
+      term_name: term.name,
+      overall_pass_rate: overallPassRate,
+      top_class_name: topClass.name,
+      top_class_average: topClass.average,
+      lowest_class_name: lowestClass.name,
+      lowest_class_average: lowestClass.average,
+      school_average_mark: schoolAverage,
+      school_average_delta: schoolAverageDelta,
+      grade_averages: gradeAverages as unknown as Prisma.JsonArray,
+      trend_by_week: trendByWeek as unknown as Prisma.JsonArray,
+      last_aggregated_at: new Date(),
+      updated_at: new Date(),
     },
     create: {
-      schoolId: params.schoolId,
-      termId: term.id,
-      academicYear: term.academicYear.year,
-      termName: term.name,
-      overallPassRate,
-      topClassName: topClass.name,
-      topClassAverage: topClass.average,
-      lowestClassName: lowestClass.name,
-      lowestClassAverage: lowestClass.average,
-      schoolAverageMark: schoolAverage,
-      schoolAverageDelta,
-      gradeAverages: gradeAverages as unknown as Prisma.JsonArray,
-      trendByWeek: trendByWeek as unknown as Prisma.JsonArray,
-      lastAggregatedAt: new Date(),
+      id: randomUUID(),
+      school_id: params.schoolId,
+      term_id: term.id,
+      academic_year: term.academicYear.year,
+      term_name: term.name,
+      overall_pass_rate: overallPassRate,
+      top_class_name: topClass.name,
+      top_class_average: topClass.average,
+      lowest_class_name: lowestClass.name,
+      lowest_class_average: lowestClass.average,
+      school_average_mark: schoolAverage,
+      school_average_delta: schoolAverageDelta,
+      grade_averages: gradeAverages as unknown as Prisma.JsonArray,
+      trend_by_week: trendByWeek as unknown as Prisma.JsonArray,
+      last_aggregated_at: new Date(),
+      updated_at: new Date(),
     },
   })
 
@@ -351,12 +391,14 @@ export async function enqueueAcademicAggregation(params: { schoolId: string; ter
   }
 
   try {
-    await prisma.dashboardAggregationEvent.create({
+    await prisma.dashboard_aggregation_events.create({
       data: {
-        schoolId: params.schoolId,
-        aggregateType: ACADEMIC_EVENT_TYPE,
-        dedupeKey,
+        id: randomUUID(),
+        school_id: params.schoolId,
+        aggregate_type: ACADEMIC_EVENT_TYPE,
+        dedupe_key: dedupeKey,
         payload: payload as unknown as Prisma.InputJsonValue,
+        updated_at: new Date(),
       },
     })
   } catch (error) {
@@ -372,12 +414,12 @@ export async function enqueueAcademicAggregation(params: { schoolId: string; ter
 }
 
 export async function processAcademicAggregationEvents(limit = 25) {
-  const events = await prisma.dashboardAggregationEvent.findMany({
+  const events = await prisma.dashboard_aggregation_events.findMany({
     where: {
-      aggregateType: ACADEMIC_EVENT_TYPE,
+      aggregate_type: ACADEMIC_EVENT_TYPE,
     },
     orderBy: {
-      createdAt: 'asc',
+      created_at: 'asc',
     },
     take: limit,
   })
@@ -389,11 +431,11 @@ export async function processAcademicAggregationEvents(limit = 25) {
     try {
       const payload = (event.payload || {}) as AggregationPayload
       await recomputeAcademicSummaryForTerm({
-        schoolId: event.schoolId,
+        schoolId: event.school_id,
         termId: payload.termId || null,
       })
 
-      await prisma.dashboardAggregationEvent.delete({
+      await prisma.dashboard_aggregation_events.delete({
         where: {
           id: event.id,
         },
