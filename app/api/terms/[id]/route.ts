@@ -3,6 +3,28 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { hasRole } from '@/lib/auth-utils'
 
+function normalizeTerm(term: {
+  id: string
+  name: string
+  academic_year_id: string
+  start_date: Date
+  end_date: Date
+  is_current: boolean
+  is_locked: boolean
+  created_at?: Date
+}) {
+  return {
+    id: term.id,
+    name: term.name,
+    academicYearId: term.academic_year_id,
+    startDate: term.start_date,
+    endDate: term.end_date,
+    isCurrent: term.is_current,
+    isLocked: term.is_locked,
+    createdAt: term.created_at,
+  }
+}
+
 // PATCH /api/terms/[id] - update lock state, dates, or mark as current
 export async function PATCH(
   request: NextRequest,
@@ -85,7 +107,11 @@ export async function PATCH(
         where: { id },
       })
 
-      return NextResponse.json({ term: updated })
+      if (!updated) {
+        return NextResponse.json({ error: 'Term not found after update' }, { status: 404 })
+      }
+
+      return NextResponse.json({ term: normalizeTerm(updated) })
     }
 
     const updated = await prisma.terms.update({
@@ -93,7 +119,7 @@ export async function PATCH(
       data: updates,
     })
 
-    return NextResponse.json({ term: updated })
+    return NextResponse.json({ term: normalizeTerm(updated) })
   } catch (error) {
     console.error('Error updating term:', error)
     return NextResponse.json({ error: 'Failed to update term' }, { status: 500 })

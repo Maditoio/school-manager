@@ -4,6 +4,53 @@ import { prisma } from '@/lib/prisma'
 import { hasRole } from '@/lib/auth-utils'
 import { randomUUID } from 'crypto'
 
+function normalizeTerm(term: {
+  id: string
+  name: string
+  academic_year_id: string
+  start_date: Date
+  end_date: Date
+  is_current: boolean
+  is_locked: boolean
+  created_at?: Date
+}) {
+  return {
+    id: term.id,
+    name: term.name,
+    academicYearId: term.academic_year_id,
+    startDate: term.start_date,
+    endDate: term.end_date,
+    isCurrent: term.is_current,
+    isLocked: term.is_locked,
+    createdAt: term.created_at,
+  }
+}
+
+function normalizeAcademicYear(academicYear: {
+  id: string
+  year: number
+  name: string
+  is_current: boolean
+  terms: Array<{
+    id: string
+    name: string
+    academic_year_id: string
+    start_date: Date
+    end_date: Date
+    is_current: boolean
+    is_locked: boolean
+    created_at?: Date
+  }>
+}) {
+  return {
+    id: academicYear.id,
+    year: academicYear.year,
+    name: academicYear.name,
+    isCurrent: academicYear.is_current,
+    terms: academicYear.terms.map(normalizeTerm),
+  }
+}
+
 function resolveSchoolId(
   sessionUser: { role: string; schoolId?: string | null },
   providedSchoolId?: string | null
@@ -40,12 +87,14 @@ export async function GET(request: NextRequest) {
       orderBy: [{ year: 'desc' }, { created_at: 'desc' }],
     })
 
-    const currentTerm = academicYears
+    const normalizedAcademicYears = academicYears.map(normalizeAcademicYear)
+
+    const currentTerm = normalizedAcademicYears
       .flatMap((academicYear) => academicYear.terms.map((term) => ({ ...term, academicYear })))
-      .find((term) => term.is_current)
+      .find((term) => term.isCurrent)
 
     return NextResponse.json({
-      academicYears,
+      academicYears: normalizedAcademicYears,
       currentTerm: currentTerm || null,
     })
   } catch (error) {
@@ -96,7 +145,14 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      return NextResponse.json({ academicYear }, { status: 201 })
+      return NextResponse.json({
+        academicYear: {
+          id: academicYear.id,
+          year: academicYear.year,
+          name: academicYear.name,
+          isCurrent: academicYear.is_current,
+        },
+      }, { status: 201 })
     }
 
     if (action === 'createTerm') {
@@ -138,7 +194,7 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      return NextResponse.json({ term }, { status: 201 })
+      return NextResponse.json({ term: normalizeTerm(term) }, { status: 201 })
     }
 
     if (action === 'setCurrentTerm') {
