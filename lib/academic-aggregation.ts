@@ -80,7 +80,7 @@ async function getTermAggregationRows(params: {
   const resultRows = await prisma.result.findMany({
     where: {
       schoolId: params.schoolId,
-      term_id: params.termId,
+      termId: params.termId,
     },
     select: {
       totalScore: true,
@@ -113,10 +113,10 @@ async function getTermAggregationRows(params: {
         schoolId: params.schoolId,
         OR: [
           {
-            term_id: params.termId,
+            termId: params.termId,
           },
           {
-            term_id: null,
+            termId: null,
             term: params.termName,
             academicYear: params.academicYear,
           },

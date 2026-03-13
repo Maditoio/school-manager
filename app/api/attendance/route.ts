@@ -128,13 +128,13 @@ export async function POST(request: NextRequest) {
           },
           select: {
             id: true,
-            term_id: true,
+            termId: true,
             schoolId: true,
           },
         })
 
         if (existing) {
-          await assertTermEditableById({ schoolId: existing.schoolId, termId: existing.term_id })
+          await assertTermEditableById({ schoolId: existing.schoolId, termId: existing.termId })
         }
 
         let currentTerm = currentTermBySchool.get(student.schoolId)
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
           create: {
             schoolId: student.schoolId,
             studentId: record.studentId,
-            term_id: currentTerm.id,
+            termId: currentTerm.id,
             date: attendanceDate,
             status: record.status,
             notes: record.notes,
@@ -209,13 +209,13 @@ export async function POST(request: NextRequest) {
       },
       select: {
         id: true,
-        term_id: true,
+        termId: true,
         schoolId: true,
       },
     })
 
     if (existing) {
-      await assertTermEditableById({ schoolId: existing.schoolId, termId: existing.term_id })
+      await assertTermEditableById({ schoolId: existing.schoolId, termId: existing.termId })
     }
 
     const currentTerm = await getCurrentEditableTermForSchool(student.schoolId)
@@ -234,7 +234,7 @@ export async function POST(request: NextRequest) {
       create: {
         schoolId: student.schoolId,
         studentId,
-        term_id: currentTerm.id,
+        termId: currentTerm.id,
         date: attendanceDate,
         status,
         notes,

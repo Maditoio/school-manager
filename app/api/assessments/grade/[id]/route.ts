@@ -66,7 +66,7 @@ export async function PUT(
 
     await assertTermEditableById({
       schoolId: studentAssessment.student.schoolId,
-      termId: studentAssessment.assessment.term_id,
+      termId: studentAssessment.assessment.termId,
     })
     await assertTermEditableByLegacyValues({
       schoolId: studentAssessment.student.schoolId,
@@ -85,7 +85,7 @@ export async function PUT(
     const totalMarks = Number(studentAssessment.assessment.totalMarks)
     const examType = studentAssessment.assessment.type
     const isExamType = examType === 'EXAM'
-    let aggregationTermId = studentAssessment.assessment.term_id
+    let aggregationTermId = studentAssessment.assessment.termId
 
     if (!aggregationTermId) {
       const resolvedTerm = await prisma.terms.findFirst({
@@ -126,7 +126,7 @@ export async function PUT(
         },
       },
       update: {
-        term_id: aggregationTermId,
+        termId: aggregationTermId,
         examType,
         testScore: isExamType ? null : numericScore,
         examScore: isExamType ? numericScore : null,
@@ -139,7 +139,7 @@ export async function PUT(
         schoolId: studentAssessment.student.schoolId,
         studentId: studentAssessment.studentId,
         subjectId: studentAssessment.assessment.subjectId,
-        term_id: aggregationTermId,
+        termId: aggregationTermId,
         term: studentAssessment.assessment.term,
         year: studentAssessment.assessment.academicYear,
         examType,

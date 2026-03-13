@@ -156,7 +156,7 @@ export async function PUT(
       },
       select: {
         id: true,
-        term_id: true,
+        termId: true,
         term: true,
         academicYear: true,
       },
@@ -166,7 +166,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Assessment not found or unauthorized' }, { status: 404 })
     }
 
-    await assertTermEditableById({ schoolId: session.user.schoolId, termId: existing.term_id })
+    await assertTermEditableById({ schoolId: session.user.schoolId, termId: existing.termId })
     await assertTermEditableByLegacyValues({
       schoolId: session.user.schoolId,
       termName: existing.term,
@@ -222,7 +222,7 @@ export async function DELETE(
       },
       select: {
         id: true,
-        term_id: true,
+        termId: true,
         term: true,
         academicYear: true,
       },
@@ -232,7 +232,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Assessment not found or unauthorized' }, { status: 404 })
     }
 
-    await assertTermEditableById({ schoolId: session.user.schoolId, termId: existing.term_id })
+    await assertTermEditableById({ schoolId: session.user.schoolId, termId: existing.termId })
     await assertTermEditableByLegacyValues({
       schoolId: session.user.schoolId,
       termName: existing.term,

@@ -294,7 +294,7 @@ model Assessment {
   classId             String              @map("class_id")
   subjectId           String              @map("subject_id")
   teacherId           String              @map("teacher_id")
-  term_id             String?
+  termId              String?              @map("term_id")
   academicYear        Int                 @map("academic_year")
   term                String
   title               String
@@ -312,7 +312,7 @@ model Assessment {
   school              School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   subject             Subject             @relation(fields: [subjectId], references: [id])
   teacher             User                @relation("TeacherAssessments", fields: [teacherId], references: [id])
-  terms               terms?              @relation(fields: [term_id], references: [id])
+  terms               terms?              @relation(fields: [termId], references: [id])
   questions           Question[]
 
   @@index([schoolId])
@@ -321,7 +321,7 @@ model Assessment {
   @@index([teacherId])
   @@index([academicYear, term])
   @@index([published])
-  @@index([term_id])
+  @@index([termId])
   @@map("assessments")
 }
 
@@ -386,7 +386,7 @@ model Attendance {
   id        String           @id @default(uuid())
   schoolId  String           @map("school_id")
   studentId String           @map("student_id")
-  term_id   String?
+  termId    String?           @map("term_id")
   date      DateTime         @db.Date
   status    AttendanceStatus
   notes     String?
@@ -394,7 +394,7 @@ model Attendance {
   updatedAt DateTime         @updatedAt @map("updated_at")
   school    School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  terms     terms?           @relation(fields: [term_id], references: [id])
+  terms     terms?            @relation(fields: [termId], references: [id])
 
   @@unique([studentId, date])
   @@index([schoolId])
@@ -402,7 +402,7 @@ model Attendance {
   @@index([date])
   @@index([schoolId, date])
   @@index([schoolId, date, status])
-  @@index([term_id])
+  @@index([termId])
   @@map("attendance")
 }
 
@@ -411,7 +411,7 @@ model Result {
   schoolId   String   @map("school_id")
   studentId  String   @map("student_id")
   subjectId  String   @map("subject_id")
-  term_id    String?
+  termId     String?  @map("term_id")
   term       String
   year       Int
   examType   String?  @map("exam_type")
@@ -427,13 +427,13 @@ model Result {
   school     School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   subject    Subject  @relation(fields: [subjectId], references: [id])
-  terms      terms?   @relation(fields: [term_id], references: [id])
+  terms      terms?   @relation(fields: [termId], references: [id])
 
   @@unique([studentId, subjectId, term, year])
   @@index([schoolId])
   @@index([studentId])
   @@index([published])
-  @@index([term_id])
+  @@index([termId])
   @@map("results")
 }
 
@@ -567,27 +567,27 @@ model FeePayment {
   schoolId       String        @map("school_id")
   scheduleId     String        @map("schedule_id")
   studentId      String        @map("student_id")
-  term_id        String?
+  termId         String?       @map("term_id")
   paymentNumber  String        @unique @map("payment_number")
   amountPaid     Float         @map("amount_paid")
   paymentDate    DateTime      @map("payment_date")
   notes          String?
   receivedBy     String        @map("received_by")
   createdAt      DateTime      @default(now()) @map("created_at")
-  payment_method PaymentMethod @default(OTHER)
+  paymentMethod  PaymentMethod @default(OTHER) @map("payment_method")
   receiver       User          @relation("FeePaymentReceivedBy", fields: [receivedBy], references: [id])
   schedule       FeeSchedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   school         School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   student        Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  terms          terms?        @relation(fields: [term_id], references: [id])
+  terms          terms?        @relation(fields: [termId], references: [id])
 
   @@index([schoolId])
   @@index([scheduleId])
   @@index([studentId])
   @@index([paymentDate])
-  @@index([payment_method])
+  @@index([paymentMethod])
   @@index([schoolId, scheduleId, studentId])
-  @@index([term_id])
+  @@index([termId])
   @@map("fee_payments")
 }
 

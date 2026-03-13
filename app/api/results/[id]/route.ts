@@ -74,7 +74,7 @@ export async function PUT(
       select: {
         id: true,
         schoolId: true,
-        term_id: true,
+        termId: true,
         term: true,
         year: true,
       },
@@ -88,7 +88,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    let aggregationTermId = existing.term_id
+    let aggregationTermId = existing.termId
     if (!aggregationTermId) {
       const resolvedTerm = await prisma.terms.findFirst({
         where: {
@@ -105,7 +105,7 @@ export async function PUT(
       aggregationTermId = resolvedTerm?.id || null
     }
 
-    await assertTermEditableById({ schoolId: existing.schoolId, termId: existing.term_id })
+    await assertTermEditableById({ schoolId: existing.schoolId, termId: existing.termId })
     await assertTermEditableByLegacyValues({
       schoolId: existing.schoolId,
       termName: existing.term,
@@ -178,7 +178,7 @@ export async function DELETE(
       select: {
         id: true,
         schoolId: true,
-        term_id: true,
+        termId: true,
         term: true,
         year: true,
       },
@@ -192,7 +192,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    let aggregationTermId = existing.term_id
+    let aggregationTermId = existing.termId
     if (!aggregationTermId) {
       const resolvedTerm = await prisma.terms.findFirst({
         where: {
@@ -209,7 +209,7 @@ export async function DELETE(
       aggregationTermId = resolvedTerm?.id || null
     }
 
-    await assertTermEditableById({ schoolId: existing.schoolId, termId: existing.term_id })
+    await assertTermEditableById({ schoolId: existing.schoolId, termId: existing.termId })
     await assertTermEditableByLegacyValues({
       schoolId: existing.schoolId,
       termName: existing.term,

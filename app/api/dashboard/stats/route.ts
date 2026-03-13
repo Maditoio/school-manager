@@ -97,9 +97,9 @@ async function getAcademicRowsForTerm(params: {
       assessment: {
         schoolId: params.schoolId,
         OR: [
-          { term_id: params.termId },
+          { termId: params.termId },
           {
-            term_id: null,
+            termId: null,
             term: params.termName,
             academicYear: params.academicYear,
           },
@@ -143,9 +143,9 @@ async function getAcademicRowsForTerm(params: {
     where: {
       schoolId: params.schoolId,
       OR: [
-        { term_id: params.termId },
+        { termId: params.termId },
         {
-          term_id: null,
+          termId: null,
           term: params.termName,
           year: params.academicYear,
         },
@@ -563,7 +563,7 @@ export async function GET(request: NextRequest) {
               select: {
                 studentId: true,
                 amountPaid: true,
-                payment_method: true,
+                paymentMethod: true,
               },
             })
           : Promise.resolve([]),
@@ -655,7 +655,7 @@ export async function GET(request: NextRequest) {
 
       const methodAmounts = new Map<string, { amount: number; count: number }>()
       for (const payment of yearlyPayments) {
-        const method = paymentMethodLabel(payment.payment_method || 'OTHER')
+        const method = paymentMethodLabel(payment.paymentMethod || 'OTHER')
         const existing = methodAmounts.get(method) || { amount: 0, count: 0 }
         existing.amount += Number(payment.amountPaid || 0)
         existing.count += 1
