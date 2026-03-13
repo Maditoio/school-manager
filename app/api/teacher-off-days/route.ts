@@ -6,6 +6,42 @@ import { invalidateSchoolAdminCachedStats } from '@/lib/dashboard-cache'
 import { Prisma } from '@prisma/client'
 import { randomUUID } from 'crypto'
 
+function normalizeOffDay(row: {
+  id: string
+  school_id: string
+  teacher_id: string
+  start_date: Date
+  end_date: Date
+  reason: string | null
+  created_at: Date
+  updated_at: Date
+  users?: {
+    id: string
+    firstName: string | null
+    lastName: string | null
+    email: string
+  } | null
+}) {
+  return {
+    id: row.id,
+    schoolId: row.school_id,
+    teacherId: row.teacher_id,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    reason: row.reason,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    teacher: row.users
+      ? {
+          id: row.users.id,
+          firstName: row.users.firstName,
+          lastName: row.users.lastName,
+          email: row.users.email,
+        }
+      : undefined,
+  }
+}
+
 function toUtcDate(value: string) {
   const iso = `${value}T00:00:00.000Z`
   const parsed = new Date(iso)
@@ -65,7 +101,7 @@ export async function GET(request: NextRequest) {
       orderBy: [{ start_date: 'desc' }, { created_at: 'desc' }],
     })
 
-    return NextResponse.json({ offDays })
+    return NextResponse.json({ offDays: offDays.map(normalizeOffDay) })
   } catch (error) {
     console.error('Error fetching teacher off-days:', error)
     return NextResponse.json({ error: 'Failed to fetch teacher off-days' }, { status: 500 })
@@ -131,7 +167,7 @@ export async function POST(request: NextRequest) {
 
     invalidateSchoolAdminCachedStats(session.user.schoolId)
 
-    return NextResponse.json({ offDay }, { status: 201 })
+    return NextResponse.json({ offDay: normalizeOffDay(offDay) }, { status: 201 })
   } catch (error) {
     console.error('Error creating teacher off-day:', error)
     if (error instanceof Prisma.PrismaClientKnownRequestError) {

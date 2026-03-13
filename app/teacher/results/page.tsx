@@ -227,7 +227,7 @@ export default function TeacherResultsPage() {
             <div className="p-6">Loading assessment results...</div>
           ) : results.length > 0 ? (
             <div className="overflow-x-auto ui-table-wrap">
-              <table className="ui-table min-w-full">
+              <table className="ui-table no-table-stripes min-w-full">
                 <thead>
                   <tr>
                     <th>Student</th>

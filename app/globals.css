@@ -287,6 +287,11 @@ table tbody tr:hover {
   background: #f9fafb;
 }
 
+.ui-table.no-table-stripes tbody tr:nth-child(even),
+table.no-table-stripes tbody tr:nth-child(even) {
+  background: transparent;
+}
+
 .ui-table tbody tr:hover {
   background: color-mix(in srgb, var(--surface-soft) 88%, var(--background));
 }
