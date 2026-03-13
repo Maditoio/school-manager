@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
         ${title ?? null},
         ${startAt},
         ${endAt},
-        ${status || 'ACTIVE'},
+        ${status || 'ACTIVE'}::"TeacherContractStatus",
         ${notes ?? null},
         NOW(),
         NOW()
