@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Form'
 import Link from 'next/link'
 
 export default function LoginPage() {
@@ -41,50 +40,22 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
-      {/* School-themed SVG background pattern */}
-      <svg className="absolute inset-0 w-full h-full opacity-5 pointer-events-none" preserveAspectRatio="xMidYMid slice">
-        <defs>
-          <pattern id="school-pattern" x="0" y="0" width="200" height="200" patternUnits="userSpaceOnUse">
-            {/* Books */}
-            <g transform="translate(20, 20)">
-              <rect x="0" y="0" width="15" height="20" fill="currentColor" rx="1" />
-              <rect x="3" y="2" width="9" height="16" fill="#fff" opacity="0.3" />
-              <line x1="6" y1="3" x2="6" y2="18" stroke="#fff" strokeWidth="0.5" opacity="0.2" />
-            </g>
-            {/* Graduation cap */}
-            <g transform="translate(80, 30)">
-              <rect x="0" y="8" width="20" height="3" fill="currentColor" />
-              <polygon points="10,0 0,8 20,8" fill="currentColor" />
-              <line x1="10" y1="11" x2="10" y2="18" stroke="currentColor" strokeWidth="1" />
-            </g>
-            {/* Pencil */}
-            <g transform="translate(140, 25)">
-              <polygon points="0,0 3,0 15,8 12,8" fill="currentColor" />
-              <rect x="12" y="6" width="2" height="12" fill="currentColor" />
-              <polygon points="14,18 11,18 12.5,20" fill="currentColor" />
-            </g>
-            {/* Apple */}
-            <g transform="translate(35, 100)">
-              <circle cx="8" cy="8" r="7" fill="currentColor" />
-              <rect x="7" y="0" width="2" height="5" fill="currentColor" />
-              <path d="M 9 2 Q 10 3 9 4" fill="none" stroke="currentColor" strokeWidth="1" />
-            </g>
-            {/* Chart/Graph bars */}
-            <g transform="translate(120, 110)">
-              <rect x="0" y="8" width="3" height="8" fill="currentColor" />
-              <rect x="5" y="4" width="3" height="12" fill="currentColor" />
-              <rect x="10" y="0" width="3" height="16" fill="currentColor" />
-            </g>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#school-pattern)" />
-      </svg>
+    <div 
+      className="min-h-screen relative overflow-hidden"
+      style={{
+        backgroundImage: 'url("https://images.unsplash.com/photo-1427504494785-cdbb8d996fc5?w=1400&h=1400&fit=crop")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+      }}
+    >
+      {/* Overlay for better text readability */}
+      <div className="absolute inset-0 bg-black/40"></div>
 
-      {/* Background decorative elements */}
+      {/* Background decorative elements with adjusted opacity */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse"></div>
       </div>
 
       <div className="relative min-h-screen flex items-center justify-center p-4">
@@ -100,15 +71,15 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <h1 className="text-4xl font-bold text-gray-900 leading-tight">
+                <h1 className="text-4xl font-bold text-white leading-tight drop-shadow-lg">
                   Welcome to<br />
-                  <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-blue-300 to-indigo-300 bg-clip-text text-transparent">
                     School Connect
                   </span>
                 </h1>
               </div>
 
-              <p className="text-lg text-gray-600 leading-relaxed">
+              <p className="text-lg text-gray-100 leading-relaxed drop-shadow-md">
                 Empowering education through seamless communication and academic management.
               </p>
             </div>
@@ -116,38 +87,38 @@ export default function LoginPage() {
             {/* Features List */}
             <div className="space-y-4">
               <div className="flex gap-3 items-start">
-                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center shadow-lg">
                   <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Real-time Updates</h3>
-                  <p className="text-sm text-gray-600">Stay informed with instant notifications</p>
+                  <h3 className="font-semibold text-white drop-shadow-md">Real-time Updates</h3>
+                  <p className="text-sm text-gray-200 drop-shadow-sm">Stay informed with instant notifications</p>
                 </div>
               </div>
 
               <div className="flex gap-3 items-start">
-                <div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                <div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center shadow-lg">
                   <svg className="w-5 h-5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Secure Access</h3>
-                  <p className="text-sm text-gray-600">Protected with enterprise-level security</p>
+                  <h3 className="font-semibold text-white drop-shadow-md">Secure Access</h3>
+                  <p className="text-sm text-gray-200 drop-shadow-sm">Protected with enterprise-level security</p>
                 </div>
               </div>
 
               <div className="flex gap-3 items-start">
-                <div className="flex-shrink-0 w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                <div className="flex-shrink-0 w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center shadow-lg">
                   <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Easy Management</h3>
-                  <p className="text-sm text-gray-600">Simplify academic workflows</p>
+                  <h3 className="font-semibold text-white drop-shadow-md">Easy Management</h3>
+                  <p className="text-sm text-gray-200 drop-shadow-sm">Simplify academic workflows</p>
                 </div>
               </div>
             </div>
@@ -155,7 +126,7 @@ export default function LoginPage() {
 
           {/* Right Side - Login Form */}
           <div className="w-full max-w-md mx-auto">
-            <div className="bg-white rounded-3xl shadow-2xl p-8 space-y-6">
+            <div className="bg-white rounded-3xl shadow-2xl backdrop-blur-sm bg-opacity-98 p-8 space-y-6">
               {/* Mobile Logo */}
               <div className="md:hidden text-center mb-4">
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-4">
@@ -184,37 +155,37 @@ export default function LoginPage() {
               {/* Login Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-900 mb-2">
                     Email Address
                   </label>
-                  <Input
+                  <input
                     id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
                     required
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors bg-gray-50"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors bg-gray-50 text-gray-900"
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-900">
                       Password
                     </label>
                     <Link href="/reset-password" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
                       Forgot?
                     </Link>
                   </div>
-                  <Input
+                  <input
                     id="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors bg-gray-50"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors bg-gray-50 text-gray-900"
                   />
                 </div>
 
