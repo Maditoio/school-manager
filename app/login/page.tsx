@@ -213,38 +213,6 @@ export default function LoginPage() {
                 </Button>
               </form>
 
-              {/* Divider */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t-2 border-gray-200"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-3 bg-white text-gray-600">or continue with</span>
-                </div>
-              </div>
-
-              {/* User Type Info */}
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="p-3 rounded-lg bg-blue-50 border border-blue-100">
-                  <svg className="w-5 h-5 text-blue-600 mx-auto mb-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10.5 1.5H3.75A2.25 2.25 0 001.5 3.75v12.5A2.25 2.25 0 003.75 18.5h12.5a2.25 2.25 0 002.25-2.25V9.5m-15-4h12m-12 4v8m0-8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H6.5a2 2 0 01-2-2v-8z" />
-                  </svg>
-                  <p className="text-xs font-medium text-gray-700">Teachers</p>
-                </div>
-                <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-100">
-                  <svg className="w-5 h-5 text-indigo-600 mx-auto mb-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
-                  </svg>
-                  <p className="text-xs font-medium text-gray-700">Students</p>
-                </div>
-                <div className="p-3 rounded-lg bg-purple-50 border border-purple-100">
-                  <svg className="w-5 h-5 text-purple-600 mx-auto mb-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10.5 1.5H3.75A2.25 2.25 0 001.5 3.75v12.5A2.25 2.25 0 003.75 18.5h12.5a2.25 2.25 0 002.25-2.25V9.5m-15-4h12m-12 4v8m0-8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H6.5a2 2 0 01-2-2v-8z" />
-                  </svg>
-                  <p className="text-xs font-medium text-gray-700">Parents</p>
-                </div>
-              </div>
-
               {/* Footer */}
               <p className="text-center text-xs text-gray-600">
                 Protected by enterprise-grade security. Your data is safe with us.
