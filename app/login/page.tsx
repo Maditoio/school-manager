@@ -41,7 +41,46 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
+      {/* School-themed SVG background pattern */}
+      <svg className="absolute inset-0 w-full h-full opacity-5 pointer-events-none" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <pattern id="school-pattern" x="0" y="0" width="200" height="200" patternUnits="userSpaceOnUse">
+            {/* Books */}
+            <g transform="translate(20, 20)">
+              <rect x="0" y="0" width="15" height="20" fill="currentColor" rx="1" />
+              <rect x="3" y="2" width="9" height="16" fill="#fff" opacity="0.3" />
+              <line x1="6" y1="3" x2="6" y2="18" stroke="#fff" strokeWidth="0.5" opacity="0.2" />
+            </g>
+            {/* Graduation cap */}
+            <g transform="translate(80, 30)">
+              <rect x="0" y="8" width="20" height="3" fill="currentColor" />
+              <polygon points="10,0 0,8 20,8" fill="currentColor" />
+              <line x1="10" y1="11" x2="10" y2="18" stroke="currentColor" strokeWidth="1" />
+            </g>
+            {/* Pencil */}
+            <g transform="translate(140, 25)">
+              <polygon points="0,0 3,0 15,8 12,8" fill="currentColor" />
+              <rect x="12" y="6" width="2" height="12" fill="currentColor" />
+              <polygon points="14,18 11,18 12.5,20" fill="currentColor" />
+            </g>
+            {/* Apple */}
+            <g transform="translate(35, 100)">
+              <circle cx="8" cy="8" r="7" fill="currentColor" />
+              <rect x="7" y="0" width="2" height="5" fill="currentColor" />
+              <path d="M 9 2 Q 10 3 9 4" fill="none" stroke="currentColor" strokeWidth="1" />
+            </g>
+            {/* Chart/Graph bars */}
+            <g transform="translate(120, 110)">
+              <rect x="0" y="8" width="3" height="8" fill="currentColor" />
+              <rect x="5" y="4" width="3" height="12" fill="currentColor" />
+              <rect x="10" y="0" width="3" height="16" fill="currentColor" />
+            </g>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#school-pattern)" />
+      </svg>
+
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
