@@ -78,27 +78,44 @@ export default function SchoolsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Only support creating new schools for now (no PUT endpoint yet)
-    if (editingSchool) {
-      showToast('Editing schools is not yet implemented', 'warning')
-      return
-    }
-    
     try {
-      const res = await fetch('/api/schools', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      })
+      if (editingSchool) {
+        // Update existing school
+        const res = await fetch(`/api/schools/${editingSchool.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            plan: formData.plan,
+          }),
+        })
 
-      if (res.ok) {
-        await fetchSchools()
-        setShowModal(false)
-        resetForm()
-        showToast('School created successfully!', 'success')
+        if (res.ok) {
+          await fetchSchools()
+          setShowModal(false)
+          resetForm()
+          showToast('School updated successfully!', 'success')
+        } else {
+          const data = await res.json()
+          showToast(`Failed to update school: ${JSON.stringify(data.error)}`, 'error')
+        }
       } else {
-        const data = await res.json()
-        showToast(`Failed to create school: ${JSON.stringify(data.error)}`, 'error')
+        // Create new school
+        const res = await fetch('/api/schools', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        })
+
+        if (res.ok) {
+          await fetchSchools()
+          setShowModal(false)
+          resetForm()
+          showToast('School created successfully!', 'success')
+        } else {
+          const data = await res.json()
+          showToast(`Failed to create school: ${JSON.stringify(data.error)}`, 'error')
+        }
       }
     } catch (error) {
       console.error('Failed to save school:', error)
@@ -106,8 +123,17 @@ export default function SchoolsPage() {
     }
   }
 
-  const handleEdit = () => {
-    showToast('Editing schools is not yet implemented. Please delete and recreate if needed.', 'info')
+  const handleEdit = (school: School) => {
+    setEditingSchool(school)
+    setFormData({
+      name: school.name,
+      plan: school.subscriptionPlan as 'BASIC' | 'PREMIUM' | 'ENTERPRISE',
+      adminEmail: '',
+      adminPassword: '',
+      adminFirstName: '',
+      adminLastName: '',
+    })
+    setShowModal(true)
   }
 
   const handleDelete = async (id: string) => {
@@ -249,15 +275,15 @@ export default function SchoolsPage() {
                                         <p className="text-orange-700 font-medium">Reason: {school.suspensionReason}</p>
                                       )}
                   </div>
-                  <div className="flex gap-2 pt-3">
-                    <Button variant="secondary" onClick={handleEdit}>
+                  <div className="flex gap-2 pt-3 flex-wrap">
+                    <Button variant="secondary" onClick={() => handleEdit(school)}>
                       Edit
-                                        <Button
-                                          variant={school.suspended ? 'secondary' : 'danger'}
-                                          onClick={() => handleSuspensionClick(school.id, school.suspended)}
-                                        >
-                                          {school.suspended ? 'Unsuspend' : 'Suspend'}
-                                        </Button>
+                    </Button>
+                    <Button
+                      variant={school.suspended ? 'secondary' : 'danger'}
+                      onClick={() => handleSuspensionClick(school.id, school.suspended)}
+                    >
+                      {school.suspended ? 'Unsuspend' : 'Suspend'}
                     </Button>
                     <Button variant="danger" onClick={() => handleDelete(school.id)}>
                       Delete
@@ -297,38 +323,40 @@ export default function SchoolsPage() {
                   <option value="ENTERPRISE">Enterprise</option>
                 </Select>
                 
-                <div className="border-t pt-4 mt-4">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">Admin Account Details</h3>
-                  <div className="space-y-4">
-                    <Input
-                      label="Admin First Name"
-                      value={formData.adminFirstName}
-                      onChange={(e) => setFormData({ ...formData, adminFirstName: e.target.value })}
-                      required
-                    />
-                    <Input
-                      label="Admin Last Name"
-                      value={formData.adminLastName}
-                      onChange={(e) => setFormData({ ...formData, adminLastName: e.target.value })}
-                      required
-                    />
-                    <Input
-                      label="Admin Email"
-                      type="email"
-                      value={formData.adminEmail}
-                      onChange={(e) => setFormData({ ...formData, adminEmail: e.target.value })}
-                      required
-                    />
-                    <Input
-                      label="Admin Password"
-                      type="password"
-                      value={formData.adminPassword}
-                      onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
-                      required
-                      placeholder="Minimum 6 characters"
-                    />
+                {!editingSchool && (
+                  <div className="border-t pt-4 mt-4">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Admin Account Details</h3>
+                    <div className="space-y-4">
+                      <Input
+                        label="Admin First Name"
+                        value={formData.adminFirstName}
+                        onChange={(e) => setFormData({ ...formData, adminFirstName: e.target.value })}
+                        required
+                      />
+                      <Input
+                        label="Admin Last Name"
+                        value={formData.adminLastName}
+                        onChange={(e) => setFormData({ ...formData, adminLastName: e.target.value })}
+                        required
+                      />
+                      <Input
+                        label="Admin Email"
+                        type="email"
+                        value={formData.adminEmail}
+                        onChange={(e) => setFormData({ ...formData, adminEmail: e.target.value })}
+                        required
+                      />
+                      <Input
+                        label="Admin Password"
+                        type="password"
+                        value={formData.adminPassword}
+                        onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
+                        required
+                        placeholder="Minimum 6 characters"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
                 
                 <div className="flex gap-2 justify-end">
                   <Button
