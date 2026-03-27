@@ -242,16 +242,38 @@ export async function GET(
   try {
     const session = await auth()
 
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'SUPER_ADMIN'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'SUPER_ADMIN', 'TEACHER'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { id: studentId } = await params
 
+    let teacherClassIds: string[] = []
+
+    if (session.user.role === 'TEACHER') {
+      const assignedRows = await prisma.$queryRaw<Array<{ id: string }>>`
+        SELECT DISTINCT c.id
+        FROM classes c
+        LEFT JOIN class_subject_teachers cst ON cst.class_id = c.id
+        WHERE c.school_id = ${session.user.schoolId}
+          AND (
+            c.teacher_id = ${session.user.id}
+            OR cst.teacher_id = ${session.user.id}
+          )
+      `
+
+      teacherClassIds = assignedRows.map((row) => row.id)
+
+      if (teacherClassIds.length === 0) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+    }
+
     const student = await prisma.student.findFirst({
       where: {
         id: studentId,
         ...(session.user.schoolId ? { schoolId: session.user.schoolId } : {}),
+        ...(session.user.role === 'TEACHER' ? { classId: { in: teacherClassIds } } : {}),
       },
       include: {
         class: {

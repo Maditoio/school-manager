@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Select } from '@/components/ui/Form'
 import { useSession } from 'next-auth/react'
-import { redirect } from 'next/navigation'
+import { redirect, useRouter } from 'next/navigation'
 
 interface Student {
   id: string
@@ -23,11 +23,16 @@ interface Class {
 }
 
 export default function TeacherStudentsPage() {
+  const router = useRouter()
   const { data: session, status } = useSession()
   const [students, setStudents] = useState<Student[]>([])
   const [classes, setClasses] = useState<Class[]>([])
   const [selectedClass, setSelectedClass] = useState('')
   const [loading, setLoading] = useState(true)
+
+  const viewStudentDetails = (studentId: string) => {
+    router.push(`/teacher/students/${studentId}`)
+  }
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -38,19 +43,7 @@ export default function TeacherStudentsPage() {
     }
   }, [session, status])
 
-  useEffect(() => {
-    if (session) {
-      fetchClasses()
-    }
-  }, [session])
-
-  useEffect(() => {
-    if (selectedClass) {
-      fetchStudents()
-    }
-  }, [selectedClass])
-
-  const fetchClasses = async () => {
+  const fetchClasses = useCallback(async () => {
     try {
       const res = await fetch('/api/classes?teacherId=' + session?.user?.id)
       if (res.ok) {
@@ -69,9 +62,9 @@ export default function TeacherStudentsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [session?.user?.id])
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     try {
       const res = await fetch(`/api/students?classId=${selectedClass}`)
       if (res.ok) {
@@ -84,7 +77,19 @@ export default function TeacherStudentsPage() {
       console.error('Failed to fetch students:', error)
       setStudents([])
     }
-  }
+  }, [selectedClass])
+
+  useEffect(() => {
+    if (session) {
+      fetchClasses()
+    }
+  }, [session, fetchClasses])
+
+  useEffect(() => {
+    if (selectedClass) {
+      fetchStudents()
+    }
+  }, [selectedClass, fetchStudents])
 
   if (status === 'loading' || !session) {
     return <div>Loading...</div>
@@ -136,7 +141,7 @@ export default function TeacherStudentsPage() {
             <div>Loading...</div>
           ) : selectedClass ? (
             <div className="overflow-x-auto">
-              <table className="min-w-full bg-white border border-gray-200">
+              <table className="min-w-full border border-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
@@ -155,7 +160,11 @@ export default function TeacherStudentsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {students.length > 0 ? students.map((student) => (
-                    <tr key={student.id}>
+                    <tr
+                      key={student.id}
+                      onClick={() => viewStudentDetails(student.id)}
+                      className="cursor-pointer transition-colors hover:bg-blue-50"
+                    >
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {student.admissionNumber}
                       </td>
