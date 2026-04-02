@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -8,6 +8,9 @@ import { Input, Select } from '@/components/ui/Form'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
+import enMessages from '@/messages/en.json'
+import frMessages from '@/messages/fr.json'
+import swMessages from '@/messages/sw.json'
 
 interface School {
   id: string
@@ -205,8 +208,21 @@ export default function SchoolsPage() {
     setEditingSchool(null)
   }
 
+  const preferredLanguage = session?.user?.preferredLanguage || 'en'
+  const t = useMemo(() => {
+    const messages = preferredLanguage === 'fr' ? frMessages : preferredLanguage === 'sw' ? swMessages : enMessages
+    return (key: string) => {
+      const keys = key.split('.')
+      let value: any = messages
+      for (const k of keys) {
+        value = value?.[k]
+      }
+      return value || key
+    }
+  }, [preferredLanguage])
+
   if (status === 'loading' || !session) {
-    return <div>Loading...</div>
+    return <div>{t('common.loading')}</div>
   }
 
   const navItems = [
@@ -228,8 +244,8 @@ export default function SchoolsPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Schools Management</h1>
-            <p className="text-gray-600 mt-2">Manage all schools in the platform</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('school.schools.schoolsManagement')}</h1>
+            <p className="text-gray-600 mt-2">{t('school.schools.subtitle')}</p>
           </div>
           <Button
             onClick={() => {
@@ -237,12 +253,12 @@ export default function SchoolsPage() {
               setShowModal(true)
             }}
           >
-            Add School
+            {t('school.schools.addSchool')}
           </Button>
         </div>
 
         {loading ? (
-          <div>Loading schools...</div>
+          <div>{t('common.loading')}</div>
         ) : schools.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {schools.map((school) => (
@@ -256,11 +272,11 @@ export default function SchoolsPage() {
                           school.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}
                       >
-                        {school.active ? 'Active' : 'Inactive'}
+                        {school.active ? t('school.schools.subscriptionStatus')?.split('|')[0] || 'Active' : 'Inactive'}
                       </span>
                       {school.suspended && (
                         <span className="px-2 py-1 text-xs rounded bg-orange-100 text-orange-800">
-                          Suspended
+                          {t('school.schools.suspendSchool')}
                         </span>
                       )}
                     </div>
@@ -277,16 +293,16 @@ export default function SchoolsPage() {
                   </div>
                   <div className="flex gap-2 pt-3 flex-wrap">
                     <Button variant="secondary" onClick={() => handleEdit(school)}>
-                      Edit
+                      {t('generic.edit')}
                     </Button>
                     <Button
                       variant={school.suspended ? 'secondary' : 'danger'}
                       onClick={() => handleSuspensionClick(school.id, school.suspended)}
                     >
-                      {school.suspended ? 'Unsuspend' : 'Suspend'}
+                      {school.suspended ? t('school.schools.unsuspendSchool') : t('school.schools.suspendSchool')}
                     </Button>
                     <Button variant="danger" onClick={() => handleDelete(school.id)}>
-                      Delete
+                      {t('generic.delete')}
                     </Button>
                   </div>
                 </div>
@@ -295,7 +311,7 @@ export default function SchoolsPage() {
           </div>
         ) : (
           <Card className="p-6">
-            <p className="text-center text-gray-500">No schools found. Click &quot;Add School&quot; to create one.</p>
+            <p className="text-center text-gray-500">{t('school.schools.noClasses')}</p>
           </Card>
         )}
 
@@ -303,56 +319,56 @@ export default function SchoolsPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <Card className="w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-bold mb-4">
-                {editingSchool ? 'Edit School' : 'Add School'}
+                {editingSchool ? t('school.schools.editSchool') : t('school.schools.addSchool')}
               </h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Input
-                  label="School Name"
+                  label={t('school.schools.schoolName')}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
                 />
                 <Select
-                  label="Subscription Plan"
+                  label={t('school.schools.subscriptionPlan')}
                   value={formData.plan}
                   onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
                   required
                 >
-                  <option value="BASIC">Basic</option>
-                  <option value="PREMIUM">Premium</option>
-                  <option value="ENTERPRISE">Enterprise</option>
+                  <option value="BASIC">{t('school.schools.basic')}</option>
+                  <option value="PREMIUM">{t('school.schools.premium')}</option>
+                  <option value="ENTERPRISE">{t('school.schools.enterprise')}</option>
                 </Select>
                 
                 {!editingSchool && (
                   <div className="border-t pt-4 mt-4">
-                    <h3 className="text-sm font-semibold text-gray-700 mb-3">Admin Account Details</h3>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('school.schools.adminAccountDetails')}</h3>
                     <div className="space-y-4">
                       <Input
-                        label="Admin First Name"
+                        label={t('school.schools.adminFirstName')}
                         value={formData.adminFirstName}
                         onChange={(e) => setFormData({ ...formData, adminFirstName: e.target.value })}
                         required
                       />
                       <Input
-                        label="Admin Last Name"
+                        label={t('school.schools.adminLastName')}
                         value={formData.adminLastName}
                         onChange={(e) => setFormData({ ...formData, adminLastName: e.target.value })}
                         required
                       />
                       <Input
-                        label="Admin Email"
+                        label={t('school.schools.adminEmail')}
                         type="email"
                         value={formData.adminEmail}
                         onChange={(e) => setFormData({ ...formData, adminEmail: e.target.value })}
                         required
                       />
                       <Input
-                        label="Admin Password"
+                        label={t('school.schools.adminPassword')}
                         type="password"
                         value={formData.adminPassword}
                         onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
                         required
-                        placeholder="Minimum 6 characters"
+                        placeholder={t('school.schools.passwordMinimum6')}
                       />
                     </div>
                   </div>
@@ -367,9 +383,9 @@ export default function SchoolsPage() {
                       resetForm()
                     }}
                   >
-                    Cancel
+                    {t('generic.cancel')}
                   </Button>
-                  <Button type="submit">{editingSchool ? 'Update' : 'Create'}</Button>
+                  <Button type="submit">{editingSchool ? t('generic.update') : t('generic.create')}</Button>
                 </div>
               </form>
             </Card>
@@ -380,18 +396,18 @@ export default function SchoolsPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <Card className="w-full max-w-md p-6">
               <h2 className="text-2xl font-bold mb-4">
-                {suspensionAction.action === 'suspend' ? 'Suspend School' : 'Unsuspend School'}
+                {suspensionAction.action === 'suspend' ? t('school.schools.suspendSchool') : t('school.schools.unsuspendSchool')}
               </h2>
               <div className="space-y-4">
                 {suspensionAction.action === 'suspend' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Suspension Reason
+                      {t('school.schools.suspensionReason')}
                     </label>
                     <textarea
                       value={suspensionReason}
                       onChange={(e) => setSuspensionReason(e.target.value)}
-                      placeholder="Enter reason for suspending this school..."
+                      placeholder={t('school.schools.enterSuspensionReason')}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       rows={4}
                       required
@@ -400,7 +416,7 @@ export default function SchoolsPage() {
                 )}
                 {suspensionAction.action === 'unsuspend' && (
                   <p className="text-gray-600">
-                    Are you sure you want to unsuspend this school? School admins and teachers will be able to access the system again.
+                    {t('school.schools.unsuspendWarning') || 'Are you sure you want to unsuspend this school? School admins and teachers will be able to access the system again.'}
                   </p>
                 )}
                 <div className="flex gap-2 justify-end">
@@ -414,7 +430,7 @@ export default function SchoolsPage() {
                     }}
                     disabled={suspensionLoading}
                   >
-                    Cancel
+                    {t('generic.cancel')}
                   </Button>
                   <Button
                     type="button"
@@ -422,7 +438,7 @@ export default function SchoolsPage() {
                     onClick={handleSuspensionSubmit}
                     isLoading={suspensionLoading}
                   >
-                    {suspensionAction.action === 'suspend' ? 'Suspend' : 'Unsuspend'}
+                    {suspensionAction.action === 'suspend' ? t('school.schools.suspendSchool') : t('school.schools.unsuspendSchool')}
                   </Button>
                 </div>
               </div>

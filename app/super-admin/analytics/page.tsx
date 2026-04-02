@@ -1,10 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card, StatCard } from '@/components/ui/Card'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
+import enMessages from '@/messages/en.json'
+import frMessages from '@/messages/fr.json'
+import swMessages from '@/messages/sw.json'
 
 interface AnalyticsData {
   totalSchools: number
@@ -83,8 +86,21 @@ export default function AnalyticsPage() {
     }
   }
 
+  const preferredLanguage = session?.user?.preferredLanguage || 'en'
+  const t = useMemo(() => {
+    const messages = preferredLanguage === 'fr' ? frMessages : preferredLanguage === 'sw' ? swMessages : enMessages
+    return (key: string) => {
+      const keys = key.split('.')
+      let value: any = messages
+      for (const k of keys) {
+        value = value?.[k]
+      }
+      return value || key
+    }
+  }, [preferredLanguage])
+
   if (status === 'loading' || !session) {
-    return <div>Loading...</div>
+    return <div>{t('common.loading')}</div>
   }
 
   const navItems = [

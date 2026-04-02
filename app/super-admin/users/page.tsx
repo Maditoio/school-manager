@@ -8,6 +8,9 @@ import { Input, Select } from '@/components/ui/Form'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
+import enMessages from '@/messages/en.json'
+import frMessages from '@/messages/fr.json'
+import swMessages from '@/messages/sw.json'
 
 interface School {
   id: string
@@ -236,8 +239,21 @@ export default function SuperAdminUsersPage() {
     return new Map(schools.map((school) => [school.id, school.name]))
   }, [schools])
 
+  const preferredLanguage = session?.user?.preferredLanguage || 'en'
+  const t = useMemo(() => {
+    const messages = preferredLanguage === 'fr' ? frMessages : preferredLanguage === 'sw' ? swMessages : enMessages
+    return (key: string) => {
+      const keys = key.split('.')
+      let value: any = messages
+      for (const k of keys) {
+        value = value?.[k]
+      }
+      return value || key
+    }
+  }, [preferredLanguage])
+
   if (status === 'loading' || !session) {
-    return <div>Loading...</div>
+    return <div>{t('common.loading')}</div>
   }
 
   const navItems = [
@@ -259,18 +275,18 @@ export default function SuperAdminUsersPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Users Management</h1>
-            <p className="text-gray-600 mt-2">Manage school admins and teachers by school</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('school.schools.title')}</h1>
+            <p className="text-gray-600 mt-2">{t('school.schools.subtitle')}</p>
           </div>
-          <Button onClick={openCreateModal}>Add User</Button>
+          <Button onClick={openCreateModal}>{t('generic.add')}</Button>
         </div>
 
         <Card className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">School</label>
+              <label className="block text-sm font-medium text-gray-800 mb-2">{t('school.schools.title')}</label>
               <Select value={selectedSchool} onChange={(e) => setSelectedSchool(e.target.value)}>
-                <option value="">All Schools</option>
+                <option value="">{t('school.schools.title')}</option>
                 {schools.map((school) => (
                   <option key={school.id} value={school.id}>
                     {school.name}
@@ -279,11 +295,11 @@ export default function SuperAdminUsersPage() {
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">Role</label>
+              <label className="block text-sm font-medium text-gray-800 mb-2">{t('common.roles')}</label>
               <Select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)}>
-                <option value="">Admins & Teachers</option>
-                <option value="SCHOOL_ADMIN">School Admin</option>
-                <option value="TEACHER">Teacher</option>
+                <option value="">{t('teachers.management.title')}</option>
+                <option value="SCHOOL_ADMIN">{t('common.roles.school_admin')}</option>
+                <option value="TEACHER">{t('common.roles.teacher')}</option>
               </Select>
             </div>
           </div>
@@ -291,20 +307,20 @@ export default function SuperAdminUsersPage() {
 
         <Card className="p-0 overflow-hidden">
           {loading ? (
-            <div className="p-6">Loading users...</div>
+            <div className="p-6">{t('common.loading')}</div>
           ) : users.length === 0 ? (
-            <div className="p-6 text-center text-gray-600">No users found for selected filters.</div>
+            <div className="p-6 text-center text-gray-600">{t('generic.noResults')}</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">{t('generic.view')}</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Email</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Role</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">School</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Created</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">{t('common.roles')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">{t('school.schools.title')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">{t('classes.management.createdColumn')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">{t('generic.delete')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 bg-white">
@@ -315,7 +331,7 @@ export default function SuperAdminUsersPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-800">{user.email}</td>
                       <td className="px-4 py-3 text-sm text-gray-800">
-                        {user.role === 'SCHOOL_ADMIN' ? 'School Admin' : 'Teacher'}
+                        {user.role === 'SCHOOL_ADMIN' ? t('common.roles.school_admin') : t('common.roles.teacher')}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-800">
                         {user.school?.name || (user.schoolId ? schoolLookup.get(user.schoolId) : '—') || '—'}
@@ -326,10 +342,10 @@ export default function SuperAdminUsersPage() {
                       <td className="px-4 py-3 text-sm">
                         <div className="flex gap-2">
                           <Button variant="secondary" onClick={() => openEditModal(user)}>
-                            Edit
+                            {t('generic.edit')}
                           </Button>
                           <Button variant="danger" onClick={() => handleDelete(user.id)}>
-                            Delete
+                            {t('generic.delete')}
                           </Button>
                         </div>
                       </td>
@@ -344,18 +360,18 @@ export default function SuperAdminUsersPage() {
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <Card className="w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-4">{editingUser ? 'Edit User' : 'Add User'}</h2>
+              <h2 className="text-2xl font-bold mb-4">{editingUser ? t('generic.edit') : t('generic.add')} {t('teachers.management.title')}</h2>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
-                    label="First Name"
+                    label={t('teachers.management.firstName')}
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                     required
                   />
                   <Input
-                    label="Last Name"
+                    label={t('teachers.management.lastName')}
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                     required
@@ -363,7 +379,7 @@ export default function SuperAdminUsersPage() {
                 </div>
 
                 <Input
-                  label="Email"
+                  label={t('teachers.management.email')}
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -372,23 +388,23 @@ export default function SuperAdminUsersPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Select
-                    label="Role"
+                    label={t('common.roles')}
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     required
                   >
-                    <option value="SCHOOL_ADMIN">School Admin</option>
-                    <option value="TEACHER">Teacher</option>
+                    <option value="SCHOOL_ADMIN">{t('common.roles.school_admin')}</option>
+                    <option value="TEACHER">{t('common.roles.teacher')}</option>
                   </Select>
 
                   <Select
-                    label="School"
+                    label={t('school.schools.title')}
                     value={formData.schoolId}
                     onChange={(e) => setFormData({ ...formData, schoolId: e.target.value })}
                     required
                     disabled={!!editingUser}
                   >
-                    <option value="">Select School</option>
+                    <option value="">{t('school.schools.title')}</option>
                     {schools.map((school) => (
                       <option key={school.id} value={school.id}>
                         {school.name}
@@ -398,12 +414,12 @@ export default function SuperAdminUsersPage() {
                 </div>
 
                 <Input
-                  label={editingUser ? 'Password (Optional)' : 'Password'}
+                  label={editingUser ? `${t('teachers.management.password')} (${t('generic.optional')})` : t('teachers.management.password')}
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required={!editingUser}
-                  placeholder={editingUser ? 'Leave blank to keep current password' : 'Minimum 6 characters'}
+                  placeholder={editingUser ? t('teachers.management.placeholderPassword') : t('school.schools.passwordMinimum6')}
                 />
 
                 <div className="flex gap-2 justify-end pt-2">
@@ -416,10 +432,10 @@ export default function SuperAdminUsersPage() {
                     }}
                     disabled={saving}
                   >
-                    Cancel
+                    {t('generic.cancel')}
                   </Button>
                   <Button type="submit" disabled={saving}>
-                    {saving ? 'Saving...' : editingUser ? 'Update User' : 'Create User'}
+                    {saving ? t('common.loading') : editingUser ? t('generic.update') : t('generic.create')}
                   </Button>
                 </div>
               </form>

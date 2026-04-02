@@ -1,38 +1,76 @@
-import { auth } from '@/lib/auth'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card, StatCard } from '@/components/ui/Card'
-import { prisma } from '@/lib/prisma'
+import { useSession } from 'next-auth/react'
+import { redirect } from 'next/navigation'
+import enMessages from '@/messages/en.json'
+import frMessages from '@/messages/fr.json'
+import swMessages from '@/messages/sw.json'
 
-async function getDashboardStats() {
-  try {
-    const schoolsCount = await prisma.school.count()
-    const usersCount = await prisma.user.count()
-    const studentsCount = await prisma.student.count()
-    
-    const activeSchools = await prisma.school.count({
-      where: { active: true }
-    })
+export default function SuperAdminDashboard() {
+  const { data: session, status } = useSession()
+  const [stats, setStats] = useState<{ schoolsCount: number; usersCount: number; studentsCount: number; activeSchools: number } | null>(null)
+  const [loading, setLoading] = useState(true)
 
-    return {
-      schoolsCount,
-      usersCount,
-      studentsCount,
-      activeSchools
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      redirect('/login')
     }
-  } catch {
-    return null
-  }
-}
+    if (session?.user?.role !== 'SUPER_ADMIN') {
+      redirect('/login')
+    }
+  }, [session, status])
 
-export default async function SuperAdminDashboard() {
-  const session = await auth()
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/schools')
+        const schoolsRes = res.ok ? await res.json() : { schools: [] }
+        const schools = Array.isArray(schoolsRes.schools) ? schoolsRes.schools : []
+        
+        const usersRes = await fetch('/api/users')
+        const users = usersRes.ok ? await usersRes.json() : { users: [] }
+        const usersList = Array.isArray(users.users) ? users.users : []
+        
+        const studentsRes = await fetch('/api/students')
+        const studentsList = studentsRes.ok ? await studentsRes.json() : { students: [] }
+        const students = Array.isArray(studentsList.students) ? studentsList.students : []
+        
+        const activeSchools = schools.filter((s: { active: boolean }) => s.active).length
+        
+        setStats({
+          schoolsCount: schools.length,
+          usersCount: usersList.length,
+          studentsCount: students.length,
+          activeSchools
+        })
+      } catch (error) {
+        console.error('Failed to fetch stats:', error)
+        setStats(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    if (status === 'authenticated') {
+      fetchStats()
+    }
+  }, [status])
 
-  if (!session?.user || session.user.role !== 'SUPER_ADMIN') {
-    redirect('/login')
-  }
-
-  const stats = await getDashboardStats()
+  const preferredLanguage = session?.user?.preferredLanguage || 'en'
+  const t = useMemo(() => {
+    const messages = preferredLanguage === 'fr' ? frMessages : preferredLanguage === 'sw' ? swMessages : enMessages
+    return (key: string) => {
+      const keys = key.split('.')
+      let value: any = messages
+      for (const k of keys) {
+        value = value?.[k]
+      }
+      return value || key
+    }
+  }, [preferredLanguage])
 
   const navItems = [
     { label: 'Dashboard', href: '/super-admin/dashboard', icon: '📊' },
@@ -52,36 +90,42 @@ export default async function SuperAdminDashboard() {
     >
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Platform Dashboard</h1>
-          <p className="text-gray-600 mt-2">Manage all schools and platform settings</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('school.schools.subtitle')}</h1>
+          <p className="text-gray-600 mt-2">{t('admin.dashboard.overview')}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title="Total Schools"
-            value={stats?.schoolsCount || 0}
-            icon="🏢"
-          />
-          <StatCard
-            title="Active Schools"
-            value={stats?.activeSchools || 0}
-            icon="✅"
-          />
-          <StatCard
-            title="Total Users"
-            value={stats?.usersCount || 0}
-            icon="👥"
-          />
-          <StatCard
-            title="Total Students"
-            value={stats?.studentsCount || 0}
-            icon="👨‍🎓"
-          />
-        </div>
+        {loading ? (
+          <div className="text-center">{t('common.loading')}</div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard
+                title={t('school.analytics.totalSchools')}
+                value={stats?.schoolsCount || 0}
+                icon="🏢"
+              />
+              <StatCard
+                title={t('school.analytics.activeSchools')}
+                value={stats?.activeSchools || 0}
+                icon="✅"
+              />
+              <StatCard
+                title={t('school.analytics.totalUsers')}
+                value={stats?.usersCount || 0}
+                icon="👥"
+              />
+              <StatCard
+                title={t('school.analytics.totalStudents')}
+                value={stats?.studentsCount || 0}
+                icon="👨‍🎓"
+              />
+            </div>
 
-        <Card title="Platform Overview">
-          <p className="text-gray-600">Platform statistics and activity will appear here</p>
-        </Card>
+            <Card title={t('school.analytics.platformOverview')}>
+              <p className="text-gray-600">{t('admin.dashboard.recentActivity')}</p>
+            </Card>
+          </>
+        )}
       </div>
     </DashboardLayout>
   )
