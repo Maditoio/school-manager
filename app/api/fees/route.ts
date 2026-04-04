@@ -168,7 +168,7 @@ async function getAllSchedulesForSchool(schoolId: string): Promise<ScheduleNorma
   if (delegates.feeSchedule?.findMany) {
     const raw = await prisma.feeSchedule.findMany({
       where: { schoolId },
-      include: { class: { select: { name: true } } },
+      include: { scheduledClass: { select: { name: true } } },
       orderBy: [{ year: 'desc' }, { createdAt: 'desc' }],
     })
 
@@ -187,7 +187,7 @@ async function getAllSchedulesForSchool(schoolId: string): Promise<ScheduleNorma
       createdBy: s.createdBy,
       createdAt: s.createdAt,
       updatedAt: s.updatedAt,
-      className: (s as typeof s & { class?: { name: string } | null }).class?.name ?? null,
+      className: (s as typeof s & { scheduledClass?: { name: string } | null }).scheduledClass?.name ?? null,
     }))
   }
 

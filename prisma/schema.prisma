@@ -117,7 +117,7 @@ model Class {
   teacher            User?                 @relation("TeacherClasses", fields: [teacherId], references: [id])
   classHistoryFrom   StudentClassHistory[] @relation("ClassHistoryFrom")
   classHistoryTo     StudentClassHistory[] @relation("ClassHistoryTo")
-  feeSchedules       FeeSchedule[]
+  feeSchedules       FeeSchedule[]       @relation("FeeScheduleClass")
   students           Student[]
 
   @@unique([schoolId, name, academicYear])
@@ -564,9 +564,9 @@ model FeeSchedule {
   createdAt    DateTime            @default(now()) @map("created_at")
   updatedAt    DateTime            @updatedAt @map("updated_at")
   payments     FeePayment[]
-  approver     User?               @relation("FeeScheduleApprovedBy", fields: [approvedBy], references: [id])
-  class        Class?              @relation(fields: [classId], references: [id])
-  creator      User                @relation("FeeScheduleCreatedBy", fields: [createdBy], references: [id])
+  approver       User?               @relation("FeeScheduleApprovedBy", fields: [approvedBy], references: [id])
+  scheduledClass Class?              @relation("FeeScheduleClass", fields: [classId], references: [id])
+  creator        User                @relation("FeeScheduleCreatedBy", fields: [createdBy], references: [id])
   school       School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, classId, periodType, year, month, semester])
