@@ -140,7 +140,8 @@ export async function POST(request: NextRequest) {
         lastName,
         role,
         schoolId: finalSchoolId,
-        mustResetPassword: useDefaultTeacherPassword,
+        // All admin-created accounts must change their password on first login
+        mustResetPassword: true,
       },
       select: {
         id: true,
@@ -152,14 +153,6 @@ export async function POST(request: NextRequest) {
         createdAt: true,
       },
     })
-
-    if (!useDefaultTeacherPassword && (role === 'TEACHER' || role === 'PARENT')) {
-      await prisma.$executeRaw`
-        UPDATE users
-        SET must_reset_password = true
-        WHERE id = ${user.id}
-      `
-    }
 
     return NextResponse.json({ user }, { status: 201 })
   } catch (error) {
