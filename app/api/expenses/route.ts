@@ -133,6 +133,7 @@ export async function GET(request: NextRequest) {
         status: expense.status,
         studentId: expense.studentId,
         studentName: expense.student ? `${expense.student.firstName} ${expense.student.lastName}` : null,
+        createdById: expense.createdById,
         createdByName: `${expense.createdBy.firstName || ''} ${expense.createdBy.lastName || ''}`.trim() || expense.createdBy.email,
         auditCount: expense._count.auditLogs,
         updatedAt: expense.updatedAt,

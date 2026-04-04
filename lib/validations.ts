@@ -151,6 +151,10 @@ export const updateExpenseSchema = createExpenseSchema.extend({
   status: z.enum(['RECORDED', 'APPROVED', 'VOID']).optional(),
 })
 
+export const voidExpenseSchema = z.object({
+  reason: z.string().min(3, 'Void reason is required (minimum 3 characters)'),
+})
+
 export const teacherContractSchema = z.object({
   teacherId: z.string().uuid('Invalid teacher ID'),
   title: z.string().optional(),
@@ -182,5 +186,6 @@ export type CreateFeeScheduleInput = z.infer<typeof createFeeScheduleSchema>
 export type RecordFeePaymentInput = z.infer<typeof recordFeePaymentSchema>
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>
 export type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>
+export type VoidExpenseInput = z.infer<typeof voidExpenseSchema>
 export type TeacherContractInput = z.infer<typeof teacherContractSchema>
 export type ParentComplaintInput = z.infer<typeof parentComplaintSchema>

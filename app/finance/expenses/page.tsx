@@ -46,6 +46,7 @@ type ExpenseItem = {
   status: ExpenseStatus
   studentId: string | null
   studentName: string | null
+  createdById: string
   createdByName: string
   auditCount: number
   updatedAt: string
@@ -135,6 +136,10 @@ export default function FinanceExpensesPage() {
   const pageSize = 10
 
   const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null)
+  const [showVoidModal, setShowVoidModal] = useState(false)
+  const [voidTargetId, setVoidTargetId] = useState<string | null>(null)
+  const [voidReason, setVoidReason] = useState('')
+  const [voidSaving, setVoidSaving] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     category: 'MAINTENANCE' as ExpenseCategory,
@@ -246,6 +251,10 @@ export default function FinanceExpensesPage() {
   }
 
   const openEditModal = (expense: ExpenseItem) => {
+    if (expense.status === 'APPROVED') {
+      showToast(translateText('Approved expenses cannot be edited. Void and re-record to make corrections.', locale), 'error')
+      return
+    }
     setEditingExpense(expense)
     setFormData({
       title: expense.title,
@@ -304,22 +313,40 @@ export default function FinanceExpensesPage() {
     }
   }
 
-  const handleVoid = async (expenseId: string) => {
-    if (!confirm(translateText('Void this expense record? The audit trail will be preserved.', locale))) return
+  const handleVoidClick = (expenseId: string) => {
+    setVoidTargetId(expenseId)
+    setVoidReason('')
+    setShowVoidModal(true)
+  }
 
+  const handleVoidConfirm = async () => {
+    if (!voidTargetId) return
+    const trimmed = voidReason.trim()
+    if (trimmed.length < 3) {
+      showToast(translateText('Void reason is required (minimum 3 characters)', locale), 'warning')
+      return
+    }
     try {
-      const res = await fetch(`/api/expenses/${expenseId}`, { method: 'DELETE' })
+      setVoidSaving(true)
+      const res = await fetch(`/api/expenses/${voidTargetId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: trimmed }),
+      })
       const data = await res.json()
       if (!res.ok) {
         showToast(translateText(data.error || 'Failed to void expense', locale), 'error')
         return
       }
-
       showToast(translateText('Expense voided', locale), 'success')
+      setShowVoidModal(false)
+      setVoidTargetId(null)
       await fetchExpenses()
     } catch (error) {
       console.error('Failed to void expense:', error)
       showToast(translateText('Failed to void expense', locale), 'error')
+    } finally {
+      setVoidSaving(false)
     }
   }
 
@@ -380,20 +407,29 @@ export default function FinanceExpensesPage() {
     {
       key: 'actions',
       label: translateText('Actions', locale),
-      renderCell: (expense: ExpenseItem) => (
-        <div className="flex gap-2">
-          <button type="button" onClick={() => openEditModal(expense)} className="text-indigo-300 hover:underline">
-            {translateText('Edit', locale)}
-          </button>
-          {expense.status !== 'VOID' ? (
-            <button type="button" onClick={() => handleVoid(expense.id)} className="text-rose-400 hover:underline">
-              {translateText('Void', locale)}
+      renderCell: (expense: ExpenseItem) => {
+        if (expense.status === 'APPROVED') {
+          return <span className="inline-flex items-center gap-1 text-xs text-emerald-400">🔒 {translateText('Approved', locale)}</span>
+        }
+        if (expense.status === 'VOID') {
+          return <span className="text-xs ui-text-secondary">—</span>
+        }
+        const isOwn = expense.createdById === session?.user?.id
+        return (
+          <div className="flex gap-2">
+            <button type="button" onClick={() => openEditModal(expense)} className="text-indigo-300 hover:underline">
+              {translateText('Edit', locale)}
             </button>
-          ) : null}
-        </div>
-      ),
+            {isOwn ? (
+              <button type="button" onClick={() => handleVoidClick(expense.id)} className="text-rose-400 hover:underline">
+                {translateText('Void', locale)}
+              </button>
+            ) : null}
+          </div>
+        )
+      },
     },
-  ], [selectedExpenseId, locale])
+  ], [selectedExpenseId, locale, session?.user?.id])
 
   const navItems = [
     { label: 'Fees', href: '/finance/fees', icon: '💳' },
@@ -497,11 +533,6 @@ export default function FinanceExpensesPage() {
                   <Select label="Payment Method" value={formData.paymentMethod} onChange={(event) => setFormData((prev) => ({ ...prev, paymentMethod: event.target.value as PaymentMethod }))}>
                     {paymentMethodOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </Select>
-                  <Select label="Status" value={formData.status} onChange={(event) => setFormData((prev) => ({ ...prev, status: event.target.value as ExpenseStatus }))}>
-                    <option value="RECORDED">Recorded</option>
-                    <option value="APPROVED">Approved</option>
-                    <option value="VOID">Void</option>
-                  </Select>
                   <Input label="Vendor / Payee" value={formData.vendorName} onChange={(event) => setFormData((prev) => ({ ...prev, vendorName: event.target.value }))} />
                   <Input label="Reference Number" value={formData.referenceNumber} onChange={(event) => setFormData((prev) => ({ ...prev, referenceNumber: event.target.value }))} />
                   <Input label="Beneficiary" value={formData.beneficiaryName} onChange={(event) => setFormData((prev) => ({ ...prev, beneficiaryName: event.target.value }))} />
@@ -518,6 +549,44 @@ export default function FinanceExpensesPage() {
                   <button type="button" onClick={() => { setShowModal(false); resetForm() }} className="flex-1 ui-button ui-button-secondary">Cancel</button>
                 </div>
               </form>
+            </Card>
+          </div>
+        ) : null}
+
+        {/* Void reason modal */}
+        {showVoidModal ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--overlay) p-4">
+            <Card title={translateText('Void Expense', locale)} className="w-full max-w-md p-6">
+              <div className="space-y-4">
+                <p className="ui-text-secondary text-sm">
+                  {translateText('Please provide a reason for voiding this expense. This will be permanently recorded in the audit trail.', locale)}
+                </p>
+                <TextArea
+                  label={translateText('Reason for voiding', locale)}
+                  rows={3}
+                  value={voidReason}
+                  onChange={(e) => setVoidReason(e.target.value)}
+                  placeholder={translateText('Enter the reason for voiding this expense...', locale)}
+                />
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    type="button"
+                    isLoading={voidSaving}
+                    onClick={handleVoidConfirm}
+                    className="flex-1 !bg-rose-600 hover:!bg-rose-700"
+                  >
+                    {translateText('Confirm Void', locale)}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowVoidModal(false); setVoidTargetId(null) }}
+                    className="flex-1 ui-button ui-button-secondary"
+                    disabled={voidSaving}
+                  >
+                    {translateText('Cancel', locale)}
+                  </button>
+                </div>
+              </div>
             </Card>
           </div>
         ) : null}

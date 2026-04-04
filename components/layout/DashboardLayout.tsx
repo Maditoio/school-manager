@@ -168,8 +168,19 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
       }
     }
 
-    if (isSchoolAdmin && !enhancedNavItems.some((item) => item.href === '/admin/users')) {
+    if (isSchoolAdmin && !enhancedNavItems.some((item) => item.href === '/admin/expenses')) {
       const insertAfter = enhancedNavItems.findIndex((item) => item.href === '/admin/terms')
+      const expensesItem = { label: 'Expenses', href: '/admin/expenses', icon: '🧾' }
+
+      if (insertAfter >= 0) {
+        enhancedNavItems.splice(insertAfter + 1, 0, expensesItem)
+      } else {
+        enhancedNavItems.push(expensesItem)
+      }
+    }
+
+    if (isSchoolAdmin && !enhancedNavItems.some((item) => item.href === '/admin/users')) {
+      const insertAfter = enhancedNavItems.findIndex((item) => item.href === '/admin/expenses')
       const usersItem = { label: 'Users', href: '/admin/users', icon: '👥' }
 
       if (insertAfter >= 0) {
