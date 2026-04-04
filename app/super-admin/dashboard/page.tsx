@@ -8,9 +8,11 @@ import { redirect } from 'next/navigation'
 import enMessages from '@/messages/en.json'
 import frMessages from '@/messages/fr.json'
 import swMessages from '@/messages/sw.json'
+import { useLocale } from '@/lib/locale-context'
 
 export default function SuperAdminDashboard() {
   const { data: session, status } = useSession()
+  const { locale } = useLocale()
   const [stats, setStats] = useState<{ schoolsCount: number; usersCount: number; studentsCount: number; activeSchools: number } | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -59,7 +61,7 @@ export default function SuperAdminDashboard() {
     }
   }, [status])
 
-  const preferredLanguage = String(session?.user?.preferredLanguage || 'en').toLowerCase()
+  const preferredLanguage = String(locale || session?.user?.preferredLanguage || 'en').toLowerCase()
   const t = useMemo(() => {
     const messages = preferredLanguage.startsWith('fr')
       ? frMessages

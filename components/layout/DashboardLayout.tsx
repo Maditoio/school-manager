@@ -74,7 +74,7 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
 
     if (!schoolId) {
       if (session?.user?.role === 'SUPER_ADMIN') {
-        setSchoolName('Platform Dashboard')
+        setSchoolName(translateText('Platform Dashboard', locale))
       }
       return
     }
@@ -100,7 +100,7 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
     return () => {
       active = false
     }
-  }, [session?.user?.role, session?.user?.schoolId])
+  }, [locale, session?.user?.role, session?.user?.schoolId])
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem('ui-theme') || 'light'

@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation'
 import enMessages from '@/messages/en.json'
 import frMessages from '@/messages/fr.json'
 import swMessages from '@/messages/sw.json'
+import { useLocale } from '@/lib/locale-context'
 
 interface AnalyticsData {
   totalSchools: number
@@ -25,6 +26,7 @@ interface AnalyticsData {
 
 export default function AnalyticsPage() {
   const { data: session, status } = useSession()
+  const { locale } = useLocale()
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -86,7 +88,7 @@ export default function AnalyticsPage() {
     }
   }
 
-  const preferredLanguage = String(session?.user?.preferredLanguage || 'en').toLowerCase()
+  const preferredLanguage = String(locale || session?.user?.preferredLanguage || 'en').toLowerCase()
   const t = useMemo(() => {
     const messages = preferredLanguage.startsWith('fr')
       ? frMessages
@@ -125,8 +127,8 @@ export default function AnalyticsPage() {
     >
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Platform Analytics</h1>
-          <p className="text-gray-600 mt-2">Overview of platform performance</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('school.analytics.title')}</h1>
+          <p className="text-gray-600 mt-2">{t('school.analytics.platformOverview')}</p>
         </div>
 
         {loading ? (

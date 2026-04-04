@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/Toast'
 import enMessages from '@/messages/en.json'
 import frMessages from '@/messages/fr.json'
 import swMessages from '@/messages/sw.json'
+import { useLocale } from '@/lib/locale-context'
 
 interface School {
   id: string
@@ -34,6 +35,7 @@ interface UserItem {
 export default function SuperAdminUsersPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { locale } = useLocale()
 
   const [schools, setSchools] = useState<School[]>([])
   const [users, setUsers] = useState<UserItem[]>([])
@@ -239,7 +241,7 @@ export default function SuperAdminUsersPage() {
     return new Map(schools.map((school) => [school.id, school.name]))
   }, [schools])
 
-  const preferredLanguage = String(session?.user?.preferredLanguage || 'en').toLowerCase()
+  const preferredLanguage = String(locale || session?.user?.preferredLanguage || 'en').toLowerCase()
   const t = useMemo(() => {
     const messages = preferredLanguage.startsWith('fr')
       ? frMessages
