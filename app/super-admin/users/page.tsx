@@ -239,9 +239,13 @@ export default function SuperAdminUsersPage() {
     return new Map(schools.map((school) => [school.id, school.name]))
   }, [schools])
 
-  const preferredLanguage = session?.user?.preferredLanguage || 'en'
+  const preferredLanguage = String(session?.user?.preferredLanguage || 'en').toLowerCase()
   const t = useMemo(() => {
-    const messages = preferredLanguage === 'fr' ? frMessages : preferredLanguage === 'sw' ? swMessages : enMessages
+    const messages = preferredLanguage.startsWith('fr')
+      ? frMessages
+      : preferredLanguage.startsWith('sw')
+        ? swMessages
+        : enMessages
     return (key: string) => {
       const keys = key.split('.')
       let value: any = messages
