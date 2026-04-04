@@ -89,6 +89,13 @@ export async function POST(request: NextRequest) {
     const normalizedEmail = validation.data.email.trim().toLowerCase()
     const { password, firstName, lastName, role, schoolId } = validation.data
 
+    if (session.user.role !== 'SUPER_ADMIN' && !['TEACHER', 'PARENT'].includes(role)) {
+      return NextResponse.json(
+        { error: 'You are not allowed to create this role' },
+        { status: 403 }
+      )
+    }
+
     const trimmedPassword = (password || '').trim()
     const useDefaultTeacherPassword = role === 'TEACHER' && trimmedPassword.length === 0
     const finalPassword = useDefaultTeacherPassword ? DEFAULT_TEACHER_PASSWORD : trimmedPassword

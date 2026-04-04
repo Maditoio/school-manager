@@ -74,6 +74,15 @@ export const ROLE_PERMISSIONS = {
     'view:school-attendance',
     'create:announcement',
   ],
+  FINANCE: [
+    'view:fees',
+    'record:payments',
+    'create:fee-schedule',
+    'view:expenses',
+    'create:expense',
+    'edit:expense',
+    'audit:expenses',
+  ],
   TEACHER: [
     'view:assigned-classes',
     'mark:attendance',

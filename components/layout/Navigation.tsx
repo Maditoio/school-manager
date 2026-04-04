@@ -61,6 +61,7 @@ const iconBySegment: Record<string, React.ComponentType<{ className?: string }>>
   announcements: Bell,
   messages: MessageSquare,
   fees: LineChart,
+  expenses: LineChart,
   terms: Calendar,
   analytics: LineChart,
   assessments: ClipboardList,

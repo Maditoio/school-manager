@@ -30,12 +30,9 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
   const { showToast } = useToast()
   const { locale, setLocale } = useLocale()
   const [theme, setTheme] = useState('light')
-  const [isSavingLanguage, setIsSavingLanguage] = useState(false)
   const [desktopSidebarWidth, setDesktopSidebarWidth] = useState(240)
   const [schoolName, setSchoolName] = useState('School Dashboard')
   const [isSchoolSuspended, setIsSchoolSuspended] = useState(false)
-  const [suspensionReason, setSuspensionReason] = useState<string | null>(null)
-  const [checkingStatus, setCheckingStatus] = useState(true)
   const isSidebarOpen = desktopSidebarWidth > 120
   const isParentView = session?.user?.role === 'PARENT' || user.role.toLowerCase() === 'parent'
 
@@ -48,18 +45,13 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
           if (res.ok) {
             const data = await res.json()
             setIsSchoolSuspended(data.suspended)
-            setSuspensionReason(data.reason)
           }
         } catch (error) {
           console.error('Failed to check school suspension status:', error)
-        } finally {
-          setCheckingStatus(false)
         }
       }
 
       checkSuspensionStatus()
-    } else {
-      setCheckingStatus(false)
     }
   }, [session?.user?.role])
 
@@ -123,7 +115,6 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
     setLocale(nextLocale)
 
     try {
-      setIsSavingLanguage(true)
       const res = await fetch('/api/users/preferences', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -144,8 +135,6 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
       console.error('Failed to update language preference:', error)
       showToast(translateText('Failed to save language preference', previousLocale), 'error')
       setLocale(previousLocale)
-    } finally {
-      setIsSavingLanguage(false)
     }
   }
 
@@ -191,8 +180,8 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
   )
 
   const translatedChildren = useMemo(() => {
-    const role = session?.user?.role
-    const shouldTranslatePageContent = locale !== 'en' && (role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN')
+    const role = String(session?.user?.role || '')
+    const shouldTranslatePageContent = locale !== 'en' && (role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN' || role === 'FINANCE')
 
     if (!shouldTranslatePageContent) {
       return children

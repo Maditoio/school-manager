@@ -17,6 +17,7 @@
     "rolesLabel": "Roles",
     "roles": {
       "school_admin": "School Admin",
+      "finance": "Finance",
       "teacher": "Teacher",
       "parent": "Parent",
       "super_admin": "Super Admin"
@@ -33,6 +34,7 @@
   "roles": {
     "super_admin": "Super Admin",
     "school_admin": "School Admin",
+    "finance": "Finance",
     "teacher": "Teacher",
     "parent": "Parent"
   },
@@ -51,7 +53,9 @@
     "settings": "Settings",
     "schools": "Schools",
     "users": "Users",
-    "analytics": "Analytics"
+    "analytics": "Analytics",
+    "fees": "Fees",
+    "expenses": "Expenses"
   },
   "dashboard": {
     "title": "Dashboard",

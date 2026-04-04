@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -23,7 +23,7 @@ interface UserItem {
   email: string
   firstName: string
   lastName: string
-  role: 'SCHOOL_ADMIN' | 'TEACHER' | 'PARENT' | 'SUPER_ADMIN'
+  role: 'SCHOOL_ADMIN' | 'FINANCE' | 'TEACHER' | 'PARENT' | 'SUPER_ADMIN'
   schoolId: string | null
   createdAt: string
   school?: {
@@ -71,12 +71,6 @@ export default function SuperAdminUsersPage() {
     }
   }, [session])
 
-  useEffect(() => {
-    if (session?.user?.role === 'SUPER_ADMIN') {
-      fetchUsers()
-    }
-  }, [session, selectedSchool, selectedRole])
-
   const fetchSchools = async () => {
     try {
       const res = await fetch('/api/schools')
@@ -89,7 +83,7 @@ export default function SuperAdminUsersPage() {
     }
   }
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams()
@@ -107,7 +101,7 @@ export default function SuperAdminUsersPage() {
       const managed = list.filter((user: UserItem) =>
         selectedRole
           ? user.role === selectedRole
-          : user.role === 'SCHOOL_ADMIN' || user.role === 'TEACHER'
+          : user.role === 'SCHOOL_ADMIN' || user.role === 'TEACHER' || user.role === 'FINANCE'
       )
       setUsers(managed)
     } catch (error) {
@@ -116,7 +110,13 @@ export default function SuperAdminUsersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedRole, selectedSchool])
+
+  useEffect(() => {
+    if (session?.user?.role === 'SUPER_ADMIN') {
+      fetchUsers()
+    }
+  }, [fetchUsers, session?.user?.role])
 
   const resetForm = () => {
     setFormData({
@@ -141,7 +141,7 @@ export default function SuperAdminUsersPage() {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      role: user.role === 'SCHOOL_ADMIN' ? 'SCHOOL_ADMIN' : 'TEACHER',
+      role: user.role === 'SCHOOL_ADMIN' || user.role === 'FINANCE' ? user.role : 'TEACHER',
       schoolId: user.schoolId || '',
       password: '',
     })
@@ -250,11 +250,11 @@ export default function SuperAdminUsersPage() {
         : enMessages
     return (key: string) => {
       const keys = key.split('.')
-      let value: any = messages
+      let value: unknown = messages
       for (const k of keys) {
-        value = value?.[k]
+        value = typeof value === 'object' && value !== null ? (value as Record<string, unknown>)[k] : undefined
       }
-      return value || key
+      return typeof value === 'string' ? value : key
     }
   }, [preferredLanguage])
 
@@ -305,6 +305,7 @@ export default function SuperAdminUsersPage() {
               <Select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)}>
                 <option value="">{t('teachers.management.title')}</option>
                 <option value="SCHOOL_ADMIN">{t('common.roles.school_admin')}</option>
+                <option value="FINANCE">{t('common.roles.finance')}</option>
                 <option value="TEACHER">{t('common.roles.teacher')}</option>
               </Select>
             </div>
@@ -337,7 +338,11 @@ export default function SuperAdminUsersPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-800">{user.email}</td>
                       <td className="px-4 py-3 text-sm text-gray-800">
-                        {user.role === 'SCHOOL_ADMIN' ? t('common.roles.school_admin') : t('common.roles.teacher')}
+                        {user.role === 'SCHOOL_ADMIN'
+                          ? t('common.roles.school_admin')
+                          : user.role === 'FINANCE'
+                            ? t('common.roles.finance')
+                            : t('common.roles.teacher')}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-800">
                         {user.school?.name || (user.schoolId ? schoolLookup.get(user.schoolId) : '—') || '—'}
@@ -400,6 +405,7 @@ export default function SuperAdminUsersPage() {
                     required
                   >
                     <option value="SCHOOL_ADMIN">{t('common.roles.school_admin')}</option>
+                    <option value="FINANCE">{t('common.roles.finance')}</option>
                     <option value="TEACHER">{t('common.roles.teacher')}</option>
                   </Select>
 

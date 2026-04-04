@@ -85,6 +85,10 @@ export default function SuperAdminDashboard() {
     { label: t('navigation.analytics'), href: '/super-admin/analytics', icon: '📈' },
   ]
 
+  if (!session?.user) {
+    return <div>{t('common.loading')}</div>
+  }
+
   return (
     <DashboardLayout
       user={{

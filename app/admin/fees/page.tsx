@@ -15,6 +15,12 @@ type FeePeriodType = 'MONTHLY' | 'SEMESTER' | 'YEARLY'
 type FeeStatus = 'PAID' | 'PARTIAL' | 'NOT_PAID'
 type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'M_PESA' | 'ORANGE_MONEY' | 'OTHER'
 
+type FeesPageProps = {
+  routePrefix?: '/admin' | '/finance'
+  allowedRoles?: Array<'SCHOOL_ADMIN' | 'FINANCE'>
+  navMode?: 'admin' | 'finance'
+}
+
 function formatPaymentMethod(method: PaymentMethod) {
   if (method === 'CASH') return 'Cash'
   if (method === 'BANK_TRANSFER') return 'Bank Transfer'
@@ -64,7 +70,7 @@ type RecentPayment = {
   className: string
 }
 
-export default function AdminFeesPage() {
+export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = ['SCHOOL_ADMIN'], navMode = 'admin' }: FeesPageProps = {}) {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
 
@@ -116,10 +122,10 @@ export default function AdminFeesPage() {
       redirect('/login')
     }
 
-    if (session?.user?.role !== 'SCHOOL_ADMIN') {
+    if (session?.user?.role && !allowedRoles.includes(session.user.role as 'SCHOOL_ADMIN' | 'FINANCE')) {
       redirect('/login')
     }
-  }, [session, status])
+  }, [allowedRoles, session, status])
 
   const selectedSchedule = useMemo(
     () => schedules.find((item) => item.id === selectedScheduleId) || null,
@@ -211,13 +217,34 @@ export default function AdminFeesPage() {
         key: 'totalPaid',
         label: 'Paid',
         sortable: true,
-        renderCell: (student: StudentStatus) => student.totalPaid.toFixed(2),
+        renderCell: (student: StudentStatus) => {
+          const overpaidAmount = Math.max(student.totalPaid - student.amountDue, 0)
+          return (
+            <div className="flex items-center gap-1.5">
+              <span>{student.totalPaid.toFixed(2)}</span>
+              {overpaidAmount > 0 ? (
+                <span className="text-xs font-semibold text-emerald-500" title={`Overpaid by ${overpaidAmount.toFixed(2)}`}>
+                  +{overpaidAmount.toFixed(2)}
+                </span>
+              ) : null}
+            </div>
+          )
+        },
       },
       {
         key: 'balance',
         label: 'Balance',
         sortable: true,
-        renderCell: (student: StudentStatus) => student.balance.toFixed(2),
+        renderCell: (student: StudentStatus) => {
+          if (student.balance < 0) {
+            return (
+              <span className="font-semibold text-emerald-500" title="Credit remaining">
+                +{Math.abs(student.balance).toFixed(2)}
+              </span>
+            )
+          }
+          return student.balance.toFixed(2)
+        },
       },
       {
         key: 'status',
@@ -265,13 +292,13 @@ export default function AdminFeesPage() {
         key: 'invoice',
         label: 'Invoice',
         renderCell: (payment: RecentPayment) => (
-          <Link href={`/admin/fees/invoice/${payment.id}`} target="_blank" className="text-indigo-300 hover:underline">
+          <Link href={`${routePrefix}/fees/invoice/${payment.id}`} target="_blank" className="text-indigo-300 hover:underline">
             View Invoice
           </Link>
         ),
       },
     ],
-    []
+    [routePrefix]
   )
 
   const fetchFeesData = useCallback(async (scheduleId?: string) => {
@@ -485,28 +512,35 @@ export default function AdminFeesPage() {
     }
   }
 
-  const navItems = [
-    { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
-    { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
-    { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
-    { label: 'Classes', href: '/admin/classes', icon: '🏫' },
-    { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
-    { label: 'Attendance', href: '/admin/attendance', icon: '📅' },
-    { label: 'Results', href: '/admin/results', icon: '📝' },
-    { label: 'Fees', href: '/admin/fees', icon: '💳' },
-    { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
-    { label: 'Messages', href: '/admin/messages', icon: '💬' },
-  ]
+  const navItems = navMode === 'finance'
+    ? [
+        { label: 'Fees', href: '/finance/fees', icon: '💳' },
+        { label: 'Expenses', href: '/finance/expenses', icon: '🧾' },
+      ]
+    : [
+        { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
+        { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
+        { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
+        { label: 'Classes', href: '/admin/classes', icon: '🏫' },
+        { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
+        { label: 'Attendance', href: '/admin/attendance', icon: '📅' },
+        { label: 'Results', href: '/admin/results', icon: '📝' },
+        { label: 'Fees', href: '/admin/fees', icon: '💳' },
+        { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
+        { label: 'Messages', href: '/admin/messages', icon: '💬' },
+      ]
 
   if (status === 'loading' || !session) {
     return <div>Loading...</div>
   }
 
+  const sessionRole = `${session.user.role}`
+
   return (
     <DashboardLayout
       user={{
         name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Admin',
-        role: 'School Admin',
+        role: sessionRole === 'FINANCE' ? 'Finance' : 'School Admin',
         email: session.user.email,
       }}
       navItems={navItems}
@@ -520,7 +554,7 @@ export default function AdminFeesPage() {
           <div className="flex gap-2">
             {lastInvoiceId && (
               <Link
-                href={`/admin/fees/invoice/${lastInvoiceId}`}
+                href={`${routePrefix}/fees/invoice/${lastInvoiceId}`}
                 target="_blank"
                 className="ui-button ui-button-primary inline-flex items-center gap-2"
               >

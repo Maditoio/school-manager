@@ -16,7 +16,7 @@ export const createUserSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   title: z.string().optional(),
   phone: z.string().optional(),
-  role: z.enum(['SCHOOL_ADMIN', 'TEACHER', 'PARENT']),
+  role: z.enum(['SCHOOL_ADMIN', 'FINANCE', 'TEACHER', 'PARENT']),
   schoolId: z.string().uuid().optional(),
 })
 
@@ -118,6 +118,39 @@ export const recordFeePaymentSchema = z.object({
   notes: z.string().optional(),
 })
 
+export const createExpenseSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  category: z.enum([
+    'MAINTENANCE',
+    'SALARIES',
+    'BURSARIES',
+    'SPECIAL_DISCOUNTS',
+    'CLEANING',
+    'SOFTWARE_LICENSES',
+    'TRAINING_PROGRAMS',
+    'SPORTS_TRIPS',
+    'REFRESHMENTS',
+    'KITCHEN',
+    'UTILITIES',
+    'TRANSPORT',
+    'EQUIPMENT',
+    'OTHER',
+  ]),
+  amount: z.coerce.number().positive('Amount must be greater than 0'),
+  expenseDate: z.string().min(1, 'Expense date is required'),
+  paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'M_PESA', 'ORANGE_MONEY', 'OTHER']).optional().nullable(),
+  vendorName: z.string().optional(),
+  referenceNumber: z.string().optional(),
+  beneficiaryName: z.string().optional(),
+  studentId: z.string().uuid('Invalid student ID').optional().or(z.literal('')),
+  status: z.enum(['RECORDED', 'APPROVED', 'VOID']).optional(),
+})
+
+export const updateExpenseSchema = createExpenseSchema.extend({
+  status: z.enum(['RECORDED', 'APPROVED', 'VOID']).optional(),
+})
+
 export const teacherContractSchema = z.object({
   teacherId: z.string().uuid('Invalid teacher ID'),
   title: z.string().optional(),
@@ -147,5 +180,7 @@ export type AnnouncementInput = z.infer<typeof announcementSchema>
 export type MessageInput = z.infer<typeof messageSchema>
 export type CreateFeeScheduleInput = z.infer<typeof createFeeScheduleSchema>
 export type RecordFeePaymentInput = z.infer<typeof recordFeePaymentSchema>
+export type CreateExpenseInput = z.infer<typeof createExpenseSchema>
+export type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>
 export type TeacherContractInput = z.infer<typeof teacherContractSchema>
 export type ParentComplaintInput = z.infer<typeof parentComplaintSchema>

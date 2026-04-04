@@ -117,7 +117,7 @@ async function getInvoiceData(paymentId: string, schoolId: string) {
 export default async function FeeInvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
 
-  if (!session?.user || session.user.role !== 'SCHOOL_ADMIN') {
+  if (!session?.user || !['SCHOOL_ADMIN', 'FINANCE'].includes(session.user.role)) {
     redirect('/login')
   }
 

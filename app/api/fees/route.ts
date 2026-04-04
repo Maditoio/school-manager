@@ -192,7 +192,7 @@ async function resolveFeesUserContext(sessionUser: {
     },
   })
 
-  if (!user || user.role !== 'SCHOOL_ADMIN' || !user.schoolId) {
+  if (!user || !['SCHOOL_ADMIN', 'FINANCE'].includes(user.role) || !user.schoolId) {
     return null
   }
 
@@ -229,7 +229,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth()
 
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -338,7 +338,8 @@ export async function GET(request: NextRequest) {
     const studentStatuses = students.map((student) => {
       const studentPayments = paidByStudent.get(student.id)
       const totalPaid = studentPayments?.totalPaid || 0
-      const balance = Math.max(selectedSchedule.amountDue - totalPaid, 0)
+      // Keep signed balance so overpayments show as negative values in UI.
+      const balance = Number((selectedSchedule.amountDue - totalPaid).toFixed(2))
       const status = balance <= 0 ? 'PAID' : totalPaid > 0 ? 'PARTIAL' : 'NOT_PAID'
 
       return {
@@ -426,7 +427,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
 
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

@@ -46,6 +46,8 @@ export async function middleware(request: NextRequest) {
     switch (role) {
       case 'SCHOOL_ADMIN':
         return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+      case 'FINANCE':
+        return NextResponse.redirect(new URL('/finance/fees', request.url))
       case 'TEACHER':
         return NextResponse.redirect(new URL('/teacher/dashboard', request.url))
       case 'PARENT':
@@ -61,6 +63,10 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith('/admin') && role !== 'SCHOOL_ADMIN') {
+    return NextResponse.redirect(new URL('/unauthorized', request.url))
+  }
+
+  if (pathname.startsWith('/finance') && role !== 'FINANCE') {
     return NextResponse.redirect(new URL('/unauthorized', request.url))
   }
 
