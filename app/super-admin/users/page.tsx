@@ -266,8 +266,8 @@ export default function SuperAdminUsersPage() {
   return (
     <DashboardLayout
       user={{
-        name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Super Admin',
-        role: 'Super Admin',
+        name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || t('roles.super_admin'),
+        role: t('roles.super_admin'),
         email: session.user.email,
       }}
       navItems={navItems}

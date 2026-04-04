@@ -74,7 +74,7 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
 
     if (!schoolId) {
       if (session?.user?.role === 'SUPER_ADMIN') {
-        setSchoolName('Super Admin Portal')
+        setSchoolName('Platform Dashboard')
       }
       return
     }
