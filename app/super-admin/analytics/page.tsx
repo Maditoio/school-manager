@@ -104,10 +104,10 @@ export default function AnalyticsPage() {
   }
 
   const navItems = [
-    { label: 'Dashboard', href: '/super-admin/dashboard', icon: '📊' },
-    { label: 'Schools', href: '/super-admin/schools', icon: '🏢' },
-    { label: 'Users', href: '/super-admin/users', icon: '👥' },
-    { label: 'Analytics', href: '/super-admin/analytics', icon: '📈' },
+    { label: t('navigation.dashboard'), href: '/super-admin/dashboard', icon: '📊' },
+    { label: t('navigation.schools'), href: '/super-admin/schools', icon: '🏢' },
+    { label: t('navigation.users'), href: '/super-admin/users', icon: '👥' },
+    { label: t('navigation.analytics'), href: '/super-admin/analytics', icon: '📈' },
   ]
 
   return (

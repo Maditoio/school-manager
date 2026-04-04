@@ -73,10 +73,10 @@ export default function SuperAdminDashboard() {
   }, [preferredLanguage])
 
   const navItems = [
-    { label: 'Dashboard', href: '/super-admin/dashboard', icon: '📊' },
-    { label: 'Schools', href: '/super-admin/schools', icon: '🏢' },
-    { label: 'Users', href: '/super-admin/users', icon: '👥' },
-    { label: 'Analytics', href: '/super-admin/analytics', icon: '📈' },
+    { label: t('navigation.dashboard'), href: '/super-admin/dashboard', icon: '📊' },
+    { label: t('navigation.schools'), href: '/super-admin/schools', icon: '🏢' },
+    { label: t('navigation.users'), href: '/super-admin/users', icon: '👥' },
+    { label: t('navigation.analytics'), href: '/super-admin/analytics', icon: '📈' },
   ]
 
   return (
@@ -90,7 +90,7 @@ export default function SuperAdminDashboard() {
     >
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t('school.schools.subtitle')}</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('admin.dashboard.title')}</h1>
           <p className="text-gray-600 mt-2">{t('admin.dashboard.overview')}</p>
         </div>
 

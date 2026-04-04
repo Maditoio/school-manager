@@ -13,7 +13,45 @@
     "search": "Rechercher",
     "filter": "Filtrer",
     "logout": "Déconnexion",
-    "language": "Langue"
+    "language": "Langue",
+    "rolesLabel": "Rôles",
+    "roles": {
+      "school_admin": "Administrateur d'École",
+      "teacher": "Enseignant",
+      "parent": "Parent",
+      "super_admin": "Super Administrateur"
+    }
+  },
+  "generic": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "warning": "Avertissement",
+    "info": "Information",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet élément?",
+    "deletedSuccessfully": "Supprimé avec succès",
+    "failedDelete": "Échec de la suppression",
+    "savedSuccessfully": "Sauvegardé avec succès",
+    "failedSave": "Échec de la sauvegarde",
+    "backToList": "Retour à la liste",
+    "close": "Fermer",
+    "view": "Voir",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "add": "Ajouter",
+    "create": "Créer",
+    "update": "Mettre à jour",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "apply": "Appliquer",
+    "reset": "Réinitialiser",
+    "clear": "Effacer",
+    "noData": "Aucune donnée trouvée",
+    "noResults": "Aucun résultat trouvé",
+    "roleLabel": "Rôle",
+    "optional": "Optionnel"
   },
   "auth": {
     "login": "Connexion",
@@ -42,7 +80,9 @@
     "announcements": "Annonces",
     "profile": "Profil",
     "settings": "Paramètres",
-    "schools": "Écoles"
+    "schools": "Écoles",
+    "users": "Utilisateurs",
+    "analytics": "Analytique"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -714,10 +754,12 @@
   },
   "admin": {
     "dashboard": {
-      "title": "Tableau de bord",
-      "overview": "Aperçu",
-      "recentActivity": "Activité récente",
+      "title": "Tableau de bord administrateur",
+      "overview": "Gérer toutes les écoles et les paramètres administratifs",
+      "recentActivity": "L'activité récente apparaîtra ici",
       "platformOverview": "Aperçu de la plateforme",
+      "platformDashboard": "Tableau de bord de la plateforme",
+      "manageAllSchools": "Gérer toutes les écoles du système",
       "totalSchools": "Total des écoles",
       "totalUsers": "Total des utilisateurs",
       "totalStudents": "Total des étudiants"

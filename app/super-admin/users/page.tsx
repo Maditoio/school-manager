@@ -257,10 +257,10 @@ export default function SuperAdminUsersPage() {
   }
 
   const navItems = [
-    { label: 'Dashboard', href: '/super-admin/dashboard', icon: '📊' },
-    { label: 'Schools', href: '/super-admin/schools', icon: '🏢' },
-    { label: 'Users', href: '/super-admin/users', icon: '👥' },
-    { label: 'Analytics', href: '/super-admin/analytics', icon: '📈' },
+    { label: t('navigation.dashboard'), href: '/super-admin/dashboard', icon: '📊' },
+    { label: t('navigation.schools'), href: '/super-admin/schools', icon: '🏢' },
+    { label: t('navigation.users'), href: '/super-admin/users', icon: '👥' },
+    { label: t('navigation.analytics'), href: '/super-admin/analytics', icon: '📈' },
   ]
 
   return (
@@ -295,7 +295,7 @@ export default function SuperAdminUsersPage() {
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">{t('common.roles')}</label>
+              <label className="block text-sm font-medium text-gray-800 mb-2">{t('common.rolesLabel')}</label>
               <Select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)}>
                 <option value="">{t('teachers.management.title')}</option>
                 <option value="SCHOOL_ADMIN">{t('common.roles.school_admin')}</option>
@@ -317,7 +317,7 @@ export default function SuperAdminUsersPage() {
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">{t('generic.view')}</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Email</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">{t('common.roles')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">{t('common.rolesLabel')}</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">{t('school.schools.title')}</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">{t('classes.management.createdColumn')}</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">{t('generic.delete')}</th>
@@ -388,7 +388,7 @@ export default function SuperAdminUsersPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Select
-                    label={t('common.roles')}
+                    label={t('common.rolesLabel')}
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     required

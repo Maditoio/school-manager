@@ -13,7 +13,14 @@
     "search": "Search",
     "filter": "Filter",
     "logout": "Logout",
-    "language": "Language"
+    "language": "Language",
+    "rolesLabel": "Roles",
+    "roles": {
+      "school_admin": "School Admin",
+      "teacher": "Teacher",
+      "parent": "Parent",
+      "super_admin": "Super Admin"
+    }
   },
   "auth": {
     "login": "Login",
@@ -42,7 +49,9 @@
     "announcements": "Announcements",
     "profile": "Profile",
     "settings": "Settings",
-    "schools": "Schools"
+    "schools": "Schools",
+    "users": "Users",
+    "analytics": "Analytics"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -714,10 +723,12 @@
   },
   "admin": {
     "dashboard": {
-      "title": "Dashboard",
-      "overview": "Overview",
-      "recentActivity": "Recent Activity",
+      "title": "Administrator Dashboard",
+      "overview": "Manage all schools and administrative settings",
+      "recentActivity": "Recent Activity will appear here",
       "platformOverview": "Platform Overview",
+      "platformDashboard": "Platform Dashboard",
+      "manageAllSchools": "Manage all schools in the system",
       "totalSchools": "Total Schools",
       "totalUsers": "Total Users",
       "totalStudents": "Total Students"
@@ -867,6 +878,31 @@
     "reset": "Reset",
     "clear": "Clear",
     "noData": "No data found",
-    "noResults": "No results found"
+    "noResults": "No results found",
+    "roleLabel": "Role",
+    "optional": "Optional"
+  },
+  "common": {
+    "appName": "School Connect",
+    "welcome": "Welcome",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "add": "Add",
+    "submit": "Submit",
+    "search": "Search",
+    "filter": "Filter",
+    "logout": "Logout",
+    "language": "Language",
+    "roles": "Roles",
+    "roles": {
+      "school_admin": "School Admin",
+      "teacher": "Teacher",
+      "parent": "Parent",
+      "super_admin": "Super Admin"
+    }
   }
 }
