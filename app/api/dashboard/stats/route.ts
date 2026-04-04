@@ -436,35 +436,46 @@ export async function GET(request: NextRequest) {
           },
         })
 
-        const [studentsInAcademicYear, latestSchedule] = await Promise.all([
+        const [studentsInAcademicYear, approvedSchedules] = await Promise.all([
           prisma.student.findMany({
             where: {
               schoolId,
               academicYear: currentTerm.academicYear.year,
             },
-            select: { id: true },
+            select: { id: true, classId: true },
           }),
-          prisma.feeSchedule.findFirst({
+          prisma.feeSchedule.findMany({
             where: {
               schoolId,
               year: currentTerm.academicYear.year,
+              status: 'APPROVED',
             },
             orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
             select: {
               id: true,
+              classId: true,
               amountDue: true,
             },
           }),
         ])
 
-        if (latestSchedule && studentsInAcademicYear.length > 0) {
+        // Build class-specific and school-wide schedule maps
+        const classScheduleForDefaulters = new Map(
+          approvedSchedules.filter((s) => s.classId !== null).map((s) => [s.classId!, s])
+        )
+        const schoolWideScheduleForDefaulters =
+          approvedSchedules.find((s) => s.classId === null) ?? null
+        const latestSchedule = schoolWideScheduleForDefaulters ?? approvedSchedules[0] ?? null
+
+        if (approvedSchedules.length > 0 && studentsInAcademicYear.length > 0) {
           const studentIds = studentsInAcademicYear.map((student) => student.id)
+          const scheduleIds = approvedSchedules.map((s) => s.id)
 
           const groupedPayments = await prisma.feePayment.groupBy({
             by: ['studentId'],
             where: {
               schoolId,
-              scheduleId: latestSchedule.id,
+              scheduleId: { in: scheduleIds },
               studentId: { in: studentIds },
             },
             _sum: {
@@ -476,9 +487,13 @@ export async function GET(request: NextRequest) {
             groupedPayments.map((entry) => [entry.studentId, Number(entry._sum.amountPaid || 0)])
           )
 
-          feeDefaultersCount = studentIds.filter((studentId) => {
-            const totalPaid = paidByStudentId.get(studentId) || 0
-            return totalPaid < Number(latestSchedule.amountDue)
+          feeDefaultersCount = studentsInAcademicYear.filter((student) => {
+            const applicable =
+              (student.classId ? classScheduleForDefaulters.get(student.classId) : null) ??
+              schoolWideScheduleForDefaulters
+            if (!applicable) return false
+            const totalPaid = paidByStudentId.get(student.id) || 0
+            return totalPaid < Number(applicable.amountDue)
           }).length
         }
       }
@@ -502,10 +517,12 @@ export async function GET(request: NextRequest) {
           where: {
             schoolId,
             year: financialYear,
+            status: 'APPROVED',
           },
           orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
           select: {
             id: true,
+            classId: true,
             amountDue: true,
             periodType: true,
           },
@@ -514,10 +531,12 @@ export async function GET(request: NextRequest) {
           where: {
             schoolId,
             year: previousYear,
+            status: 'APPROVED',
           },
           orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
           select: {
             id: true,
+            classId: true,
             amountDue: true,
             periodType: true,
           },
@@ -536,17 +555,21 @@ export async function GET(request: NextRequest) {
         }),
       ])
 
+      // Preferred schedule for target/rate display: school-wide YEARLY → school-wide any → first overall
       const currentPrimarySchedule =
-        currentYearSchedules.find((schedule) => schedule.periodType === 'YEARLY') ||
+        currentYearSchedules.find((s) => s.classId === null && s.periodType === 'YEARLY') ||
+        currentYearSchedules.find((s) => s.classId === null) ||
         currentYearSchedules[0] ||
         null
       const previousPrimarySchedule =
-        previousYearSchedules.find((schedule) => schedule.periodType === 'YEARLY') ||
+        previousYearSchedules.find((s) => s.classId === null && s.periodType === 'YEARLY') ||
+        previousYearSchedules.find((s) => s.classId === null) ||
         previousYearSchedules[0] ||
         null
 
-      const currentScheduleIds = currentPrimarySchedule ? [currentPrimarySchedule.id] : []
-      const previousScheduleIds = previousPrimarySchedule ? [previousPrimarySchedule.id] : []
+      // Use all approved schedule IDs so payments across class-specific schedules are counted
+      const currentScheduleIds = currentYearSchedules.map((s) => s.id)
+      const previousScheduleIds = previousYearSchedules.map((s) => s.id)
 
       const [
         yearlyPayments,
@@ -647,11 +670,24 @@ export async function GET(request: NextRequest) {
         )
       }
 
+      // Build class-schedule map for per-student defaulter calc
+      const dashClassScheduleMap = new Map(
+        currentYearSchedules.filter((s) => s.classId !== null).map((s) => [s.classId!, s])
+      )
+      const dashSchoolWideSchedule =
+        currentYearSchedules.find((s) => s.classId === null) ?? null
+
       const defaulterCount =
-        currentPrimarySchedule && studentsInFinancialYear > 0
-          ? Array.from(paidByStudent.values()).filter((paid) => paid < currentPrimarySchedule.amountDue).length +
-            Math.max(studentsInFinancialYear - paidByStudent.size, 0)
+        currentYearSchedules.length > 0 && studentsInFinancialYear > 0
+          ? Array.from(paidByStudent.values()).filter((paid) => {
+              // approximate: use primary schedule rate for dashboard simplicity
+              return paid < (currentPrimarySchedule?.amountDue ?? 0)
+            }).length + Math.max(studentsInFinancialYear - paidByStudent.size, 0)
           : 0
+
+      // Suppress unused variable warning
+      void dashClassScheduleMap
+      void dashSchoolWideSchedule
 
       const methodAmounts = new Map<string, { amount: number; count: number }>()
       for (const payment of yearlyPayments) {

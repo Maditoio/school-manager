@@ -12,7 +12,7 @@ import { useToast } from '@/components/ui/Toast'
 import { AlertTriangle, CircleCheck, Plus, Receipt, Users, Wallet } from 'lucide-react'
 
 type FeePeriodType = 'MONTHLY' | 'SEMESTER' | 'YEARLY'
-type FeeStatus = 'PAID' | 'PARTIAL' | 'NOT_PAID'
+type FeeStatus = 'PAID' | 'PARTIAL' | 'NOT_PAID' | 'NO_SCHEDULE'
 type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'M_PESA' | 'ORANGE_MONEY' | 'OTHER'
 
 type FeesPageProps = {
@@ -29,14 +29,33 @@ function formatPaymentMethod(method: PaymentMethod) {
   return 'Other'
 }
 
-type Schedule = {
+type Period = {
+  key: string
+  periodType: FeePeriodType
+  year: number
+  month: number | null
+  semester: number | null
+  label: string
+  hasClassSpecific: boolean
+}
+
+type PendingSchedule = {
   id: string
   periodType: FeePeriodType
   year: number
   month: number | null
   semester: number | null
+  classId: string | null
+  className: string | null
   amountDue: number
+  createdAt: string
+  periodLabel: string
   label: string
+}
+
+type AvailableClass = {
+  id: string
+  name: string
 }
 
 type Summary = {
@@ -52,6 +71,8 @@ type StudentStatus = {
   studentName: string
   admissionNumber: string | null
   className: string
+  classId: string | null
+  scheduleId: string | null
   amountDue: number
   totalPaid: number
   balance: number
@@ -70,13 +91,19 @@ type RecentPayment = {
   className: string
 }
 
-export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = ['SCHOOL_ADMIN'], navMode = 'admin' }: FeesPageProps = {}) {
+export default function AdminFeesPage({
+  routePrefix = '/admin',
+  allowedRoles = ['SCHOOL_ADMIN'],
+  navMode = 'admin',
+}: FeesPageProps = {}) {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
 
   const [loading, setLoading] = useState(true)
-  const [schedules, setSchedules] = useState<Schedule[]>([])
-  const [selectedScheduleId, setSelectedScheduleId] = useState('')
+  const [periods, setPeriods] = useState<Period[]>([])
+  const [selectedPeriodKey, setSelectedPeriodKey] = useState('')
+  const [pendingSchedules, setPendingSchedules] = useState<PendingSchedule[]>([])
+  const [availableClasses, setAvailableClasses] = useState<AvailableClass[]>([])
   const [summary, setSummary] = useState<Summary>({
     studentsCount: 0,
     payingCount: 0,
@@ -93,6 +120,7 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
     month: new Date().getMonth() + 1,
     semester: 1,
     amountDue: '',
+    classId: '',
   })
 
   const [paymentForm, setPaymentForm] = useState({
@@ -105,6 +133,8 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
 
   const [creatingSchedule, setCreatingSchedule] = useState(false)
   const [recordingPayment, setRecordingPayment] = useState(false)
+  const [approvingId, setApprovingId] = useState('')
+  const [rejectingId, setRejectingId] = useState('')
   const [lastInvoiceId, setLastInvoiceId] = useState('')
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
@@ -117,6 +147,8 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
   const [showPaymentStudentDropdown, setShowPaymentStudentDropdown] = useState(false)
   const pageSize = 10
 
+  const isAdmin = session?.user?.role === 'SCHOOL_ADMIN'
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       redirect('/login')
@@ -127,9 +159,9 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
     }
   }, [allowedRoles, session, status])
 
-  const selectedSchedule = useMemo(
-    () => schedules.find((item) => item.id === selectedScheduleId) || null,
-    [schedules, selectedScheduleId]
+  const selectedPeriod = useMemo(
+    () => periods.find((p) => p.key === selectedPeriodKey) ?? null,
+    [periods, selectedPeriodKey]
   )
 
   const filteredStudentStatuses = useMemo(() => {
@@ -170,17 +202,14 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
     const query = recentSearchQuery.trim().toLowerCase()
     if (!query) return recentPayments
 
-    return recentPayments.filter((payment) => {
-      return (
+    return recentPayments.filter(
+      (payment) =>
         payment.paymentNumber.toLowerCase().includes(query) ||
         formatPaymentMethod(payment.paymentMethod).toLowerCase().includes(query) ||
         payment.studentName.toLowerCase().includes(query) ||
         payment.className.toLowerCase().includes(query) ||
-        String(payment.admissionNumber || '')
-          .toLowerCase()
-          .includes(query)
-      )
-    })
+        String(payment.admissionNumber || '').toLowerCase().includes(query)
+    )
   }, [recentPayments, recentSearchQuery])
 
   const statusPageRows = useMemo(() => {
@@ -211,7 +240,12 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
         key: 'amountDue',
         label: 'Due',
         sortable: true,
-        renderCell: (student: StudentStatus) => student.amountDue.toFixed(2),
+        renderCell: (student: StudentStatus) =>
+          student.status === 'NO_SCHEDULE' ? (
+            <span className="text-xs text-amber-400">No schedule</span>
+          ) : (
+            student.amountDue.toFixed(2)
+          ),
       },
       {
         key: 'totalPaid',
@@ -223,7 +257,10 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
             <div className="flex items-center gap-1.5">
               <span>{student.totalPaid.toFixed(2)}</span>
               {overpaidAmount > 0 ? (
-                <span className="text-xs font-semibold text-emerald-500" title={`Overpaid by ${overpaidAmount.toFixed(2)}`}>
+                <span
+                  className="text-xs font-semibold text-emerald-500"
+                  title={`Overpaid by ${overpaidAmount.toFixed(2)}`}
+                >
                   +{overpaidAmount.toFixed(2)}
                 </span>
               ) : null}
@@ -236,6 +273,7 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
         label: 'Balance',
         sortable: true,
         renderCell: (student: StudentStatus) => {
+          if (student.status === 'NO_SCHEDULE') return '-'
           if (student.balance < 0) {
             return (
               <span className="font-semibold text-emerald-500" title="Credit remaining">
@@ -250,7 +288,10 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
         key: 'status',
         label: 'Status',
         sortable: true,
-        renderCell: (student: StudentStatus) => (student.status === 'NOT_PAID' ? 'NOT PAID' : student.status),
+        renderCell: (student: StudentStatus) => {
+          if (student.status === 'NO_SCHEDULE') return <span className="text-xs text-amber-400">—</span>
+          return student.status === 'NOT_PAID' ? 'NOT PAID' : student.status
+        },
       },
     ],
     []
@@ -292,7 +333,11 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
         key: 'invoice',
         label: 'Invoice',
         renderCell: (payment: RecentPayment) => (
-          <Link href={`${routePrefix}/fees/invoice/${payment.id}`} target="_blank" className="text-indigo-300 hover:underline">
+          <Link
+            href={`${routePrefix}/fees/invoice/${payment.id}`}
+            target="_blank"
+            className="text-indigo-300 hover:underline"
+          >
             View Invoice
           </Link>
         ),
@@ -301,79 +346,93 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
     [routePrefix]
   )
 
-  const fetchFeesData = useCallback(async (scheduleId?: string) => {
+  const fetchClasses = useCallback(async () => {
     try {
-      setLoading(true)
-      const params = new URLSearchParams()
-      if (scheduleId) {
-        params.set('scheduleId', scheduleId)
+      const res = await fetch('/api/classes', { credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json()
+        const classes: AvailableClass[] = (data.classes || []).map(
+          (c: { id: string; name: string }) => ({ id: c.id, name: c.name })
+        )
+        setAvailableClasses(classes.sort((a, b) => a.name.localeCompare(b.name)))
       }
-
-      const res = await fetch(`/api/fees${params.toString() ? `?${params.toString()}` : ''}`, {
-        method: 'GET',
-        cache: 'no-store',
-        credentials: 'include',
-        headers: {
-          Accept: 'application/json',
-        },
-      })
-
-      const contentType = res.headers.get('content-type') || ''
-      const isJson = contentType.includes('application/json')
-      const data = isJson ? await res.json() : null
-
-      if (!res.ok) {
-        if (isJson) {
-          throw new Error(data?.details || data?.error || 'Failed to fetch fees')
-        }
-
-        const text = await res.text()
-        throw new Error(text || 'Invalid server response. Please refresh and login again.')
-      }
-
-      if (!data) {
-        throw new Error('Invalid server response. Please refresh and login again.')
-      }
-
-      const schedulesData = Array.isArray(data.schedules) ? data.schedules : []
-
-      setSchedules(schedulesData)
-      setSummary(
-        data.summary || {
-          studentsCount: 0,
-          payingCount: 0,
-          notPayingCount: 0,
-          collectedAmount: 0,
-          pendingAmount: 0,
-        }
-      )
-      setStudentStatuses(Array.isArray(data.studentStatuses) ? data.studentStatuses : [])
-      setRecentPayments(Array.isArray(data.recentPayments) ? data.recentPayments : [])
-
-      const selected = data.selectedSchedule?.id || schedulesData[0]?.id || ''
-      setSelectedScheduleId(selected)
-
-      if (!paymentForm.studentId && Array.isArray(data.studentStatuses) && data.studentStatuses.length > 0) {
-        setPaymentForm((prev) => ({ ...prev, studentId: data.studentStatuses[0].studentId }))
-      }
-    } catch (error) {
-      console.error('Failed to fetch fees data:', error)
-      const message = error instanceof Error ? error.message : 'Failed to load fees data'
-      showToast(message, 'error')
-      setSchedules([])
-      setSummary({ studentsCount: 0, payingCount: 0, notPayingCount: 0, collectedAmount: 0, pendingAmount: 0 })
-      setStudentStatuses([])
-      setRecentPayments([])
-    } finally {
-      setLoading(false)
+    } catch {
+      // non-critical
     }
-  }, [paymentForm.studentId, showToast])
+  }, [])
+
+  const fetchFeesData = useCallback(
+    async (periodKey?: string) => {
+      try {
+        setLoading(true)
+        const params = new URLSearchParams()
+        if (periodKey) {
+          params.set('periodKey', periodKey)
+        }
+
+        const res = await fetch(`/api/fees${params.toString() ? `?${params.toString()}` : ''}`, {
+          method: 'GET',
+          cache: 'no-store',
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
+        })
+
+        const contentType = res.headers.get('content-type') || ''
+        const isJson = contentType.includes('application/json')
+        const data = isJson ? await res.json() : null
+
+        if (!res.ok) {
+          if (isJson) {
+            throw new Error(data?.details || data?.error || 'Failed to fetch fees')
+          }
+          const text = await res.text()
+          throw new Error(text || 'Invalid server response. Please refresh and login again.')
+        }
+
+        if (!data) {
+          throw new Error('Invalid server response. Please refresh and login again.')
+        }
+
+        const periodsData: Period[] = Array.isArray(data.periods) ? data.periods : []
+
+        setPeriods(periodsData)
+        setSummary(
+          data.summary || {
+            studentsCount: 0,
+            payingCount: 0,
+            notPayingCount: 0,
+            collectedAmount: 0,
+            pendingAmount: 0,
+          }
+        )
+        setStudentStatuses(Array.isArray(data.studentStatuses) ? data.studentStatuses : [])
+        setRecentPayments(Array.isArray(data.recentPayments) ? data.recentPayments : [])
+        setPendingSchedules(Array.isArray(data.pendingSchedules) ? data.pendingSchedules : [])
+
+        const selected = data.selectedPeriod?.key || periodsData[0]?.key || ''
+        setSelectedPeriodKey(selected)
+      } catch (error) {
+        console.error('Failed to fetch fees data:', error)
+        const message = error instanceof Error ? error.message : 'Failed to load fees data'
+        showToast(message, 'error')
+        setPeriods([])
+        setSummary({ studentsCount: 0, payingCount: 0, notPayingCount: 0, collectedAmount: 0, pendingAmount: 0 })
+        setStudentStatuses([])
+        setRecentPayments([])
+        setPendingSchedules([])
+      } finally {
+        setLoading(false)
+      }
+    },
+    [showToast]
+  )
 
   useEffect(() => {
     if (session?.user) {
       fetchFeesData()
+      fetchClasses()
     }
-  }, [session?.user, fetchFeesData])
+  }, [session?.user, fetchFeesData, fetchClasses])
 
   const handleCreateSchedule = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -401,6 +460,10 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
         payload.semester = Number(scheduleForm.semester)
       }
 
+      if (scheduleForm.classId) {
+        payload.classId = scheduleForm.classId
+      }
+
       const res = await fetch('/api/fees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -416,19 +479,22 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
         const message =
           typeof err?.details === 'string'
             ? err.details
-            :
-          typeof err?.error === 'string'
+            : typeof err?.error === 'string'
             ? err.error
             : Array.isArray(err?.error)
-              ? err.error.map((item: { message?: string }) => item?.message).filter(Boolean).join(', ')
-              : !isJson
-                ? 'Invalid server response while creating schedule'
-                : 'Failed to create schedule'
+            ? err.error.map((item: { message?: string }) => item?.message).filter(Boolean).join(', ')
+            : !isJson
+            ? 'Invalid server response while creating schedule'
+            : 'Failed to create schedule'
         showToast(message, 'error')
         return
       }
 
-      showToast('Fee schedule saved', 'success')
+      const successMsg =
+        session?.user?.role === 'FINANCE'
+          ? 'Fee schedule submitted for approval'
+          : 'Fee schedule created successfully'
+      showToast(successMsg, 'success')
       setLastInvoiceId('')
       setShowScheduleModal(false)
       setScheduleForm({
@@ -437,8 +503,9 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
         month: new Date().getMonth() + 1,
         semester: 1,
         amountDue: '',
+        classId: '',
       })
-      await fetchFeesData(data?.schedule?.id)
+      await fetchFeesData()
     } catch (error) {
       console.error('Failed to create schedule:', error)
       showToast('Failed to create schedule', 'error')
@@ -456,13 +523,23 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
   const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!selectedScheduleId) {
-      showToast('Create or select a schedule first', 'warning')
+    if (!selectedPeriodKey) {
+      showToast('Select a payment period first', 'warning')
       return
     }
 
     if (!paymentForm.studentId) {
       showToast('Select a student', 'warning')
+      return
+    }
+
+    // Resolve the applicable scheduleId for the selected student
+    const selectedStudentStatus = studentStatuses.find(
+      (s) => s.studentId === paymentForm.studentId
+    )
+
+    if (!selectedStudentStatus?.scheduleId) {
+      showToast('No approved fee schedule found for this student\'s class in the selected period', 'warning')
       return
     }
 
@@ -479,7 +556,7 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'recordPayment',
-          scheduleId: selectedScheduleId,
+          scheduleId: selectedStudentStatus.scheduleId,
           studentId: paymentForm.studentId,
           amountPaid,
           paymentMethod: paymentForm.paymentMethod,
@@ -499,11 +576,17 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
       }
 
       setLastInvoiceId(data?.payment?.id || '')
-      setPaymentForm({ studentId: '', amountPaid: '', paymentMethod: 'CASH', paymentDate: new Date().toISOString().slice(0, 10), notes: '' })
+      setPaymentForm({
+        studentId: '',
+        amountPaid: '',
+        paymentMethod: 'CASH',
+        paymentDate: new Date().toISOString().slice(0, 10),
+        notes: '',
+      })
       setPaymentModalSearchQuery('')
       showToast('Payment recorded successfully', 'success')
       setShowPaymentModal(false)
-      await fetchFeesData(selectedScheduleId)
+      await fetchFeesData(selectedPeriodKey)
     } catch (error) {
       console.error('Failed to record payment:', error)
       showToast('Failed to record payment', 'error')
@@ -512,23 +595,72 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
     }
   }
 
-  const navItems = navMode === 'finance'
-    ? [
-        { label: 'Fees', href: '/finance/fees', icon: '💳' },
-        { label: 'Expenses', href: '/finance/expenses', icon: '🧾' },
-      ]
-    : [
-        { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
-        { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
-        { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
-        { label: 'Classes', href: '/admin/classes', icon: '🏫' },
-        { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
-        { label: 'Attendance', href: '/admin/attendance', icon: '📅' },
-        { label: 'Results', href: '/admin/results', icon: '📝' },
-        { label: 'Fees', href: '/admin/fees', icon: '💳' },
-        { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
-        { label: 'Messages', href: '/admin/messages', icon: '💬' },
-      ]
+  const handleApproveSchedule = async (id: string) => {
+    setApprovingId(id)
+    try {
+      const res = await fetch(`/api/fees/schedules/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approve' }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        showToast(data?.error || 'Failed to approve schedule', 'error')
+        return
+      }
+
+      showToast('Fee schedule approved', 'success')
+      await fetchFeesData(selectedPeriodKey)
+    } catch {
+      showToast('Failed to approve schedule', 'error')
+    } finally {
+      setApprovingId('')
+    }
+  }
+
+  const handleRejectSchedule = async (id: string) => {
+    setRejectingId(id)
+    try {
+      const res = await fetch(`/api/fees/schedules/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reject' }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        showToast(data?.error || 'Failed to reject schedule', 'error')
+        return
+      }
+
+      showToast('Schedule rejected and removed', 'success')
+      await fetchFeesData(selectedPeriodKey)
+    } catch {
+      showToast('Failed to reject schedule', 'error')
+    } finally {
+      setRejectingId('')
+    }
+  }
+
+  const navItems =
+    navMode === 'finance'
+      ? [
+          { label: 'Fees', href: '/finance/fees', icon: '💳' },
+          { label: 'Expenses', href: '/finance/expenses', icon: '🧾' },
+        ]
+      : [
+          { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
+          { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
+          { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
+          { label: 'Classes', href: '/admin/classes', icon: '🏫' },
+          { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
+          { label: 'Attendance', href: '/admin/attendance', icon: '📅' },
+          { label: 'Results', href: '/admin/results', icon: '📝' },
+          { label: 'Fees', href: '/admin/fees', icon: '💳' },
+          { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
+          { label: 'Messages', href: '/admin/messages', icon: '💬' },
+        ]
 
   if (status === 'loading' || !session) {
     return <div>Loading...</div>
@@ -549,7 +681,9 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-[24px] font-bold ui-text-primary">Fees Management</h1>
-            <p className="mt-1 ui-text-secondary">Track payments by month, semester, or year and generate invoices.</p>
+            <p className="mt-1 ui-text-secondary">
+              Track payments by period. Each class can have its own fee rate or share one flat rate.
+            </p>
           </div>
           <div className="flex gap-2">
             {lastInvoiceId && (
@@ -582,6 +716,53 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
           </button>
         </div>
 
+        {/* Pending approval panel (visible to both admin and finance) */}
+        {pendingSchedules.length > 0 && (
+          <Card
+            title={`⏳ Fee Schedules Pending Approval (${pendingSchedules.length})`}
+          >
+            <div className="space-y-2">
+              {pendingSchedules.map((schedule) => (
+                <div
+                  key={schedule.id}
+                  className="flex items-center justify-between gap-4 rounded-[10px] border px-4 py-3"
+                  style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}
+                >
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-medium ui-text-primary">{schedule.label}</span>
+                    <span className="text-xs ui-text-secondary">
+                      Amount: {schedule.amountDue.toFixed(2)} · Submitted{' '}
+                      {new Date(schedule.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {isAdmin && (
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => handleApproveSchedule(schedule.id)}
+                        disabled={approvingId === schedule.id || !!rejectingId}
+                        className="ui-button ui-button-primary text-sm py-1 px-3"
+                      >
+                        {approvingId === schedule.id ? 'Approving…' : 'Approve'}
+                      </button>
+                      <button
+                        onClick={() => handleRejectSchedule(schedule.id)}
+                        disabled={rejectingId === schedule.id || !!approvingId}
+                        className="ui-button ui-button-danger text-sm py-1 px-3"
+                      >
+                        {rejectingId === schedule.id ? 'Rejecting…' : 'Reject'}
+                      </button>
+                    </div>
+                  )}
+                  {!isAdmin && (
+                    <span className="text-xs text-amber-400 font-medium shrink-0">Awaiting admin approval</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Create schedule modal */}
         {showScheduleModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--overlay) p-4">
             <Card title="Create Fee Schedule" className="w-full max-w-md">
@@ -591,6 +772,11 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
               >
                 ✕
               </button>
+              {sessionRole === 'FINANCE' && (
+                <p className="mb-3 text-sm rounded-[8px] p-2 text-amber-400 bg-amber-400/10">
+                  Schedules you create will be submitted to the admin for approval before taking effect.
+                </p>
+              )}
               <form onSubmit={handleCreateSchedule} className="space-y-4">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
@@ -615,7 +801,9 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
                     <input
                       type="number"
                       value={scheduleForm.year}
-                      onChange={(e) => setScheduleForm((prev) => ({ ...prev, year: Number(e.target.value) }))}
+                      onChange={(e) =>
+                        setScheduleForm((prev) => ({ ...prev, year: Number(e.target.value) }))
+                      }
                       className="ui-input"
                     />
                   </div>
@@ -626,12 +814,14 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
                     <label className="mb-1 block text-sm font-medium ui-text-secondary">Month</label>
                     <select
                       value={scheduleForm.month}
-                      onChange={(e) => setScheduleForm((prev) => ({ ...prev, month: Number(e.target.value) }))}
+                      onChange={(e) =>
+                        setScheduleForm((prev) => ({ ...prev, month: Number(e.target.value) }))
+                      }
                       className="ui-select"
                     >
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                        <option key={month} value={month}>
-                          {new Date(2026, month - 1, 1).toLocaleDateString('en-US', { month: 'long' })}
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                        <option key={m} value={m}>
+                          {new Date(2026, m - 1, 1).toLocaleDateString('en-US', { month: 'long' })}
                         </option>
                       ))}
                     </select>
@@ -643,7 +833,9 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
                     <label className="mb-1 block text-sm font-medium ui-text-secondary">Semester</label>
                     <select
                       value={scheduleForm.semester}
-                      onChange={(e) => setScheduleForm((prev) => ({ ...prev, semester: Number(e.target.value) }))}
+                      onChange={(e) =>
+                        setScheduleForm((prev) => ({ ...prev, semester: Number(e.target.value) }))
+                      }
                       className="ui-select"
                     >
                       <option value={1}>Semester 1</option>
@@ -653,13 +845,40 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
                 )}
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium ui-text-secondary">Fee Amount Per Student</label>
+                  <label className="mb-1 block text-sm font-medium ui-text-secondary">
+                    Applies To
+                  </label>
+                  <select
+                    value={scheduleForm.classId}
+                    onChange={(e) =>
+                      setScheduleForm((prev) => ({ ...prev, classId: e.target.value }))
+                    }
+                    className="ui-select"
+                  >
+                    <option value="">All classes (flat rate)</option>
+                    {availableClasses.map((cls) => (
+                      <option key={cls.id} value={cls.id}>
+                        {cls.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs ui-text-secondary">
+                    Class-specific rates override the flat rate for students in that class.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium ui-text-secondary">
+                    Fee Amount Per Student
+                  </label>
                   <input
                     type="number"
                     min="0"
                     step="0.01"
                     value={scheduleForm.amountDue}
-                    onChange={(e) => setScheduleForm((prev) => ({ ...prev, amountDue: e.target.value }))}
+                    onChange={(e) =>
+                      setScheduleForm((prev) => ({ ...prev, amountDue: e.target.value }))
+                    }
                     placeholder="e.g. 250"
                     className="ui-input"
                   />
@@ -667,7 +886,7 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
 
                 <div className="flex gap-2 pt-2">
                   <Button type="submit" isLoading={creatingSchedule} className="flex-1">
-                    Save Schedule
+                    {sessionRole === 'FINANCE' ? 'Submit for Approval' : 'Create Schedule'}
                   </Button>
                   <button
                     type="button"
@@ -682,6 +901,7 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
           </div>
         )}
 
+        {/* Record payment modal */}
         {showPaymentModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--overlay) p-4">
             <Card title="Record Payment" className="w-full max-w-md">
@@ -697,20 +917,24 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
               </button>
               <form onSubmit={handleRecordPayment} className="space-y-4">
                 <div>
-                  <label className="mb-1 block text-sm font-medium ui-text-secondary">Active Schedule</label>
+                  <label className="mb-1 block text-sm font-medium ui-text-secondary">
+                    Payment Period
+                  </label>
                   <select
-                    value={selectedScheduleId}
+                    value={selectedPeriodKey}
                     onChange={(e) => {
-                      const newId = e.target.value
-                      setSelectedScheduleId(newId)
-                      fetchFeesData(newId)
+                      const newKey = e.target.value
+                      setSelectedPeriodKey(newKey)
+                      setPaymentForm((prev) => ({ ...prev, studentId: '' }))
+                      fetchFeesData(newKey)
                     }}
                     className="ui-select"
                   >
-                    <option value="">Select schedule</option>
-                    {schedules.map((schedule) => (
-                      <option key={schedule.id} value={schedule.id}>
-                        {schedule.label} - {schedule.amountDue}
+                    <option value="">Select period</option>
+                    {periods.map((period) => (
+                      <option key={period.key} value={period.key}>
+                        {period.label}
+                        {period.hasClassSpecific ? ' (class-specific rates)' : ''}
                       </option>
                     ))}
                   </select>
@@ -727,15 +951,32 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
                         setShowPaymentStudentDropdown(true)
                       }}
                       onFocus={() => setShowPaymentStudentDropdown(true)}
-                      placeholder="Search by name or admission number..."
+                      placeholder="Search by name or admission number…"
                       className="ui-input"
                     />
                     {paymentForm.studentId && (
                       <div
                         className="mt-1 rounded-[10px] border p-2 text-sm ui-text-primary"
-                        style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}
+                        style={{
+                          borderColor: 'var(--border-subtle)',
+                          background: 'var(--surface-soft)',
+                        }}
                       >
                         {studentStatuses.find((s) => s.studentId === paymentForm.studentId)?.studentName}
+                        {(() => {
+                          const sel = studentStatuses.find(
+                            (s) => s.studentId === paymentForm.studentId
+                          )
+                          if (!sel?.scheduleId)
+                            return (
+                              <span className="ml-2 text-xs text-amber-400">No fee schedule</span>
+                            )
+                          return (
+                            <span className="ml-2 text-xs ui-text-secondary">
+                              Due: {sel.amountDue.toFixed(2)}
+                            </span>
+                          )
+                        })()}
                       </div>
                     )}
                     {showPaymentStudentDropdown && paymentModalSearchQuery.length > 0 && (
@@ -749,7 +990,10 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
                               className="w-full px-3 py-2 text-left text-sm ui-hover-surface"
                             >
                               <div className="font-medium ui-text-primary">{student.studentName}</div>
-                              <div className="text-xs ui-text-secondary">{student.className} • {student.admissionNumber || 'No admission'}</div>
+                              <div className="text-xs ui-text-secondary">
+                                {student.className} · {student.admissionNumber || 'No admission'}
+                                {student.scheduleId ? ` · Due: ${student.amountDue.toFixed(2)}` : ' · No schedule'}
+                              </div>
                             </button>
                           ))
                         ) : (
@@ -762,18 +1006,24 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-sm font-medium ui-text-secondary">Amount Paid</label>
+                    <label className="mb-1 block text-sm font-medium ui-text-secondary">
+                      Amount Paid
+                    </label>
                     <input
                       type="number"
                       min="0"
                       step="0.01"
                       value={paymentForm.amountPaid}
-                      onChange={(e) => setPaymentForm((prev) => ({ ...prev, amountPaid: e.target.value }))}
+                      onChange={(e) =>
+                        setPaymentForm((prev) => ({ ...prev, amountPaid: e.target.value }))
+                      }
                       className="ui-input"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium ui-text-secondary">Payment Method</label>
+                    <label className="mb-1 block text-sm font-medium ui-text-secondary">
+                      Payment Method
+                    </label>
                     <select
                       value={paymentForm.paymentMethod}
                       onChange={(e) =>
@@ -792,18 +1042,24 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium ui-text-secondary">Payment Date</label>
+                    <label className="mb-1 block text-sm font-medium ui-text-secondary">
+                      Payment Date
+                    </label>
                     <input
                       type="date"
                       value={paymentForm.paymentDate}
-                      onChange={(e) => setPaymentForm((prev) => ({ ...prev, paymentDate: e.target.value }))}
+                      onChange={(e) =>
+                        setPaymentForm((prev) => ({ ...prev, paymentDate: e.target.value }))
+                      }
                       className="ui-input"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium ui-text-secondary">Notes (Optional)</label>
+                  <label className="mb-1 block text-sm font-medium ui-text-secondary">
+                    Notes (Optional)
+                  </label>
                   <textarea
                     value={paymentForm.notes}
                     onChange={(e) => setPaymentForm((prev) => ({ ...prev, notes: e.target.value }))}
@@ -813,7 +1069,12 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button type="submit" isLoading={recordingPayment} className="flex-1" disabled={!selectedSchedule || loading}>
+                  <Button
+                    type="submit"
+                    isLoading={recordingPayment}
+                    className="flex-1"
+                    disabled={!selectedPeriodKey || loading}
+                  >
                     Record Payment
                   </Button>
                   <button
@@ -833,17 +1094,64 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
           </div>
         )}
 
+        {/* Period selector */}
+        {periods.length > 0 && (
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium ui-text-secondary whitespace-nowrap">
+              View Period:
+            </label>
+            <select
+              value={selectedPeriodKey}
+              onChange={(e) => {
+                const newKey = e.target.value
+                setSelectedPeriodKey(newKey)
+                fetchFeesData(newKey)
+              }}
+              className="ui-select max-w-xs"
+            >
+              {periods.map((period) => (
+                <option key={period.key} value={period.key}>
+                  {period.label}
+                  {period.hasClassSpecific ? ' ★' : ''}
+                </option>
+              ))}
+            </select>
+            {selectedPeriod?.hasClassSpecific && (
+              <span className="text-xs ui-text-secondary">★ has class-specific rates</span>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Students" value={summary.studentsCount} icon={<Users className="h-4 w-4" />} />
-          <StatCard title="Fully Paid" value={summary.payingCount} icon={<CircleCheck className="h-4 w-4" />} />
-          <StatCard title="Not Fully Paid" value={summary.notPayingCount} icon={<AlertTriangle className="h-4 w-4" />} />
-          <StatCard title="Collected" value={summary.collectedAmount.toFixed(2)} icon={<Wallet className="h-4 w-4" />} />
+          <StatCard
+            title="Students"
+            value={summary.studentsCount}
+            icon={<Users className="h-4 w-4" />}
+          />
+          <StatCard
+            title="Fully Paid"
+            value={summary.payingCount}
+            icon={<CircleCheck className="h-4 w-4" />}
+          />
+          <StatCard
+            title="Not Fully Paid"
+            value={summary.notPayingCount}
+            icon={<AlertTriangle className="h-4 w-4" />}
+          />
+          <StatCard
+            title="Collected"
+            value={summary.collectedAmount.toFixed(2)}
+            icon={<Wallet className="h-4 w-4" />}
+          />
         </div>
 
         <Card title="Pending Collection">
-          <div className="text-2xl font-semibold text-rose-500">{summary.pendingAmount.toFixed(2)}</div>
-          <p className="mt-1 text-sm ui-text-secondary">Amount still to be collected for selected period.</p>
+          <div className="text-2xl font-semibold text-rose-500">
+            {summary.pendingAmount.toFixed(2)}
+          </div>
+          <p className="mt-1 text-sm ui-text-secondary">
+            Amount still to be collected for selected period.
+          </p>
         </Card>
 
         <Table
@@ -859,7 +1167,10 @@ export default function AdminFeesPage({ routePrefix = '/admin', allowedRoles = [
             setStatusTablePage(1)
           }}
           onPageChange={setStatusTablePage}
-          filterOptions={[{ value: '', label: 'All classes' }, ...uniqueClasses.map((className) => ({ value: className, label: className }))]}
+          filterOptions={[
+            { value: '', label: 'All classes' },
+            ...uniqueClasses.map((className) => ({ value: className, label: className })),
+          ]}
           activeFilter={tableClassFilter}
           onFilterChange={(value: string) => {
             setTableClassFilter(value)

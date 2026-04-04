@@ -107,6 +107,7 @@ export const createFeeScheduleSchema = z.object({
   month: z.coerce.number().int().min(1).max(12).optional(),
   semester: z.coerce.number().int().min(1).max(3).optional(),
   amountDue: z.coerce.number().positive('Amount due must be greater than 0'),
+  classId: z.string().uuid().optional(),
 })
 
 export const recordFeePaymentSchema = z.object({

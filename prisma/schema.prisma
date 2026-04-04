@@ -70,6 +70,7 @@ model User {
   expensesCreated          Expense[]              @relation("ExpenseCreatedBy")
   expensesUpdated          Expense[]              @relation("ExpenseUpdatedBy")
   feePaymentsReceived      FeePayment[]           @relation("FeePaymentReceivedBy")
+  feeSchedulesApproved     FeeSchedule[]          @relation("FeeScheduleApprovedBy")
   feeSchedulesCreated      FeeSchedule[]          @relation("FeeScheduleCreatedBy")
   receivedMessages         Message[]              @relation("ReceivedMessages")
   sentMessages             Message[]              @relation("SentMessages")
@@ -116,6 +117,7 @@ model Class {
   teacher            User?                 @relation("TeacherClasses", fields: [teacherId], references: [id])
   classHistoryFrom   StudentClassHistory[] @relation("ClassHistoryFrom")
   classHistoryTo     StudentClassHistory[] @relation("ClassHistoryTo")
+  feeSchedules       FeeSchedule[]
   students           Student[]
 
   @@unique([schoolId, name, academicYear])
@@ -547,24 +549,31 @@ model ParentInteraction {
 }
 
 model FeeSchedule {
-  id         String        @id @default(uuid())
-  schoolId   String        @map("school_id")
-  periodType FeePeriodType @map("period_type")
-  year       Int
-  month      Int?
-  semester   Int?
-  amountDue  Float         @map("amount_due")
-  createdBy  String        @map("created_by")
-  createdAt  DateTime      @default(now()) @map("created_at")
-  updatedAt  DateTime      @updatedAt @map("updated_at")
-  payments   FeePayment[]
-  creator    User          @relation("FeeScheduleCreatedBy", fields: [createdBy], references: [id])
-  school     School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  id           String              @id @default(uuid())
+  schoolId     String              @map("school_id")
+  classId      String?             @map("class_id")
+  periodType   FeePeriodType       @map("period_type")
+  year         Int
+  month        Int?
+  semester     Int?
+  amountDue    Float               @map("amount_due")
+  status       FeeScheduleStatus   @default(PENDING_APPROVAL) @map("status")
+  approvedBy   String?             @map("approved_by")
+  approvedAt   DateTime?           @map("approved_at")
+  createdBy    String              @map("created_by")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+  payments     FeePayment[]
+  approver     User?               @relation("FeeScheduleApprovedBy", fields: [approvedBy], references: [id])
+  class        Class?              @relation(fields: [classId], references: [id])
+  creator      User                @relation("FeeScheduleCreatedBy", fields: [createdBy], references: [id])
+  school       School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
-  @@unique([schoolId, periodType, year, month, semester])
+  @@unique([schoolId, classId, periodType, year, month, semester])
   @@index([schoolId])
   @@index([year])
   @@index([schoolId, year, updatedAt])
+  @@index([status])
   @@map("fee_schedules")
 }
 
@@ -814,6 +823,11 @@ enum QuestionType {
   SHORT_ANSWER
   ESSAY
   TRUE_FALSE
+}
+
+enum FeeScheduleStatus {
+  PENDING_APPROVAL
+  APPROVED
 }
 
 enum FeePeriodType {
