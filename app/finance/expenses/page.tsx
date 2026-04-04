@@ -10,6 +10,8 @@ import Table from '@/components/ui/Table'
 import { Input, Select, TextArea } from '@/components/ui/Form'
 import { useToast } from '@/components/ui/Toast'
 import { BadgeDollarSign, FileText, Plus, ReceiptText, ShieldCheck, Wallet } from 'lucide-react'
+import { translateText } from '@/lib/client-i18n'
+import { useLocale } from '@/lib/locale-context'
 
 type ExpenseCategory =
   | 'MAINTENANCE'
@@ -110,6 +112,7 @@ function formatCategory(category: ExpenseCategory) {
 export default function FinanceExpensesPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { locale } = useLocale()
   const [loading, setLoading] = useState(true)
   const [expenses, setExpenses] = useState<ExpenseItem[]>([])
   const [auditLogs, setAuditLogs] = useState<ExpenseAuditLog[]>([])
@@ -163,7 +166,7 @@ export default function FinanceExpensesPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        showToast(data.error || 'Failed to load expenses', 'error')
+        showToast(translateText(data.error || 'Failed to load expenses', locale), 'error')
         return
       }
 
@@ -181,7 +184,7 @@ export default function FinanceExpensesPage() {
       setSelectedExpenseId((current) => current || data.expenses?.[0]?.id || '')
     } catch (error) {
       console.error('Failed to load expenses:', error)
-      showToast('Failed to load expenses', 'error')
+      showToast(translateText('Failed to load expenses', locale), 'error')
     } finally {
       setLoading(false)
     }
@@ -265,7 +268,7 @@ export default function FinanceExpensesPage() {
     const amount = Number(formData.amount)
 
     if (!amount || amount <= 0) {
-      showToast('Enter a valid amount', 'warning')
+      showToast(translateText('Enter a valid amount', locale), 'warning')
       return
     }
 
@@ -285,101 +288,112 @@ export default function FinanceExpensesPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        showToast(data.error || 'Failed to save expense', 'error')
+        showToast(translateText(data.error || 'Failed to save expense', locale), 'error')
         return
       }
 
-      showToast(editingExpense ? 'Expense updated' : 'Expense recorded', 'success')
+      showToast(translateText(editingExpense ? 'Expense updated' : 'Expense recorded', locale), 'success')
       setShowModal(false)
       resetForm()
       await fetchExpenses()
     } catch (error) {
       console.error('Failed to save expense:', error)
-      showToast('Failed to save expense', 'error')
+      showToast(translateText('Failed to save expense', locale), 'error')
     } finally {
       setSaving(false)
     }
   }
 
   const handleVoid = async (expenseId: string) => {
-    if (!confirm('Void this expense record? The audit trail will be preserved.')) return
+    if (!confirm(translateText('Void this expense record? The audit trail will be preserved.', locale))) return
 
     try {
       const res = await fetch(`/api/expenses/${expenseId}`, { method: 'DELETE' })
       const data = await res.json()
       if (!res.ok) {
-        showToast(data.error || 'Failed to void expense', 'error')
+        showToast(translateText(data.error || 'Failed to void expense', locale), 'error')
         return
       }
 
-      showToast('Expense voided', 'success')
+      showToast(translateText('Expense voided', locale), 'success')
       await fetchExpenses()
     } catch (error) {
       console.error('Failed to void expense:', error)
-      showToast('Failed to void expense', 'error')
+      showToast(translateText('Failed to void expense', locale), 'error')
     }
   }
 
   const expenseColumns = useMemo(() => [
     {
       key: 'title',
-      label: 'Expense',
+      label: translateText('Expense', locale),
       sortable: true,
-      renderCell: (expense: ExpenseItem) => (
-        <div className="flex flex-col">
-          <span className="font-medium text-slate-100">{expense.title}</span>
-          <span className="text-xs text-slate-400">{formatCategory(expense.category)}{expense.referenceNumber ? ` • ${expense.referenceNumber}` : ''}</span>
-        </div>
-      ),
+      renderCell: (expense: ExpenseItem) => {
+        const catLabel = categoryOptions.find((o) => o.value === expense.category)?.label || expense.category.replaceAll('_', ' ')
+        return (
+          <div className="flex flex-col">
+            <span className="font-medium text-slate-100">{expense.title}</span>
+            <span className="text-xs text-slate-400">{translateText(catLabel, locale)}{expense.referenceNumber ? ` • ${expense.referenceNumber}` : ''}</span>
+          </div>
+        )
+      },
     },
     {
       key: 'amount',
-      label: 'Amount',
+      label: translateText('Amount', locale),
       sortable: true,
       renderCell: (expense: ExpenseItem) => formatCurrency(expense.amount),
     },
     {
       key: 'expenseDate',
-      label: 'Date',
+      label: translateText('Date', locale),
       sortable: true,
       renderCell: (expense: ExpenseItem) => new Date(expense.expenseDate).toLocaleDateString(),
     },
     {
       key: 'status',
-      label: 'Status',
+      label: translateText('Status', locale),
       sortable: true,
+      renderCell: (expense: ExpenseItem) => {
+        const labels: Record<ExpenseStatus, string> = {
+          RECORDED: translateText('Recorded', locale),
+          APPROVED: translateText('Approved', locale),
+          VOID: translateText('Void', locale),
+        }
+        return labels[expense.status] || expense.status
+      },
     },
     {
       key: 'createdByName',
-      label: 'Recorded By',
+      label: translateText('Recorded By', locale),
       sortable: true,
     },
     {
       key: 'auditCount',
-      label: 'Audit',
+      label: translateText('Audit', locale),
       renderCell: (expense: ExpenseItem) => (
         <button type="button" onClick={() => setSelectedExpenseId(expense.id)} className="text-indigo-300 hover:underline">
-          View {expense.auditCount}
+          {translateText('View', locale)} {expense.auditCount}
         </button>
       ),
     },
     {
       key: 'actions',
-      label: 'Actions',
+      label: translateText('Actions', locale),
       renderCell: (expense: ExpenseItem) => (
         <div className="flex gap-2">
           <button type="button" onClick={() => openEditModal(expense)} className="text-indigo-300 hover:underline">
-            Edit
+            {translateText('Edit', locale)}
           </button>
           {expense.status !== 'VOID' ? (
             <button type="button" onClick={() => handleVoid(expense.id)} className="text-rose-400 hover:underline">
-              Void
+              {translateText('Void', locale)}
             </button>
           ) : null}
         </div>
       ),
     },
-  ], [selectedExpenseId])
+  ], [selectedExpenseId, locale])
 
   const navItems = [
     { label: 'Fees', href: '/finance/fees', icon: '💳' },
@@ -445,7 +459,7 @@ export default function FinanceExpensesPage() {
           page={tablePage}
           pageSize={pageSize}
           onPageChange={setTablePage}
-          emptyMessage="No expenses recorded yet."
+          emptyMessage={translateText('No expenses recorded yet.', locale)}
           rowKey="id"
         />
 
