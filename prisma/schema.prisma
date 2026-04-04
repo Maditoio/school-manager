@@ -29,6 +29,7 @@ model School {
   deletionRequests             DeletionRequest[]              @relation("DeletionRequests")
   expenseAuditLogs             ExpenseAuditLog[]
   expenses                     Expense[]
+  fundRequests                 FundRequest[]
   feePayments                  FeePayment[]
   feeSchedules                 FeeSchedule[]
   messages                     Message[]
@@ -81,6 +82,8 @@ model User {
   expenseAuditLogs         ExpenseAuditLog[]      @relation("ExpenseAuditActor")
   expensesCreated          Expense[]              @relation("ExpenseCreatedBy")
   expensesUpdated          Expense[]              @relation("ExpenseUpdatedBy")
+  fundRequestsCreated      FundRequest[]          @relation("FundRequestedBy")
+  fundRequestsReviewed     FundRequest[]          @relation("FundRequestReviewedBy")
   feePaymentsReceived      FeePayment[]           @relation("FeePaymentReceivedBy")
   feeSchedulesApproved     FeeSchedule[]          @relation("FeeScheduleApprovedBy")
   feeSchedulesCreated      FeeSchedule[]          @relation("FeeScheduleCreatedBy")
@@ -637,6 +640,7 @@ model Expense {
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
   auditLogs       ExpenseAuditLog[]
+  fundRequest     FundRequest?
   createdBy       User            @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
   school          School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   student         Student?        @relation(fields: [studentId], references: [id])
@@ -672,6 +676,35 @@ model ExpenseAuditLog {
   @@index([createdAt])
   @@index([schoolId, createdAt])
   @@map("expense_audit_logs")
+}
+
+model FundRequest {
+  id            String            @id @default(uuid())
+  schoolId      String            @map("school_id")
+  requestedById String            @map("requested_by_id")
+  title         String
+  description   String?
+  category      ExpenseCategory
+  amount        Float
+  urgency       String            @default("NORMAL")
+  status        FundRequestStatus @default(PENDING)
+  reviewedById  String?           @map("reviewed_by_id")
+  reviewedAt    DateTime?         @map("reviewed_at")
+  reviewNote    String?           @map("review_note")
+  expenseId     String?           @unique @map("expense_id")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  requestedBy   User              @relation("FundRequestedBy", fields: [requestedById], references: [id])
+  reviewedBy    User?             @relation("FundRequestReviewedBy", fields: [reviewedById], references: [id])
+  linkedExpense Expense?          @relation(fields: [expenseId], references: [id])
+  school        School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([requestedById])
+  @@index([status])
+  @@index([schoolId, status])
+  @@index([createdAt])
+  @@map("fund_requests")
 }
 
 model academic_years {
@@ -804,6 +837,12 @@ enum ExpenseStatus {
   RECORDED
   APPROVED
   VOID
+}
+
+enum FundRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum ExpenseAuditAction {

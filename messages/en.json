@@ -57,7 +57,8 @@
     "users": "Users",
     "analytics": "Analytics",
     "fees": "Fees",
-    "expenses": "Expenses"
+    "expenses": "Expenses",
+    "fundRequests": "Fund Requests"
   },
   "dashboard": {
     "title": "Dashboard",

@@ -340,6 +340,7 @@ export default function AdminExpensesPage() {
     { label: 'Results', href: '/admin/results', icon: '📝' },
     { label: 'Fees', href: '/admin/fees', icon: '💳' },
     { label: 'Expenses', href: '/admin/expenses', icon: '🧾' },
+    { label: 'Fund Requests', href: '/admin/fund-requests', icon: '💰' },
     { label: 'Users', href: '/admin/users', icon: '👥' },
     { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
     { label: 'Messages', href: '/admin/messages', icon: '💬' },

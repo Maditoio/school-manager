@@ -469,6 +469,7 @@ export default function FinanceExpensesPage() {
   const navItems = [
     { label: 'Fees', href: '/finance/fees', icon: '💳' },
     { label: 'Expenses', href: '/finance/expenses', icon: '🧾' },
+    { label: 'Fund Requests', href: '/finance/fund-requests', icon: '💰' },
   ]
 
   if (status === 'loading' || !session) {

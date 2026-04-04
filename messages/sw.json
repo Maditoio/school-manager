@@ -42,7 +42,10 @@
     "announcements": "Matangazo",
     "profile": "Wasifu",
     "settings": "Mipangilio",
-    "schools": "Shule"
+    "schools": "Shule",
+    "fees": "Ada",
+    "expenses": "Gharama",
+    "fundRequests": "Maombi ya Fedha"
   },
   "dashboard": {
     "title": "Dashibodi",
