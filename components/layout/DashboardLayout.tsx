@@ -168,6 +168,17 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
       }
     }
 
+    if (isSchoolAdmin && !enhancedNavItems.some((item) => item.href === '/admin/users')) {
+      const insertAfter = enhancedNavItems.findIndex((item) => item.href === '/admin/terms')
+      const usersItem = { label: 'Users', href: '/admin/users', icon: '👥' }
+
+      if (insertAfter >= 0) {
+        enhancedNavItems.splice(insertAfter + 1, 0, usersItem)
+      } else {
+        enhancedNavItems.push(usersItem)
+      }
+    }
+
     return enhancedNavItems.map((item) => ({ ...item, label: translateText(item.label, locale) }))
   }, [navItems, locale, session?.user?.role, user.role])
 
