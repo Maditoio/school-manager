@@ -48,6 +48,8 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/admin/dashboard', request.url))
       case 'FINANCE':
         return NextResponse.redirect(new URL('/finance/fees', request.url))
+      case 'FINANCE_MANAGER':
+        return NextResponse.redirect(new URL('/finance/expenses', request.url))
       case 'TEACHER':
         return NextResponse.redirect(new URL('/teacher/dashboard', request.url))
       case 'PARENT':
@@ -66,7 +68,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/unauthorized', request.url))
   }
 
-  if (pathname.startsWith('/finance') && role !== 'FINANCE') {
+  if (pathname.startsWith('/finance') && role !== 'FINANCE' && role !== 'FINANCE_MANAGER') {
     return NextResponse.redirect(new URL('/unauthorized', request.url))
   }
 

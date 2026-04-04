@@ -13,7 +13,7 @@ import { translateText } from '@/lib/client-i18n'
 import { useLocale } from '@/lib/locale-context'
 import { UserPlus } from 'lucide-react'
 
-type UserRole = 'TEACHER' | 'PARENT' | 'FINANCE'
+type UserRole = 'TEACHER' | 'PARENT' | 'FINANCE' | 'FINANCE_MANAGER'
 
 type UserItem = {
   id: string
@@ -30,6 +30,7 @@ const ROLE_OPTIONS: Array<{ value: UserRole; labelKey: string }> = [
   { value: 'TEACHER', labelKey: 'Teacher' },
   { value: 'PARENT', labelKey: 'Parent' },
   { value: 'FINANCE', labelKey: 'Finance' },
+  { value: 'FINANCE_MANAGER', labelKey: 'Finance Manager' },
 ]
 
 export default function AdminUsersPage() {
@@ -190,6 +191,7 @@ export default function AdminUsersPage() {
 
   const roleLabel = (role: UserRole) => {
     if (role === 'FINANCE') return translateText('Finance', locale)
+    if (role === 'FINANCE_MANAGER') return translateText('Finance Manager', locale)
     if (role === 'PARENT') return translateText('Parent', locale)
     return translateText('Teacher', locale)
   }
@@ -216,9 +218,11 @@ export default function AdminUsersPage() {
         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
           u.role === 'FINANCE'
             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-            : u.role === 'PARENT'
-              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-              : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
+            : u.role === 'FINANCE_MANAGER'
+              ? 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300'
+              : u.role === 'PARENT'
+                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
         }`}>
           {roleLabel(u.role)}
         </span>

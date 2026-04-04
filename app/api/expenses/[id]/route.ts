@@ -17,19 +17,19 @@ async function resolveSchoolContext(sessionUser: { id?: string | null; email?: s
     select: { id: true, schoolId: true, role: true },
   })
 
-  if (!user || !user.schoolId || !['SCHOOL_ADMIN', 'FINANCE'].includes(user.role)) {
+  if (!user || !user.schoolId || !['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER'].includes(user.role)) {
     return null
   }
 
   return { schoolId: user.schoolId, userId: user.id }
 }
 
-// PATCH /api/expenses/[id] — Approve (SCHOOL_ADMIN only)
+// PATCH /api/expenses/[id] — Approve (SCHOOL_ADMIN always; FINANCE_MANAGER within threshold)
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth()
-    if (!session?.user || session.user.role !== 'SCHOOL_ADMIN') {
-      return NextResponse.json({ error: 'Only school administrators can approve expenses' }, { status: 403 })
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE_MANAGER'])) {
+      return NextResponse.json({ error: 'Only school administrators or finance managers can approve expenses' }, { status: 403 })
     }
 
     const context = await resolveSchoolContext(session.user)
@@ -45,6 +45,24 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     if (existing.status !== 'RECORDED') {
       return NextResponse.json({ error: 'Only recorded expenses can be approved' }, { status: 422 })
+    }
+
+    // FINANCE_MANAGER: check threshold
+    if (session.user.role === 'FINANCE_MANAGER') {
+      const settings = await prisma.schoolSettings.findUnique({ where: { schoolId: context.schoolId } })
+      const threshold = settings?.expenseApprovalThreshold ?? 0
+      if (threshold <= 0) {
+        return NextResponse.json(
+          { error: 'No approval limit has been set. Contact your administrator.' },
+          { status: 403 }
+        )
+      }
+      if (existing.amount > threshold) {
+        return NextResponse.json(
+          { error: `This expense exceeds your approval limit of ${threshold}. Administrator approval is required.` },
+          { status: 403 }
+        )
+      }
     }
 
     const updated = await prisma.expense.update({
@@ -72,11 +90,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 }
 
-// PUT /api/expenses/[id] — Edit fields (APPROVED expenses are immutable; FINANCE cannot approve)
+// PUT /api/expenses/[id] — Edit fields (APPROVED expenses are immutable; FINANCE/FINANCE_MANAGER cannot approve)
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth()
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -107,17 +125,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const payload = validation.data
 
-    // FINANCE cannot approve — only SCHOOL_ADMIN can move status to APPROVED
-    if (session.user.role === 'FINANCE' && payload.status === 'APPROVED') {
+    // FINANCE / FINANCE_MANAGER cannot approve — only SCHOOL_ADMIN can move status to APPROVED via this route
+    if (['FINANCE', 'FINANCE_MANAGER'].includes(session.user.role ?? '') && payload.status === 'APPROVED') {
       return NextResponse.json(
-        { error: 'Finance users cannot approve expenses. Only school administrators can approve.' },
+        { error: 'Finance users cannot approve expenses via this route. Use the Approve action.' },
         { status: 403 }
       )
     }
 
-    // Strip APPROVED from status so FINANCE can never set it through this route
+    // Strip APPROVED from status so FINANCE/FINANCE_MANAGER can never set it through this route
     const resolvedStatus =
-      payload.status === 'APPROVED' && session.user.role === 'FINANCE'
+      payload.status === 'APPROVED' && ['FINANCE', 'FINANCE_MANAGER'].includes(session.user.role ?? '')
         ? existing.status
         : (payload.status ?? existing.status)
 
@@ -171,11 +189,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-// DELETE /api/expenses/[id] — Void (requires reason; FINANCE can only void own RECORDED expenses)
+// DELETE /api/expenses/[id] — Void (requires reason; FINANCE/FINANCE_MANAGER can only void own RECORDED expenses)
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth()
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -201,8 +219,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: 'Expense is already voided' }, { status: 422 })
     }
 
-    // FINANCE: can only void RECORDED expenses they themselves recorded
-    if (session.user.role === 'FINANCE') {
+    // FINANCE / FINANCE_MANAGER: can only void RECORDED expenses they themselves recorded
+    if (['FINANCE', 'FINANCE_MANAGER'].includes(session.user.role ?? '')) {
       if (existing.status === 'APPROVED') {
         return NextResponse.json(
           { error: 'Approved expenses can only be voided by a school administrator.' },

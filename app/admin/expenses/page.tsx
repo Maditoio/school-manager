@@ -100,6 +100,11 @@ export default function AdminExpensesPage() {
   // Approve state
   const [approvingSaving, setApprovingSaving] = useState(false)
 
+  // Threshold settings state
+  const [threshold, setThreshold] = useState(0)
+  const [thresholdInput, setThresholdInput] = useState('0')
+  const [thresholdSaving, setThresholdSaving] = useState(false)
+
   // Void modal state
   const [showVoidModal, setShowVoidModal] = useState(false)
   const [voidTargetId, setVoidTargetId] = useState<string | null>(null)
@@ -123,6 +128,9 @@ export default function AdminExpensesPage() {
       setExpenses(Array.isArray(data.expenses) ? data.expenses : [])
       setAuditLogs(Array.isArray(data.recentAuditLogs) ? data.recentAuditLogs : [])
       setSummary(data.summary || { totalAmount: 0, monthAmount: 0, peopleAmount: 0, recordedCount: 0, approvedCount: 0, voidCount: 0 })
+      const t = data.expenseApprovalThreshold ?? 0
+      setThreshold(t)
+      setThresholdInput(String(t))
       setSelectedExpenseId((cur) => cur || data.expenses?.[0]?.id || '')
     } catch {
       showToast(translateText('Failed to load expenses', locale), 'error')
@@ -150,6 +158,34 @@ export default function AdminExpensesPage() {
   }, [filteredExpenses, tablePage])
 
   const selectedAuditLogs = useMemo(() => auditLogs.filter((l) => l.expenseId === selectedExpenseId), [auditLogs, selectedExpenseId])
+
+  const handleSaveThreshold = async () => {
+    const value = parseFloat(thresholdInput)
+    if (isNaN(value) || value < 0) {
+      showToast(translateText('Please enter a valid amount', locale), 'warning')
+      return
+    }
+    try {
+      setThresholdSaving(true)
+      const res = await fetch('/api/schools/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expenseApprovalThreshold: value }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        showToast(data.error || translateText('Failed to save setting', locale), 'error')
+        return
+      }
+      setThreshold(data.expenseApprovalThreshold)
+      setThresholdInput(String(data.expenseApprovalThreshold))
+      showToast(translateText('Approval limit saved', locale), 'success')
+    } catch {
+      showToast(translateText('Failed to save setting', locale), 'error')
+    } finally {
+      setThresholdSaving(false)
+    }
+  }
 
   const handleApprove = async (expenseId: string) => {
     try {
@@ -336,6 +372,39 @@ export default function AdminExpensesPage() {
           <StatCard title="Pending Approval" value={summary.recordedCount} icon={<BadgeDollarSign className="h-4 w-4" />} />
           <StatCard title="Approved" value={summary.approvedCount} icon={<ShieldCheck className="h-4 w-4" />} />
         </div>
+
+        <Card title={translateText('Finance Manager Approval Limit', locale)} className="p-4">
+          <p className="text-sm ui-text-secondary mb-3">
+            {translateText('Finance managers can approve expenses up to this amount. Set to 0 to disable delegation. Expenses above this limit require administrator approval.', locale)}
+          </p>
+          <div className="flex items-end gap-3 max-w-sm">
+            <Input
+              label={translateText('Approval limit amount', locale)}
+              type="number"
+              min="0"
+              step="0.01"
+              value={thresholdInput}
+              onChange={(e) => setThresholdInput(e.target.value)}
+            />
+            <Button
+              type="button"
+              isLoading={thresholdSaving}
+              onClick={handleSaveThreshold}
+              className="shrink-0"
+            >
+              {translateText('Save Limit', locale)}
+            </Button>
+          </div>
+          {threshold > 0 ? (
+            <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+              {translateText('Current limit', locale)}: {formatCurrency(threshold)}
+            </p>
+          ) : (
+            <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+              {translateText('Delegation disabled — only administrators can approve expenses', locale)}
+            </p>
+          )}
+        </Card>
 
         <Card title={translateText('Filters', locale)} className="p-4">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">

@@ -17,7 +17,7 @@ type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'M_PESA' | 'ORANGE_MONEY' | 'OTH
 
 type FeesPageProps = {
   routePrefix?: '/admin' | '/finance'
-  allowedRoles?: Array<'SCHOOL_ADMIN' | 'FINANCE'>
+  allowedRoles?: Array<'SCHOOL_ADMIN' | 'FINANCE' | 'FINANCE_MANAGER'>
   navMode?: 'admin' | 'finance'
 }
 
@@ -154,7 +154,7 @@ export default function AdminFeesPage({
       redirect('/login')
     }
 
-    if (session?.user?.role && !allowedRoles.includes(session.user.role as 'SCHOOL_ADMIN' | 'FINANCE')) {
+    if (session?.user?.role && !allowedRoles.includes(session.user.role as 'SCHOOL_ADMIN' | 'FINANCE' | 'FINANCE_MANAGER')) {
       redirect('/login')
     }
   }, [allowedRoles, session, status])

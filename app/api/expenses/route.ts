@@ -17,7 +17,7 @@ async function resolveSchoolContext(sessionUser: { id?: string | null; email?: s
     select: { id: true, schoolId: true, role: true },
   })
 
-  if (!user || !user.schoolId || !['SCHOOL_ADMIN', 'FINANCE'].includes(user.role)) {
+  if (!user || !user.schoolId || !['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER'].includes(user.role)) {
     return null
   }
 
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const [expenses, recentAuditLogs, students] = await Promise.all([
+    const [expenses, recentAuditLogs, students, schoolSettings] = await Promise.all([
       prisma.expense.findMany({
         where,
         include: {
@@ -102,6 +102,7 @@ export async function GET(request: NextRequest) {
         orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
         take: 300,
       }),
+      prisma.schoolSettings.findUnique({ where: { schoolId: context.schoolId } }),
     ])
 
     const { start, end } = monthWindow()
@@ -153,6 +154,7 @@ export async function GET(request: NextRequest) {
         admissionNumber: student.admissionNumber,
       })),
       summary,
+      expenseApprovalThreshold: schoolSettings?.expenseApprovalThreshold ?? 0,
     })
   } catch (error) {
     console.error('Error fetching expenses:', error)
@@ -164,7 +166,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
 
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

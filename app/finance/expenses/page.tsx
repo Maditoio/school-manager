@@ -140,6 +140,8 @@ export default function FinanceExpensesPage() {
   const [voidTargetId, setVoidTargetId] = useState<string | null>(null)
   const [voidReason, setVoidReason] = useState('')
   const [voidSaving, setVoidSaving] = useState(false)
+  const [approvingSaving, setApprovingSaving] = useState(false)
+  const [expenseApprovalThreshold, setExpenseApprovalThreshold] = useState(0)
   const [formData, setFormData] = useState({
     title: '',
     category: 'MAINTENANCE' as ExpenseCategory,
@@ -159,7 +161,7 @@ export default function FinanceExpensesPage() {
       redirect('/login')
     }
 
-    if (session?.user?.role !== 'FINANCE') {
+    if (session?.user?.role && !['FINANCE', 'FINANCE_MANAGER'].includes(session.user.role)) {
       redirect('/login')
     }
   }, [session, status])
@@ -186,6 +188,7 @@ export default function FinanceExpensesPage() {
         approvedCount: 0,
         voidCount: 0,
       })
+      setExpenseApprovalThreshold(data.expenseApprovalThreshold ?? 0)
       setSelectedExpenseId((current) => current || data.expenses?.[0]?.id || '')
     } catch (error) {
       console.error('Failed to load expenses:', error)
@@ -196,7 +199,7 @@ export default function FinanceExpensesPage() {
   }
 
   useEffect(() => {
-    if (session?.user?.role === 'FINANCE') {
+    if (session?.user?.role === 'FINANCE' || session?.user?.role === 'FINANCE_MANAGER') {
       fetchExpenses()
     }
   }, [session?.user?.role])
@@ -319,6 +322,24 @@ export default function FinanceExpensesPage() {
     setShowVoidModal(true)
   }
 
+  const handleApprove = async (expenseId: string) => {
+    try {
+      setApprovingSaving(true)
+      const res = await fetch(`/api/expenses/${expenseId}`, { method: 'PATCH' })
+      const data = await res.json()
+      if (!res.ok) {
+        showToast(translateText(data.error || 'Failed to approve expense', locale), 'error')
+        return
+      }
+      showToast(translateText('Expense approved', locale), 'success')
+      await fetchExpenses()
+    } catch {
+      showToast(translateText('Failed to approve expense', locale), 'error')
+    } finally {
+      setApprovingSaving(false)
+    }
+  }
+
   const handleVoidConfirm = async () => {
     if (!voidTargetId) return
     const trimmed = voidReason.trim()
@@ -415,11 +436,25 @@ export default function FinanceExpensesPage() {
           return <span className="text-xs ui-text-secondary">—</span>
         }
         const isOwn = expense.createdById === session?.user?.id
+        const isFinanceManager = session?.user?.role === 'FINANCE_MANAGER'
+        const canApprove = isFinanceManager && expenseApprovalThreshold > 0 && expense.amount <= expenseApprovalThreshold
         return (
           <div className="flex gap-2">
-            <button type="button" onClick={() => openEditModal(expense)} className="text-indigo-300 hover:underline">
-              {translateText('Edit', locale)}
-            </button>
+            {canApprove ? (
+              <button
+                type="button"
+                disabled={approvingSaving}
+                onClick={() => handleApprove(expense.id)}
+                className="text-emerald-400 hover:underline disabled:opacity-50"
+              >
+                {translateText('Approve', locale)}
+              </button>
+            ) : null}
+            {isFinanceManager ? null : (
+              <button type="button" onClick={() => openEditModal(expense)} className="text-indigo-300 hover:underline">
+                {translateText('Edit', locale)}
+              </button>
+            )}
             {isOwn ? (
               <button type="button" onClick={() => handleVoidClick(expense.id)} className="text-rose-400 hover:underline">
                 {translateText('Void', locale)}
@@ -429,7 +464,7 @@ export default function FinanceExpensesPage() {
         )
       },
     },
-  ], [selectedExpenseId, locale, session?.user?.id])
+  ], [selectedExpenseId, locale, session?.user?.id, session?.user?.role, expenseApprovalThreshold, approvingSaving])
 
   const navItems = [
     { label: 'Fees', href: '/finance/fees', icon: '💳' },
@@ -467,6 +502,14 @@ export default function FinanceExpensesPage() {
           <StatCard title="People Costs" value={formatCurrency(summary.peopleAmount)} icon={<BadgeDollarSign className="h-4 w-4" />} />
           <StatCard title="Approved Records" value={summary.approvedCount} icon={<ShieldCheck className="h-4 w-4" />} />
         </div>
+
+        {session?.user?.role === 'FINANCE_MANAGER' ? (
+          <div className={`rounded-xl border px-4 py-3 text-sm ${expenseApprovalThreshold > 0 ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'}`}>
+            {expenseApprovalThreshold > 0
+              ? `${translateText('Your approval limit', locale)}: ${formatCurrency(expenseApprovalThreshold)}. ${translateText('Expenses at or below this amount can be approved by you; larger expenses require administrator approval.', locale)}`
+              : translateText('No approval limit has been configured by your administrator. You cannot approve expenses at this time.', locale)}
+          </div>
+        ) : null}
 
         <Card title="Expense Filters" className="p-4">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">

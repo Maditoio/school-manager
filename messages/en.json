@@ -18,6 +18,7 @@
     "roles": {
       "school_admin": "School Admin",
       "finance": "Finance",
+      "finance_manager": "Finance Manager",
       "teacher": "Teacher",
       "parent": "Parent",
       "super_admin": "Super Admin"
@@ -35,6 +36,7 @@
     "super_admin": "Super Admin",
     "school_admin": "School Admin",
     "finance": "Finance",
+    "finance_manager": "Finance Manager",
     "teacher": "Teacher",
     "parent": "Parent"
   },
@@ -1090,6 +1092,16 @@
     "categoryUtilities": "Utilities",
     "categoryTransport": "Transport",
     "categoryEquipment": "Equipment",
-    "categoryOther": "Other"
+    "categoryOther": "Other",
+    "financeManagerApprovalLimit": "Finance Manager Approval Limit",
+    "financeManagerLimitDesc": "Finance managers can approve expenses up to this amount. Set to 0 to disable delegation. Expenses above this limit require administrator approval.",
+    "approvalLimitAmount": "Approval limit amount",
+    "saveLimit": "Save Limit",
+    "currentLimit": "Current limit",
+    "delegationDisabled": "Delegation disabled \u2014 only administrators can approve expenses",
+    "approvalLimitSaved": "Approval limit saved",
+    "approvalLimitBanner": "Your approval limit",
+    "approvalLimitBannerDetail": "Expenses at or below this amount can be approved by you; larger expenses require administrator approval.",
+    "noApprovalLimitConfigured": "No approval limit has been configured by your administrator. You cannot approve expenses at this time."
   }
 }

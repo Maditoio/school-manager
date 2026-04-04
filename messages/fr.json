@@ -18,6 +18,7 @@
     "roles": {
       "school_admin": "Administrateur d'École",
       "finance": "Finance",
+      "finance_manager": "Responsable Financier",
       "teacher": "Enseignant",
       "parent": "Parent",
       "super_admin": "Super Administrateur"
@@ -66,6 +67,7 @@
     "super_admin": "Super Administrateur",
     "school_admin": "Administrateur d'École",
     "finance": "Finance",
+    "finance_manager": "Responsable Financier",
     "teacher": "Enseignant",
     "parent": "Parent"
   },
@@ -1119,6 +1121,16 @@
     "categoryUtilities": "Services publics",
     "categoryTransport": "Transport",
     "categoryEquipment": "Équipement",
-    "categoryOther": "Autre"
+    "categoryOther": "Autre",
+    "financeManagerApprovalLimit": "Limite d'approbation du Responsable Financier",
+    "financeManagerLimitDesc": "Les responsables financiers peuvent approuver les dépenses jusqu'à ce montant. Définir à 0 pour désactiver la délégation. Les dépenses au-dessus de cette limite nécessitent l'approbation de l'administrateur.",
+    "approvalLimitAmount": "Montant limite d'approbation",
+    "saveLimit": "Enregistrer la limite",
+    "currentLimit": "Limite actuelle",
+    "delegationDisabled": "Délégation désactivée \u2014 seuls les administrateurs peuvent approuver les dépenses",
+    "approvalLimitSaved": "Limite d'approbation enregistrée",
+    "approvalLimitBanner": "Votre limite d'approbation",
+    "approvalLimitBannerDetail": "Les dépenses à ce montant ou en dessous peuvent être approuvées par vous; les dépenses plus importantes nécessitent l'approbation de l'administrateur.",
+    "noApprovalLimitConfigured": "Aucune limite d'approbation n'a été configurée par votre administrateur. Vous ne pouvez pas approuver les dépenses pour l'instant."
   }
 }

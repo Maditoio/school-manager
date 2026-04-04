@@ -83,6 +83,13 @@ export const ROLE_PERMISSIONS = {
     'edit:expense',
     'audit:expenses',
   ],
+  FINANCE_MANAGER: [
+    'view:fees',
+    'view:expenses',
+    'create:expense',
+    'audit:expenses',
+    'approve:expense',
+  ],
   TEACHER: [
     'view:assigned-classes',
     'mark:attendance',

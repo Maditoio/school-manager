@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     const normalizedEmail = validation.data.email.trim().toLowerCase()
     const { password, firstName, lastName, role, schoolId } = validation.data
 
-    if (session.user.role !== 'SUPER_ADMIN' && !['TEACHER', 'PARENT', 'FINANCE'].includes(role)) {
+    if (session.user.role !== 'SUPER_ADMIN' && !['TEACHER', 'PARENT', 'FINANCE', 'FINANCE_MANAGER'].includes(role)) {
       return NextResponse.json(
         { error: 'You are not allowed to create this role' },
         { status: 403 }

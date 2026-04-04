@@ -35,6 +35,7 @@ model School {
   parentComplaints             ParentComplaint[]
   parentInteractions           ParentInteraction[]
   results                      Result[]
+  schoolSettings               SchoolSettings?
   students                     Student[]
   subjects                     Subject[]
   teacherContracts             TeacherContract[]
@@ -43,6 +44,17 @@ model School {
   users                        User[]
 
   @@map("schools")
+}
+
+model SchoolSettings {
+  id                        String   @id @default(uuid())
+  schoolId                  String   @unique @map("school_id")
+  expenseApprovalThreshold  Float    @default(0) @map("expense_approval_threshold")
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+  school                    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("school_settings")
 }
 
 model User {
@@ -766,6 +778,7 @@ enum UserRole {
   SUPER_ADMIN
   SCHOOL_ADMIN
   FINANCE
+  FINANCE_MANAGER
   TEACHER
   PARENT
 }
