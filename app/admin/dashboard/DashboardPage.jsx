@@ -9,6 +9,8 @@ import StaffSection from './sections/StaffSection'
 import AlertsSection from './sections/AlertsSection'
 import CalendarSection from './sections/CalendarSection'
 import { dashboardData } from './dashboardData'
+import { useLocale } from '@/lib/locale-context'
+import { translateText } from '@/lib/client-i18n'
 
 function sectionLabel(text) {
   return (
@@ -19,6 +21,7 @@ function sectionLabel(text) {
 }
 
 export default function DashboardPage({ user }) {
+  const { locale } = useLocale()
   const [dashboardState, setDashboardState] = useState({
     ...dashboardData,
     academic: null,
@@ -213,14 +216,23 @@ export default function DashboardPage({ user }) {
 
   const currentDate = useMemo(
     () =>
-      new Date().toLocaleDateString('en-ZA', {
+      new Date().toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-KE' : 'en-ZA', {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
         year: 'numeric',
       }),
-    []
+    [locale]
   )
+
+  const localizedTermLabel = useMemo(() => {
+    if (locale === 'en') return headerTermLabel
+
+    return headerTermLabel
+      .replace('Term', translateText('Term', locale))
+      .replace('Week', translateText('Week', locale))
+      .replace(' of ', ` ${translateText('of', locale)} `)
+  }, [headerTermLabel, locale])
 
   const greetingName = typeof user?.name === 'string' && user.name.trim()
     ? user.name.trim()
@@ -245,8 +257,8 @@ export default function DashboardPage({ user }) {
       <div className="min-h-full" style={{ background: '#0b0d14' }}>
         <div className="mx-auto max-w-[1680px] space-y-8 p-2 md:p-4 lg:p-6">
           <header>
-            <h1 className="text-3xl font-bold text-slate-100">Good morning, {greetingName} 👋</h1>
-            <p className="mt-2 text-sm text-slate-400">{currentDate} · {headerTermLabel}</p>
+            <h1 className="text-3xl font-bold text-slate-100">{translateText('Good morning', locale)}, {greetingName} 👋</h1>
+            <p className="mt-2 text-sm text-slate-400">{currentDate} · {localizedTermLabel}</p>
           </header>
 
           <section className="space-y-2">

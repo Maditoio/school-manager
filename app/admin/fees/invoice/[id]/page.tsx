@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
+import { translateText } from '@/lib/client-i18n'
 
 type InvoicePageRow = {
   payment_id: string
@@ -124,14 +125,22 @@ export default async function FeeInvoicePage({ params }: { params: Promise<{ id:
     redirect('/login')
   }
 
+  const locale = String(session.user.preferredLanguage || 'en').toLowerCase().startsWith('fr')
+    ? 'fr'
+    : String(session.user.preferredLanguage || 'en').toLowerCase().startsWith('sw')
+      ? 'sw'
+      : 'en'
+
+  const t = (text: string) => translateText(text, locale)
+
   const { id } = await params
   const payment = await getInvoiceData(id, session.user.schoolId)
 
   if (!payment) {
     return (
       <div className="mx-auto max-w-3xl p-8">
-        <h1 className="text-2xl font-bold ui-text-primary">Invoice not found</h1>
-        <p className="mt-2 ui-text-secondary">The payment record could not be found for your school.</p>
+        <h1 className="text-2xl font-bold ui-text-primary">{t('Invoice not found')}</h1>
+        <p className="mt-2 ui-text-secondary">{t('The payment record could not be found for your school.')}</p>
       </div>
     )
   }
@@ -144,39 +153,39 @@ export default async function FeeInvoicePage({ params }: { params: Promise<{ id:
   )
 
   const studentName = `${payment.student.firstName} ${payment.student.lastName}`
-  const receivedBy = `${payment.receiver.firstName || ''} ${payment.receiver.lastName || ''}`.trim() || 'School Admin'
+  const receivedBy = `${payment.receiver.firstName || ''} ${payment.receiver.lastName || ''}`.trim() || t('School Admin')
 
   return (
     <div className="mx-auto max-w-3xl p-6 print:p-2">
       <div className="ui-surface p-6 print:border-none print:shadow-none">
         <div className="flex items-start justify-between border-b pb-4" style={{ borderColor: 'var(--border-subtle)' }}>
           <div>
-            <h1 className="text-2xl font-bold ui-text-primary">Fee Payment Invoice</h1>
+            <h1 className="text-2xl font-bold ui-text-primary">{t('Fee Payment Invoice')}</h1>
             <p className="mt-1 text-sm ui-text-secondary">{payment.school.name}</p>
           </div>
           <div className="text-right text-sm ui-text-secondary">
-            <p>Payment No: <span className="font-semibold ui-text-primary">{payment.paymentNumber}</span></p>
-            <p>Date: {new Date(payment.paymentDate).toLocaleDateString()}</p>
+            <p>{t('Payment No:')} <span className="font-semibold ui-text-primary">{payment.paymentNumber}</span></p>
+            <p>{t('Date:')} {new Date(payment.paymentDate).toLocaleDateString()}</p>
           </div>
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide ui-text-secondary">Student Details</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide ui-text-secondary">{t('Student Details')}</h2>
             <div className="mt-2 space-y-1 text-sm ui-text-primary">
-              <p><span className="font-medium">Name:</span> {studentName}</p>
-              <p><span className="font-medium">Admission No:</span> {payment.student.admissionNumber || '-'}</p>
-              <p><span className="font-medium">Class:</span> {payment.student.class?.name || '-'}</p>
+              <p><span className="font-medium">{t('Name:')}</span> {studentName}</p>
+              <p><span className="font-medium">{t('Admission No:')}</span> {payment.student.admissionNumber || '-'}</p>
+              <p><span className="font-medium">{t('Class:')}</span> {payment.student.class?.name || '-'}</p>
             </div>
           </div>
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide ui-text-secondary">Payment Details</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide ui-text-secondary">{t('Payment Details')}</h2>
             <div className="mt-2 space-y-1 text-sm ui-text-primary">
-              <p><span className="font-medium">Fee Period:</span> {scheduleLabel}</p>
-              <p><span className="font-medium">Amount Due:</span> {payment.schedule.amountDue.toFixed(2)}</p>
-              <p><span className="font-medium">Amount Paid:</span> {payment.amountPaid.toFixed(2)}</p>
-              <p><span className="font-medium">Payment Method:</span> {formatPaymentMethod(payment.paymentMethod)}</p>
-              <p><span className="font-medium">Received By:</span> {receivedBy}</p>
+              <p><span className="font-medium">{t('Fee Period:')}</span> {scheduleLabel}</p>
+              <p><span className="font-medium">{t('Amount Due:')}</span> {payment.schedule.amountDue.toFixed(2)}</p>
+              <p><span className="font-medium">{t('Amount Paid:')}</span> {payment.amountPaid.toFixed(2)}</p>
+              <p><span className="font-medium">{t('Payment Method:')}</span> {t(formatPaymentMethod(payment.paymentMethod))}</p>
+              <p><span className="font-medium">{t('Received By:')}</span> {receivedBy}</p>
             </div>
           </div>
         </div>
@@ -186,12 +195,12 @@ export default async function FeeInvoicePage({ params }: { params: Promise<{ id:
             className="mt-6 rounded-[10px] p-3 text-sm ui-text-secondary border"
             style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}
           >
-            <span className="font-medium ui-text-primary">Notes:</span> {payment.notes}
+            <span className="font-medium ui-text-primary">{t('Notes:')}</span> {payment.notes}
           </div>
         )}
 
         <div className="mt-8 text-right text-sm ui-text-secondary print:hidden">
-          Use your browser print option to print or save this invoice as PDF.
+          {t('Use your browser print option to print or save this invoice as PDF.')}
         </div>
       </div>
     </div>

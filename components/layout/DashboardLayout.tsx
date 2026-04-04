@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useToast } from '@/components/ui/Toast'
-import { type ClientLocale, translateText } from '@/lib/client-i18n'
+import { type ClientLocale, translateNode, translateText } from '@/lib/client-i18n'
 import { useLocale } from '@/lib/locale-context'
 
 interface LayoutProps {
@@ -190,6 +190,17 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
     [user, locale]
   )
 
+  const translatedChildren = useMemo(() => {
+    const role = session?.user?.role
+    const shouldTranslatePageContent = locale !== 'en' && (role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN')
+
+    if (!shouldTranslatePageContent) {
+      return children
+    }
+
+    return translateNode(children, locale)
+  }, [children, locale, session?.user?.role])
+
   return (
     <div className="min-h-screen bg-background ui-text-primary">
       {!isParentView ? (
@@ -219,7 +230,7 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
           />
         ) : null}
         <main className={`flex-1 overflow-auto p-4 ${isParentView ? 'pt-4 pb-24 md:pt-6 md:pb-24' : 'pt-20 pb-20 md:p-6 md:pt-22 md:pb-6'}`}>
-          {children}
+          {translatedChildren}
         </main>
         {isParentView ? (
           <BottomSidebarNav items={translatedNavItems} />
