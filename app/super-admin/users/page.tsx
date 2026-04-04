@@ -23,7 +23,7 @@ interface UserItem {
   email: string
   firstName: string
   lastName: string
-  role: 'SCHOOL_ADMIN' | 'FINANCE' | 'TEACHER' | 'PARENT' | 'SUPER_ADMIN'
+  role: 'SCHOOL_ADMIN' | 'FINANCE' | 'FINANCE_MANAGER' | 'TEACHER' | 'PARENT' | 'SUPER_ADMIN'
   schoolId: string | null
   createdAt: string
   school?: {
@@ -101,7 +101,7 @@ export default function SuperAdminUsersPage() {
       const managed = list.filter((user: UserItem) =>
         selectedRole
           ? user.role === selectedRole
-          : user.role === 'SCHOOL_ADMIN' || user.role === 'TEACHER' || user.role === 'FINANCE'
+          : user.role === 'TEACHER' || user.role === 'FINANCE' || user.role === 'FINANCE_MANAGER'
       )
       setUsers(managed)
     } catch (error) {
@@ -141,7 +141,7 @@ export default function SuperAdminUsersPage() {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      role: user.role === 'SCHOOL_ADMIN' || user.role === 'FINANCE' ? user.role : 'TEACHER',
+      role: ['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER'].includes(user.role) ? user.role : 'TEACHER',
       schoolId: user.schoolId || '',
       password: '',
     })
@@ -306,6 +306,7 @@ export default function SuperAdminUsersPage() {
                 <option value="">{t('teachers.management.title')}</option>
                 <option value="SCHOOL_ADMIN">{t('common.roles.school_admin')}</option>
                 <option value="FINANCE">{t('common.roles.finance')}</option>
+                <option value="FINANCE_MANAGER">Finance Manager</option>
                 <option value="TEACHER">{t('common.roles.teacher')}</option>
               </Select>
             </div>
@@ -342,7 +343,9 @@ export default function SuperAdminUsersPage() {
                           ? t('common.roles.school_admin')
                           : user.role === 'FINANCE'
                             ? t('common.roles.finance')
-                            : t('common.roles.teacher')}
+                            : user.role === 'FINANCE_MANAGER'
+                              ? 'Finance Manager'
+                              : t('common.roles.teacher')}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-800">
                         {user.school?.name || (user.schoolId ? schoolLookup.get(user.schoolId) : '—') || '—'}
@@ -406,6 +409,7 @@ export default function SuperAdminUsersPage() {
                   >
                     <option value="SCHOOL_ADMIN">{t('common.roles.school_admin')}</option>
                     <option value="FINANCE">{t('common.roles.finance')}</option>
+                    <option value="FINANCE_MANAGER">Finance Manager</option>
                     <option value="TEACHER">{t('common.roles.teacher')}</option>
                   </Select>
 
