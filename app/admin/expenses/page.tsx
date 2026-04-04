@@ -96,6 +96,12 @@ export default function AdminExpensesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [tablePage, setTablePage] = useState(1)
   const pageSize = 15
+  const auditPageSize = 20
+  const [auditPage, setAuditPage] = useState(1)
+  const [auditTotal, setAuditTotal] = useState(0)
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [incomeSummary, setIncomeSummary] = useState<{ totalIncome: number; totalExpenses: number; net: number } | null>(null)
 
   // Approve state
   const [approvingSaving, setApprovingSaving] = useState(false)
@@ -119,7 +125,15 @@ export default function AdminExpensesPage() {
   const fetchExpenses = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/expenses', { cache: 'no-store' })
+      const params = new URLSearchParams()
+      if (categoryFilter) params.set('category', categoryFilter)
+      if (statusFilter) params.set('status', statusFilter)
+      if (searchQuery.trim()) params.set('q', searchQuery.trim())
+      if (dateFrom) params.set('from', dateFrom)
+      if (dateTo) params.set('to', dateTo)
+      params.set('auditPage', String(auditPage))
+      params.set('auditPageSize', String(auditPageSize))
+      const res = await fetch(`/api/expenses?${params}`, { cache: 'no-store' })
       const data = await res.json()
       if (!res.ok) {
         showToast(data.error || translateText('Failed to load expenses', locale), 'error')
@@ -127,6 +141,7 @@ export default function AdminExpensesPage() {
       }
       setExpenses(Array.isArray(data.expenses) ? data.expenses : [])
       setAuditLogs(Array.isArray(data.recentAuditLogs) ? data.recentAuditLogs : [])
+      setAuditTotal(data.auditTotal ?? 0)
       setSummary(data.summary || { totalAmount: 0, monthAmount: 0, peopleAmount: 0, recordedCount: 0, approvedCount: 0, voidCount: 0 })
       const t = data.expenseApprovalThreshold ?? 0
       setThreshold(t)
@@ -137,11 +152,22 @@ export default function AdminExpensesPage() {
     } finally {
       setLoading(false)
     }
-  }, [locale])
+  }, [locale, categoryFilter, statusFilter, searchQuery, dateFrom, dateTo, auditPage, auditPageSize])
 
   useEffect(() => {
     if (session?.user?.role === 'SCHOOL_ADMIN') fetchExpenses()
   }, [session?.user?.role, fetchExpenses])
+
+  useEffect(() => {
+    if (!session?.user?.role) return
+    const now = new Date()
+    const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10)
+    const to = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10)
+    fetch(`/api/expenses/summary?from=${from}&to=${to}`)
+      .then((r) => r.json())
+      .then((d) => { if (d.totalIncome !== undefined) setIncomeSummary(d) })
+      .catch(() => null)
+  }, [session?.user?.role])
 
   const filteredExpenses = useMemo(() => {
     return expenses.filter((e) => {
@@ -158,6 +184,29 @@ export default function AdminExpensesPage() {
   }, [filteredExpenses, tablePage])
 
   const selectedAuditLogs = useMemo(() => auditLogs.filter((l) => l.expenseId === selectedExpenseId), [auditLogs, selectedExpenseId])
+
+  const handleExportCSV = () => {
+    const headers = ['Title', 'Category', 'Amount', 'Date', 'Status', 'Vendor', 'Reference', 'Beneficiary', 'Recorded By']
+    const rows = filteredExpenses.map((e) => [
+      e.title,
+      categoryOptions.find((o) => o.value === e.category)?.label || e.category,
+      e.amount,
+      new Date(e.expenseDate).toLocaleDateString(),
+      e.status,
+      e.vendorName || '',
+      e.referenceNumber || '',
+      e.beneficiaryName || '',
+      e.createdByName,
+    ])
+    const csv = [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `expenses-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   const handleSaveThreshold = async () => {
     const value = parseFloat(thresholdInput)
@@ -374,6 +423,25 @@ export default function AdminExpensesPage() {
           <StatCard title="Approved" value={summary.approvedCount} icon={<ShieldCheck className="h-4 w-4" />} />
         </div>
 
+        {incomeSummary && (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
+              <p className="text-xs font-medium uppercase tracking-wide ui-text-secondary">Fee Income (this month)</p>
+              <p className="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(incomeSummary.totalIncome)}</p>
+            </div>
+            <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
+              <p className="text-xs font-medium uppercase tracking-wide ui-text-secondary">Expenses (this month)</p>
+              <p className="mt-1 text-xl font-bold text-red-600 dark:text-red-400">{formatCurrency(incomeSummary.totalExpenses)}</p>
+            </div>
+            <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
+              <p className="text-xs font-medium uppercase tracking-wide ui-text-secondary">Net Position</p>
+              <p className={`mt-1 text-xl font-bold ${incomeSummary.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                {incomeSummary.net >= 0 ? '+' : ''}{formatCurrency(incomeSummary.net)}
+              </p>
+            </div>
+          </div>
+        )}
+
         <Card title={translateText('Finance Manager Approval Limit', locale)} className="p-4">
           <p className="text-sm ui-text-secondary mb-3">
             {translateText('Finance managers can approve expenses up to this amount. Set to 0 to disable delegation. Expenses above this limit require administrator approval.', locale)}
@@ -426,6 +494,20 @@ export default function AdminExpensesPage() {
               placeholder={translateText('Search title, vendor, recorded by...', locale)}
             />
           </div>
+          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <Input label={translateText('From date', locale)} type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setTablePage(1) }} />
+            <Input label={translateText('To date', locale)} type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setTablePage(1) }} />
+            <div className="flex items-end gap-2">
+              <Button onClick={() => { fetchExpenses(); setTablePage(1) }} className="flex-1">
+                {translateText('Apply Filters', locale)}
+              </Button>
+              {(dateFrom || dateTo || categoryFilter || statusFilter || searchQuery) ? (
+                <Button variant="secondary" onClick={() => { setDateFrom(''); setDateTo(''); setCategoryFilter(''); setStatusFilter(''); setSearchQuery(''); setTablePage(1) }}>
+                  {translateText('Clear', locale)}
+                </Button>
+              ) : null}
+            </div>
+          </div>
         </Card>
 
         <Table
@@ -439,6 +521,7 @@ export default function AdminExpensesPage() {
           onPageChange={setTablePage}
           emptyMessage={translateText('No expenses found.', locale)}
           rowKey="id"
+          onExport={filteredExpenses.length > 0 ? handleExportCSV : undefined}
         />
 
         <Card title={translateText('Audit Trail', locale)} className="p-4">
@@ -463,6 +546,36 @@ export default function AdminExpensesPage() {
                 </div>
               ))}
             </div>
+          )}
+        </Card>
+
+        {/* Paginated full audit log */}
+        <Card title={`${translateText('All Audit Events', locale)}${auditTotal > 0 ? ` (${auditTotal})` : ''}`} className="p-4">
+          {auditLogs.length === 0 ? (
+            <p className="ui-text-secondary">{translateText('No audit events yet.', locale)}</p>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {auditLogs.map((log) => (
+                  <div key={log.id} className="flex items-center justify-between gap-3 rounded-lg px-3 py-2" style={{ background: 'var(--surface-soft)' }}>
+                    <div className="min-w-0">
+                      <span className="font-medium ui-text-primary truncate">{log.expenseTitle}</span>
+                      <span className="ml-2 text-xs ui-text-secondary">{log.action} · {log.actorName}</span>
+                    </div>
+                    <span className="shrink-0 text-xs ui-text-secondary">{new Date(log.createdAt).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+              {auditTotal > auditPageSize && (
+                <div className="mt-3 flex items-center justify-between text-sm ui-text-secondary">
+                  <span>{translateText('Showing', locale)} {(auditPage - 1) * auditPageSize + 1}–{Math.min(auditPage * auditPageSize, auditTotal)} {translateText('of', locale)} {auditTotal}</span>
+                  <div className="flex gap-2">
+                    <Button variant="secondary" size="sm" disabled={auditPage === 1} onClick={() => setAuditPage((p) => p - 1)}>← {translateText('Prev', locale)}</Button>
+                    <Button variant="secondary" size="sm" disabled={auditPage * auditPageSize >= auditTotal} onClick={() => setAuditPage((p) => p + 1)}>{translateText('Next', locale)} →</Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </Card>
       </div>

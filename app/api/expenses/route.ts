@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth()
 
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -49,6 +49,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') as ExpenseStatus | null
     const from = searchParams.get('from')
     const to = searchParams.get('to')
+    const auditPage = Math.max(1, parseInt(searchParams.get('auditPage') ?? '1', 10))
+    const auditPageSize = Math.min(100, Math.max(1, parseInt(searchParams.get('auditPageSize') ?? '50', 10)))
 
     const where: Record<string, unknown> = { schoolId: context.schoolId }
 
@@ -77,7 +79,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const [expenses, recentAuditLogs, students, schoolSettings] = await Promise.all([
+    const [expenses, recentAuditLogs, auditTotal, students, schoolSettings] = await Promise.all([
       prisma.expense.findMany({
         where,
         include: {
@@ -94,8 +96,10 @@ export async function GET(request: NextRequest) {
           expense: { select: { id: true, title: true } },
         },
         orderBy: { createdAt: 'desc' },
-        take: 50,
+        skip: (auditPage - 1) * auditPageSize,
+        take: auditPageSize,
       }),
+      prisma.expenseAuditLog.count({ where: { schoolId: context.schoolId } }),
       prisma.student.findMany({
         where: { schoolId: context.schoolId },
         select: { id: true, firstName: true, lastName: true, admissionNumber: true },
@@ -155,6 +159,7 @@ export async function GET(request: NextRequest) {
       })),
       summary,
       expenseApprovalThreshold: schoolSettings?.expenseApprovalThreshold ?? 0,
+      auditTotal,
     })
   } catch (error) {
     console.error('Error fetching expenses:', error)

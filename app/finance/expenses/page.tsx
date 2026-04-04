@@ -117,6 +117,9 @@ export default function FinanceExpensesPage() {
   const [loading, setLoading] = useState(true)
   const [expenses, setExpenses] = useState<ExpenseItem[]>([])
   const [auditLogs, setAuditLogs] = useState<ExpenseAuditLog[]>([])
+  const [auditTotal, setAuditTotal] = useState(0)
+  const [auditPage, setAuditPage] = useState(1)
+  const auditPageSize = 20
   const [students, setStudents] = useState<StudentOption[]>([])
   const [summary, setSummary] = useState<Summary>({
     totalAmount: 0,
@@ -126,12 +129,15 @@ export default function FinanceExpensesPage() {
     approvedCount: 0,
     voidCount: 0,
   })
+  const [incomeSummary, setIncomeSummary] = useState<{ totalIncome: number; totalExpenses: number; net: number } | null>(null)
   const [selectedExpenseId, setSelectedExpenseId] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [tablePage, setTablePage] = useState(1)
   const pageSize = 10
 
@@ -169,7 +175,15 @@ export default function FinanceExpensesPage() {
   const fetchExpenses = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/expenses', { cache: 'no-store' })
+      const params = new URLSearchParams()
+      if (searchQuery.trim()) params.set('q', searchQuery.trim())
+      if (categoryFilter) params.set('category', categoryFilter)
+      if (statusFilter) params.set('status', statusFilter)
+      if (dateFrom) params.set('from', dateFrom)
+      if (dateTo) params.set('to', dateTo)
+      params.set('auditPage', String(auditPage))
+      params.set('auditPageSize', String(auditPageSize))
+      const res = await fetch(`/api/expenses?${params}`, { cache: 'no-store' })
       const data = await res.json()
 
       if (!res.ok) {
@@ -179,6 +193,7 @@ export default function FinanceExpensesPage() {
 
       setExpenses(Array.isArray(data.expenses) ? data.expenses : [])
       setAuditLogs(Array.isArray(data.recentAuditLogs) ? data.recentAuditLogs : [])
+      setAuditTotal(data.auditTotal ?? 0)
       setStudents(Array.isArray(data.students) ? data.students : [])
       setSummary(data.summary || {
         totalAmount: 0,
@@ -202,9 +217,23 @@ export default function FinanceExpensesPage() {
     if (session?.user?.role === 'FINANCE' || session?.user?.role === 'FINANCE_MANAGER') {
       fetchExpenses()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.role, auditPage])
+
+  // Fetch income vs expenses summary for current month
+  useEffect(() => {
+    if (session?.user?.role !== 'FINANCE' && session?.user?.role !== 'FINANCE_MANAGER') return
+    const now = new Date()
+    const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString().slice(0, 10)
+    const to = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)).toISOString().slice(0, 10)
+    fetch(`/api/expenses/summary?from=${from}&to=${to}`)
+      .then((r) => r.json())
+      .then((d) => { if (d.totalIncome !== undefined) setIncomeSummary(d) })
+      .catch(() => {})
   }, [session?.user?.role])
 
   const filteredExpenses = useMemo(() => {
+    // Client-side search/category/status filter on top of already server-filtered data
     return expenses.filter((expense) => {
       const query = searchQuery.trim().toLowerCase()
       const matchesQuery = !query || [
@@ -230,6 +259,32 @@ export default function FinanceExpensesPage() {
   const selectedAuditLogs = useMemo(() => {
     return auditLogs.filter((log) => log.expenseId === selectedExpenseId)
   }, [auditLogs, selectedExpenseId])
+
+  // CSV export for filtered expenses
+  const handleExportCSV = () => {
+    const rows = filteredExpenses
+    const headers = ['Title', 'Category', 'Amount', 'Date', 'Status', 'Payment Method', 'Vendor', 'Reference', 'Beneficiary', 'Recorded By']
+    const lines = rows.map((e) => [
+      `"${e.title.replace(/"/g, '""')}"`,
+      formatCategory(e.category),
+      e.amount.toFixed(2),
+      new Date(e.expenseDate).toLocaleDateString(),
+      e.status,
+      e.paymentMethod ?? '',
+      `"${(e.vendorName ?? '').replace(/"/g, '""')}"`,
+      e.referenceNumber ?? '',
+      `"${(e.beneficiaryName ?? '').replace(/"/g, '""')}"`,
+      `"${e.createdByName.replace(/"/g, '""')}"`,
+    ].join(','))
+    const csv = [headers.join(','), ...lines].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `expenses-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   const resetForm = () => {
     setEditingExpense(null)
@@ -504,6 +559,25 @@ export default function FinanceExpensesPage() {
           <StatCard title="Approved Records" value={summary.approvedCount} icon={<ShieldCheck className="h-4 w-4" />} />
         </div>
 
+        {incomeSummary && (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
+              <p className="text-xs font-medium uppercase tracking-wide ui-text-secondary">Fee Income (this month)</p>
+              <p className="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(incomeSummary.totalIncome)}</p>
+            </div>
+            <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
+              <p className="text-xs font-medium uppercase tracking-wide ui-text-secondary">Expenses (this month)</p>
+              <p className="mt-1 text-xl font-bold text-red-600 dark:text-red-400">{formatCurrency(incomeSummary.totalExpenses)}</p>
+            </div>
+            <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
+              <p className="text-xs font-medium uppercase tracking-wide ui-text-secondary">Net Position</p>
+              <p className={`mt-1 text-xl font-bold ${incomeSummary.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                {incomeSummary.net >= 0 ? '+' : ''}{formatCurrency(incomeSummary.net)}
+              </p>
+            </div>
+          </div>
+        )}
+
         {session?.user?.role === 'FINANCE_MANAGER' ? (
           <div className={`rounded-xl border px-4 py-3 text-sm ${expenseApprovalThreshold > 0 ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'}`}>
             {expenseApprovalThreshold > 0
@@ -528,6 +602,33 @@ export default function FinanceExpensesPage() {
             </Select>
             <Input label="Search" value={searchQuery} onChange={(event) => { setSearchQuery(event.target.value); setTablePage(1) }} placeholder="Search title, vendor, beneficiary..." />
           </div>
+          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <Input label="From date" type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setTablePage(1) }} />
+            <Input label="To date" type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setTablePage(1) }} />
+            <div className="flex items-end gap-2">
+              <Button
+                onClick={() => { fetchExpenses(); setTablePage(1) }}
+                className="flex-1"
+              >
+                Apply Filters
+              </Button>
+              {(dateFrom || dateTo || categoryFilter || statusFilter || searchQuery) ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setDateFrom('')
+                    setDateTo('')
+                    setCategoryFilter('')
+                    setStatusFilter('')
+                    setSearchQuery('')
+                    setTablePage(1)
+                  }}
+                >
+                  Clear
+                </Button>
+              ) : null}
+            </div>
+          </div>
         </Card>
 
         <Table
@@ -541,6 +642,7 @@ export default function FinanceExpensesPage() {
           onPageChange={setTablePage}
           emptyMessage={translateText('No expenses recorded yet.', locale)}
           rowKey="id"
+          onExport={filteredExpenses.length > 0 ? handleExportCSV : undefined}
         />
 
         <Card title="Audit Trail" className="p-4">
@@ -560,6 +662,36 @@ export default function FinanceExpensesPage() {
                 </div>
               ))}
             </div>
+          )}
+        </Card>
+
+        {/* Full paginated audit log */}
+        <Card title={`All Audit Events${auditTotal > 0 ? ` (${auditTotal})` : ''}`} className="p-4">
+          {auditLogs.length === 0 ? (
+            <p className="ui-text-secondary">No audit events yet.</p>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {auditLogs.map((log) => (
+                  <div key={log.id} className="flex items-center justify-between gap-3 rounded-lg px-3 py-2" style={{ background: 'var(--surface-soft)' }}>
+                    <div className="min-w-0">
+                      <span className="font-medium ui-text-primary truncate">{log.expenseTitle}</span>
+                      <span className="ml-2 text-xs ui-text-secondary">{log.action} · {log.actorName}</span>
+                    </div>
+                    <span className="shrink-0 text-xs ui-text-secondary">{new Date(log.createdAt).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+              {auditTotal > auditPageSize && (
+                <div className="mt-3 flex items-center justify-between text-sm ui-text-secondary">
+                  <span>Showing {(auditPage - 1) * auditPageSize + 1}–{Math.min(auditPage * auditPageSize, auditTotal)} of {auditTotal}</span>
+                  <div className="flex gap-2">
+                    <Button variant="secondary" size="sm" disabled={auditPage === 1} onClick={() => setAuditPage((p) => p - 1)}>← Prev</Button>
+                    <Button variant="secondary" size="sm" disabled={auditPage * auditPageSize >= auditTotal} onClick={() => setAuditPage((p) => p + 1)}>Next →</Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </Card>
 
