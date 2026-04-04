@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts'
 import { TrendingUp, AlertTriangle, Banknote, Target } from 'lucide-react'
+import { useLocale } from '@/lib/locale-context'
+import { translateDashboardDynamic, translateText } from '@/lib/client-i18n'
 
 const metricCards = [
   { key: 'totalCollected', label: 'Total Collected', icon: TrendingUp, color: '#34d399', format: 'currency' },
@@ -32,8 +34,9 @@ function FinancialSkeleton() {
 }
 
 export default function FinancialSection({ data, loading }) {
+  const { locale } = useLocale()
   const [progress, setProgress] = useState(0)
-  const progressLabel = data.progressLabel || `${data.progressPercent}%`
+  const progressLabel = translateDashboardDynamic(data.progressLabel || `${data.progressPercent}%`, locale)
   const paymentMethodsTotal = Number.isFinite(Number(data.paymentMethodsTotal))
     ? Number(data.paymentMethodsTotal)
     : Number(data.totalCollected?.value || 0)
@@ -61,9 +64,9 @@ export default function FinancialSection({ data, loading }) {
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-[12px] font-medium uppercase tracking-wide text-slate-400">{card.label}</p>
+                    <p className="text-[12px] font-medium uppercase tracking-wide text-slate-400">{translateText(card.label, locale)}</p>
                     <p className="mt-2 text-2xl font-extrabold" style={{ color: card.color }}>{formatRand(metric.value)}</p>
-                    <p className="mt-1 text-xs text-slate-500">{metric.sub}</p>
+                    <p className="mt-1 text-xs text-slate-500">{translateDashboardDynamic(metric.sub, locale)}</p>
                   </div>
                   <div className="rounded-xl p-2" style={{ background: `${card.color}1A`, border: `1px solid ${card.color}40` }}>
                     <Icon className="h-4 w-4" style={{ color: card.color }} />
@@ -76,7 +79,7 @@ export default function FinancialSection({ data, loading }) {
 
         <div className="rounded-2xl border p-4" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }}>
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-semibold text-slate-200">Fee Collection Progress</p>
+            <p className="text-sm font-semibold text-slate-200">{translateText('Fee Collection Progress', locale)}</p>
             <p className="text-xs text-slate-400">{progressLabel}</p>
           </div>
           <div className="h-2 w-full rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
@@ -93,7 +96,7 @@ export default function FinancialSection({ data, loading }) {
       </div>
 
       <div className="xl:col-span-2 rounded-2xl border p-4" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }}>
-        <p className="text-sm font-semibold text-slate-200">Payment Method Breakdown</p>
+        <p className="text-sm font-semibold text-slate-200">{translateText('Payment Method Breakdown', locale)}</p>
         <div className="mt-3 h-[250px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -113,13 +116,13 @@ export default function FinancialSection({ data, loading }) {
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value, name, props) => [`${props.payload.amount.toLocaleString('en-ZA')} (${props.payload.count} payments)`, name]}
+                formatter={(value, name, props) => [translateDashboardDynamic(`${props.payload.amount.toLocaleString('en-ZA')} (${props.payload.count} payments)`, locale), translateText(String(name), locale)]}
                 contentStyle={{ background: '#161924', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#e2e8f0' }}
               />
             </PieChart>
           </ResponsiveContainer>
           <div className="-mt-[150px] text-center pointer-events-none">
-            <p className="text-xs text-slate-400">Total</p>
+            <p className="text-xs text-slate-400">{translateText('Total', locale)}</p>
             <p className="text-xl font-extrabold text-slate-100">{formatRand(paymentMethodsTotal)}</p>
           </div>
         </div>
@@ -129,7 +132,7 @@ export default function FinancialSection({ data, loading }) {
             <div key={entry.name} className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: entry.color }} />
-                <span className="text-slate-300">{entry.name}</span>
+                <span className="text-slate-300">{translateText(entry.name, locale)}</span>
               </div>
               <span className="text-slate-400">{entry.percent}%</span>
             </div>

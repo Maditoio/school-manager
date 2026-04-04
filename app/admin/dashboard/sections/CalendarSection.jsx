@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useLocale } from '@/lib/locale-context'
+import { translateText } from '@/lib/client-i18n'
 
 function buildCalendarGrid(date) {
   const year = date.getFullYear()
@@ -21,9 +23,10 @@ function toISO(d) {
   return d.toISOString().slice(0, 10)
 }
 
-function relativeLabel(days) {
-  if (days === 0) return 'Today'
-  if (days === 1) return 'Tomorrow'
+function relativeLabel(days, locale) {
+  if (days === 0) return translateText('Today', locale)
+  if (days === 1) return translateText('Tomorrow', locale)
+  if (locale === 'fr') return `dans ${days} jours`
   return `in ${days} days`
 }
 
@@ -37,6 +40,7 @@ function CalendarSkeleton() {
 }
 
 export default function CalendarSection({ data, loading }) {
+  const { locale } = useLocale()
   const [monthCursor, setMonthCursor] = useState(() => new Date())
   const [selectedDateISO, setSelectedDateISO] = useState(() => toISO(new Date()))
 
@@ -51,14 +55,14 @@ export default function CalendarSection({ data, loading }) {
   }, [data])
 
   const selectedEvents = eventByDate.get(selectedDateISO) || []
-  const monthLabel = monthCursor.toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })
+  const monthLabel = monthCursor.toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-KE' : 'en-ZA', { month: 'long', year: 'numeric' })
 
   if (loading) return <CalendarSkeleton />
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
       <div className="xl:col-span-3 rounded-2xl border p-4" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }}>
-        <p className="mb-3 text-sm font-semibold text-slate-200">Upcoming Events</p>
+        <p className="mb-3 text-sm font-semibold text-slate-200">{translateText('Upcoming Events', locale)}</p>
         <div className="space-y-2">
           {data.map((event) => {
             const dt = new Date(event.dateISO)
@@ -67,15 +71,15 @@ export default function CalendarSection({ data, loading }) {
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: event.color }} />
                 <div className="w-[62px] shrink-0 rounded-lg border px-2 py-1 text-center" style={{ borderColor: 'rgba(255,255,255,0.08)', background: '#111420' }}>
                   <p className="text-lg font-extrabold text-slate-100 leading-none">{dt.getDate()}</p>
-                  <p className="text-[10px] uppercase text-slate-500">{dt.toLocaleDateString('en-ZA', { month: 'short' })}</p>
+                  <p className="text-[10px] uppercase text-slate-500">{dt.toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-KE' : 'en-ZA', { month: 'short' })}</p>
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-slate-100">{event.title}</p>
                   <span className="mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: `${event.color}20`, color: event.color }}>
-                    {event.category}
+                    {translateText(event.category, locale)}
                   </span>
                 </div>
-                <p className="text-xs text-slate-400">{relativeLabel(event.daysUntil)}</p>
+                <p className="text-xs text-slate-400">{relativeLabel(event.daysUntil, locale)}</p>
               </div>
             )
           })}
@@ -94,7 +98,7 @@ export default function CalendarSection({ data, loading }) {
         </div>
 
         <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-slate-500 mb-2">
-          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => <div key={d}>{d}</div>)}
+          {(locale === 'fr' ? ['Di', 'Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa'] : ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']).map((d) => <div key={d}>{d}</div>)}
         </div>
 
         <div className="grid grid-cols-7 gap-1">
@@ -127,7 +131,7 @@ export default function CalendarSection({ data, loading }) {
         </div>
 
         <div className="mt-3 rounded-xl border p-3" style={{ background: '#161924', borderColor: 'rgba(255,255,255,0.08)' }}>
-          <p className="text-xs font-semibold text-slate-300">{new Date(selectedDateISO).toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
+          <p className="text-xs font-semibold text-slate-300">{new Date(selectedDateISO).toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-KE' : 'en-ZA', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
           {selectedEvents.length ? (
             <ul className="mt-2 space-y-1 text-xs text-slate-400">
               {selectedEvents.map((event) => (
@@ -138,7 +142,7 @@ export default function CalendarSection({ data, loading }) {
               ))}
             </ul>
           ) : (
-            <p className="mt-1 text-xs text-slate-500">No events on this date.</p>
+            <p className="mt-1 text-xs text-slate-500">{translateText('No events on this date.', locale)}</p>
           )}
         </div>
       </div>

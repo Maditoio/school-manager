@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import { AlertTriangle, Info, XCircle, X } from 'lucide-react'
+import { useLocale } from '@/lib/locale-context'
+import { translateDashboardDynamic, translateText } from '@/lib/client-i18n'
 
 const severityConfig = {
   danger: { color: '#ef4444', icon: XCircle },
@@ -20,6 +22,7 @@ function AlertsSkeleton() {
 }
 
 export default function AlertsSection({ data, loading }) {
+  const { locale } = useLocale()
   const [dismissed, setDismissed] = useState({})
   const [dismissing, setDismissing] = useState({})
 
@@ -45,22 +48,22 @@ export default function AlertsSection({ data, loading }) {
 
   const openAction = (alert) => {
     if (alert.actionHref) {
-      window.location.href = alert.actionHref
+      window.location.assign(alert.actionHref)
     }
   }
 
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-semibold text-slate-200">Alerts Requiring Attention</p>
+        <p className="text-sm font-semibold text-slate-200">{translateText('Alerts Requiring Attention', locale)}</p>
         <span className="rounded-full border px-2 py-1 text-xs text-slate-300" style={{ borderColor: 'rgba(255,255,255,0.12)', background: '#161924' }}>
-          {activeAlerts.length} alerts
+          {translateDashboardDynamic(`${activeAlerts.length} alerts`, locale)}
         </span>
       </div>
 
       {activeAlerts.length === 0 ? (
         <div className="rounded-xl border p-4 text-sm font-medium text-emerald-300" style={{ background: 'rgba(52,211,153,0.08)', borderColor: 'rgba(52,211,153,0.32)' }}>
-          ✓ No issues detected · School is running smoothly
+          {translateText('✓ No issues detected · School is running smoothly', locale)}
         </div>
       ) : (
         <div className="space-y-3">
@@ -89,8 +92,8 @@ export default function AlertsSection({ data, loading }) {
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="text-[13.5px] font-semibold text-slate-100">{alert.message}</p>
-                    <p className="text-xs text-slate-500">{alert.context}</p>
+                    <p className="text-[13.5px] font-semibold text-slate-100">{translateDashboardDynamic(alert.message, locale)}</p>
+                    <p className="text-xs text-slate-500">{translateDashboardDynamic(alert.context, locale)}</p>
                   </div>
 
                   <button
@@ -98,7 +101,7 @@ export default function AlertsSection({ data, loading }) {
                     style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.12)' }}
                     onClick={() => openAction(alert)}
                   >
-                    {alert.action}
+                    {translateText(alert.action, locale)}
                   </button>
 
                   <button

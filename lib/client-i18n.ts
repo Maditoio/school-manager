@@ -87,6 +87,36 @@ export function translateText(text: string, locale: ClientLocale): string {
   return `${leading}${translatedTrimmed}${trailing}`
 }
 
+export function translateDashboardDynamic(text: string, locale: ClientLocale): string {
+  const translated = translateText(text, locale)
+  if (translated !== text) return translated
+  if (locale !== 'fr') return text
+
+  let out = text
+
+  out = out.replace(/^(\+?\-?\d+(?:\.\d+)?)% vs last term$/i, '$1% par rapport au trimestre dernier')
+  out = out.replace(/^(\+?\-?\d+(?:\.\d+)?)% vs last week$/i, '$1% par rapport a la semaine derniere')
+  out = out.replace(/^(\+?\-?\d+(?:\.\d+)?)% vs Year (\d{4})$/i, '$1% par rapport a l\'annee $2')
+  out = out.replace(/^(\+?\-?\d+(?:\.\d+)?)% vs yesterday$/i, '$1% par rapport a hier')
+  out = out.replace(/^(\d+(?:\.\d+)?)% of students$/i, '$1% des etudiants')
+  out = out.replace(/^(\d+) new this term$/i, '$1 nouveaux ce trimestre')
+  out = out.replace(/^(\d+(?:\.\d+)?)% absent today$/i, '$1% absents aujourd\'hui')
+  out = out.replace(/^(\d+) submissions awaiting grading$/i, '$1 soumissions en attente de correction')
+  out = out.replace(/^(\d+) teachers have no subject assignment$/i, '$1 enseignants n\'ont pas d\'attribution de matiere')
+  out = out.replace(/^(\d+) teachers on approved off-day today$/i, '$1 enseignants en conge approuve aujourd\'hui')
+  out = out.replace(/^(\d+) alerts$/i, '$1 alertes')
+  out = out.replace(/^Financial Health · Year (\d{4})$/i, 'Sante financiere · Annee $1')
+  out = out.replace(/^(\d+) accounts · (.+)$/i, '$1 comptes · $2')
+  out = out.replace(/^(\d+) payments · (.+)$/i, '$1 paiements · $2')
+  out = out.replace(/^(\d+) more teachers not shown\.$/i, '$1 enseignants supplementaires non affiches.')
+  out = out.replace(/^View all (\d+) teachers →$/i, 'Voir les $1 enseignants →')
+  out = out.replace(/^(\d+[\d\s]*) \((\d+) payments\)$/i, '$1 ($2 paiements)')
+  out = out.replace(/^(\d+(?:\.\d+)?)% collected$/i, '$1% collecte')
+  out = out.replace(/^(\d+(?:\.\d+)?)% · R ([\d\s]+) of R ([\d\s]+)$/i, '$1% · R $2 sur R $3')
+
+  return out
+}
+
 function translateProps(props: Record<string, unknown>, locale: ClientLocale) {
   const translatedProps: Record<string, unknown> = { ...props }
   const textProps = ['label', 'placeholder', 'title', 'aria-label', 'alt']

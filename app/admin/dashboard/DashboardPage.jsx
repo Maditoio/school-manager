@@ -10,7 +10,7 @@ import AlertsSection from './sections/AlertsSection'
 import CalendarSection from './sections/CalendarSection'
 import { dashboardData } from './dashboardData'
 import { useLocale } from '@/lib/locale-context'
-import { translateText } from '@/lib/client-i18n'
+import { translateDashboardDynamic, translateText } from '@/lib/client-i18n'
 
 function sectionLabel(text) {
   return (
@@ -262,7 +262,7 @@ export default function DashboardPage({ user }) {
           </header>
 
           <section className="space-y-2">
-            {sectionLabel('School Pulse')}
+            {sectionLabel(translateText('School Pulse', locale))}
             <div className="transition-opacity duration-300" style={{ opacity: loaded.pulse ? 1 : 0.85 }}>
               <SchoolPulseSection
                 data={dashboardState.schoolPulse}
@@ -275,35 +275,35 @@ export default function DashboardPage({ user }) {
           </section>
 
           <section className="space-y-2">
-            {sectionLabel(dashboardState.financial.periodLabel)}
+            {sectionLabel(translateDashboardDynamic(dashboardState.financial.periodLabel, locale))}
             <div className="transition-opacity duration-300" style={{ opacity: loaded.financial ? 1 : 0.85 }}>
               <FinancialSection data={dashboardState.financial} loading={!loaded.financial} />
             </div>
           </section>
 
           <section className="space-y-2">
-            {sectionLabel('Academic Performance · Current Term')}
+            {sectionLabel(translateText('Academic Performance · Current Term', locale))}
             <div className="transition-opacity duration-300" style={{ opacity: loaded.academic ? 1 : 0.85 }}>
               <AcademicSection data={dashboardState.academic} loading={!academicLoaded} />
             </div>
           </section>
 
           <section className="space-y-2">
-            {sectionLabel('Staff Overview')}
+            {sectionLabel(translateText('Staff Overview', locale))}
             <div className="transition-opacity duration-300" style={{ opacity: loaded.staff ? 1 : 0.85 }}>
               <StaffSection data={dashboardState.staff} loading={!loaded.staff} />
             </div>
           </section>
 
           <section className="space-y-2">
-            {sectionLabel('Alerts Requiring Attention')}
+            {sectionLabel(translateText('Alerts Requiring Attention', locale))}
             <div className="transition-opacity duration-300" style={{ opacity: loaded.alerts ? 1 : 0.85 }}>
               <AlertsSection data={dashboardState.alerts || []} loading={!statsLoaded} />
             </div>
           </section>
 
           <section className="space-y-2">
-            {sectionLabel('Upcoming Events')}
+            {sectionLabel(translateText('Upcoming Events', locale))}
             <div className="transition-opacity duration-300" style={{ opacity: loaded.calendar ? 1 : 0.85 }}>
               <CalendarSection data={dashboardData.events} loading={!loaded.calendar} />
             </div>

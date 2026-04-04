@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import { ClipboardList, BookOpen, FileWarning, X } from 'lucide-react'
+import { useLocale } from '@/lib/locale-context'
+import { translateDashboardDynamic, translateText } from '@/lib/client-i18n'
 
 const toneMap = {
   warning: { bg: 'rgba(251,191,36,0.06)', border: '#fbbf24', icon: '#fbbf24' },
@@ -29,6 +31,7 @@ function StaffSkeleton() {
 }
 
 export default function StaffSection({ data, loading }) {
+  const { locale } = useLocale()
   const [showAttendanceModal, setShowAttendanceModal] = useState(false)
   const [attendance, setAttendance] = useState(() => Object.fromEntries(data.teachers.map((t) => [t.id, t.status])))
 
@@ -54,7 +57,7 @@ export default function StaffSection({ data, loading }) {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         <div className="xl:col-span-3 rounded-2xl border p-4" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }}>
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-semibold text-slate-200">Teacher Status Today</p>
+            <p className="text-sm font-semibold text-slate-200">{translateText('Teacher Status Today', locale)}</p>
             <button
               className="h-8 rounded-[10px] border px-3 text-xs font-semibold text-slate-300 transition hover:text-white"
               style={{ background: '#161924', borderColor: 'rgba(255,255,255,0.08)', opacity: 0.5, cursor: 'not-allowed' }}
@@ -63,7 +66,7 @@ export default function StaffSection({ data, loading }) {
               title="Temporarily unavailable"
               onClick={() => {}}
             >
-              Mark Attendance
+              {translateText('Mark Attendance', locale)}
             </button>
           </div>
 
@@ -71,9 +74,9 @@ export default function StaffSection({ data, loading }) {
             <table className="min-w-full">
               <thead style={{ background: '#161924' }}>
                 <tr className="text-left text-[11px] uppercase tracking-wide text-slate-400">
-                  <th className="px-3 py-2 font-medium">Teacher</th>
-                  <th className="px-3 py-2 font-medium">Subject</th>
-                  <th className="px-3 py-2 font-medium">Today</th>
+                  <th className="px-3 py-2 font-medium">{translateText('Teacher', locale)}</th>
+                  <th className="px-3 py-2 font-medium">{translateText('Subject', locale)}</th>
+                  <th className="px-3 py-2 font-medium">{translateText('Today', locale)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -107,7 +110,7 @@ export default function StaffSection({ data, loading }) {
                             ? { background: 'rgba(52,211,153,0.12)', color: '#34d399' }
                             : { background: 'rgba(239,68,68,0.12)', color: '#ef4444' }}
                         >
-                          {attendance[teacher.id]}
+                          {translateText(attendance[teacher.id], locale)}
                         </span>
                       </td>
                     </tr>
@@ -119,12 +122,12 @@ export default function StaffSection({ data, loading }) {
 
           {hiddenTeachersCount > 0 ? (
             <div className="mt-3 flex items-center justify-between text-sm text-slate-400">
-              <p>{hiddenTeachersCount} more teachers not shown.</p>
-              <a href="/admin/teachers" className="font-semibold text-indigo-400 hover:text-indigo-300">View the rest →</a>
+              <p>{translateDashboardDynamic(`${hiddenTeachersCount} more teachers not shown.`, locale)}</p>
+              <a href="/admin/teachers" className="font-semibold text-indigo-400 hover:text-indigo-300">{translateText('View the rest →', locale)}</a>
             </div>
           ) : null}
 
-          <a href="/admin/teachers" className="mt-3 inline-block text-sm font-semibold text-indigo-400 hover:text-indigo-300">View all {data.teachers.length} teachers →</a>
+          <a href="/admin/teachers" className="mt-3 inline-block text-sm font-semibold text-indigo-400 hover:text-indigo-300">{translateDashboardDynamic(`View all ${data.teachers.length} teachers →`, locale)}</a>
         </div>
 
         <div className="xl:col-span-2 space-y-3">
@@ -145,8 +148,8 @@ export default function StaffSection({ data, loading }) {
                   <div className="flex items-start gap-2">
                     <Icon className="mt-0.5 h-4 w-4" style={{ color: tone.icon }} />
                     <div>
-                      <p className="text-sm font-semibold text-slate-200">{card.title}</p>
-                      <p className="text-xs text-slate-400">{card.text}</p>
+                      <p className="text-sm font-semibold text-slate-200">{translateText(card.title, locale)}</p>
+                      <p className="text-xs text-slate-400">{translateDashboardDynamic(card.text, locale)}</p>
                     </div>
                   </div>
                   <button
@@ -154,7 +157,7 @@ export default function StaffSection({ data, loading }) {
                     style={{ borderColor: 'rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)' }}
                     onClick={() => openAction(card.actionHref)}
                   >
-                    {card.action}
+                    {translateText(card.action, locale)}
                   </button>
                 </div>
               </div>
@@ -167,7 +170,7 @@ export default function StaffSection({ data, loading }) {
         <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="w-full max-w-2xl rounded-2xl border p-5" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.1)' }}>
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-100">Mark Teacher Attendance</h3>
+              <h3 className="text-lg font-bold text-slate-100">{translateText('Mark Teacher Attendance', locale)}</h3>
               <button className="text-slate-400 hover:text-slate-200" onClick={() => setShowAttendanceModal(false)}>
                 <X className="h-5 w-5" />
               </button>
@@ -192,7 +195,7 @@ export default function StaffSection({ data, loading }) {
                           : { color: '#94a3b8' }}
                         onClick={() => setAttendance((prev) => ({ ...prev, [teacher.id]: status }))}
                       >
-                        {status}
+                        {translateText(status, locale)}
                       </button>
                     ))}
                   </div>
@@ -202,7 +205,7 @@ export default function StaffSection({ data, loading }) {
 
             {unattendedClasses.length > 0 ? (
               <div className="mt-4 rounded-xl border p-3 text-sm" style={{ background: 'rgba(251,191,36,0.08)', borderColor: 'rgba(251,191,36,0.3)', color: '#fbbf24' }}>
-                <p className="font-semibold">Unattended classes</p>
+                <p className="font-semibold">{translateText('Unattended classes', locale)}</p>
                 <ul className="mt-1 list-disc pl-5 text-xs">
                   {unattendedClasses.map((item) => <li key={item}>{item}</li>)}
                 </ul>
@@ -215,7 +218,7 @@ export default function StaffSection({ data, loading }) {
                 style={{ background: '#6366f1' }}
                 onClick={() => setShowAttendanceModal(false)}
               >
-                Save Attendance
+                {translateText('Save Attendance', locale)}
               </button>
             </div>
           </div>
