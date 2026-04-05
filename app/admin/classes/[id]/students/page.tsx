@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { Minus } from 'lucide-react'
 import { useConfirmDialog } from '@/lib/useConfirmDialog'
+import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 
 interface Student {
   id: string
@@ -273,20 +274,7 @@ export default function ClassStudentsPage() {
 
   const canMoveSelected = !!targetClassId && selectedAssignedIds.length > 0 && !transferring
 
-  const navItems = useMemo(
-    () => [
-      { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
-      { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
-      { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
-      { label: 'Classes', href: '/admin/classes', icon: '🏫' },
-      { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
-      { label: 'Attendance', href: '/admin/attendance', icon: '📅' },
-      { label: 'Results', href: '/admin/results', icon: '📝' },
-      { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
-      { label: 'Messages', href: '/admin/messages', icon: '💬' },
-    ],
-    []
-  )
+  const navItems = ADMIN_NAV_ITEMS
 
   const filteredAssigned = useMemo(() => {
     const query = assignedSearch.trim().toLowerCase()

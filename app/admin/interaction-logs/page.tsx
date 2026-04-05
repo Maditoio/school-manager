@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
+import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 
 interface InteractionLog {
   id: string
@@ -133,18 +134,7 @@ export default function AdminInteractionLogsPage() {
     return <div>Loading...</div>
   }
 
-  const navItems = [
-    { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
-    { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
-    { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
-    { label: 'Classes', href: '/admin/classes', icon: '🏫' },
-    { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
-    { label: 'Attendance', href: '/admin/attendance', icon: '📅' },
-    { label: 'Results', href: '/admin/results', icon: '📝' },
-    { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
-    { label: 'Messages', href: '/admin/messages', icon: '💬' },
-    { label: 'Interaction Logs', href: '/admin/interaction-logs', icon: '🕵️' },
-  ]
+  const navItems = ADMIN_NAV_ITEMS
 
   return (
     <DashboardLayout

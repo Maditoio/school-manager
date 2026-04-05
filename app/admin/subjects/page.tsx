@@ -12,6 +12,7 @@ import { Barcode, MoreHorizontal, PencilLine, Trash2 } from 'lucide-react'
 import enMessages from '@/messages/en.json'
 import frMessages from '@/messages/fr.json'
 import swMessages from '@/messages/sw.json'
+import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 
 interface Subject {
   id: string
@@ -236,17 +237,7 @@ export default function SubjectsPage() {
     return <div>{tCommon('loading', 'Loading...')}</div>
   }
 
-  const navItems = [
-    { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
-    { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
-    { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
-    { label: 'Classes', href: '/admin/classes', icon: '🏫' },
-    { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
-    { label: 'Attendance', href: '/admin/attendance', icon: '📅' },
-    { label: 'Results', href: '/admin/results', icon: '📝' },
-    { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
-    { label: 'Messages', href: '/admin/messages', icon: '💬' },
-  ]
+  const navItems = ADMIN_NAV_ITEMS
 
   return (
     <DashboardLayout

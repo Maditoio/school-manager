@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, Select, TextArea } from '@/components/ui/Form'
 import Table from '@/components/ui/Table'
 import { useToast } from '@/components/ui/Toast'
+import { FINANCE_NAV_ITEMS } from '@/lib/admin-nav'
 
 type FundRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
@@ -224,11 +225,7 @@ export default function FinanceFundRequestsPage() {
 
   if (status === 'loading' || !session) return <div>Loading...</div>
 
-  const navItems = [
-    { label: 'Fees', href: '/finance/fees', icon: '💳' },
-    { label: 'Expenses', href: '/finance/expenses', icon: '🧾' },
-    { label: 'Fund Requests', href: '/finance/fund-requests', icon: '💰' },
-  ]
+  const navItems = FINANCE_NAV_ITEMS
 
   const columns = [
     { key: 'requestedByName', label: 'From', sortable: true },

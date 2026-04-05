@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import Table from '@/components/ui/Table'
 import { useToast } from '@/components/ui/Toast'
 import { AlertTriangle, CircleCheck, Plus, Receipt, Users, Wallet } from 'lucide-react'
+import { ADMIN_NAV_ITEMS, FINANCE_NAV_ITEMS } from '@/lib/admin-nav'
 
 type FeePeriodType = 'MONTHLY' | 'SEMESTER' | 'YEARLY'
 type FeeStatus = 'PAID' | 'PARTIAL' | 'NOT_PAID' | 'NO_SCHEDULE'
@@ -643,24 +644,7 @@ export default function AdminFeesPage({
     }
   }
 
-  const navItems =
-    navMode === 'finance'
-      ? [
-          { label: 'Fees', href: '/finance/fees', icon: '💳' },
-          { label: 'Expenses', href: '/finance/expenses', icon: '🧾' },
-        ]
-      : [
-          { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
-          { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
-          { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
-          { label: 'Classes', href: '/admin/classes', icon: '🏫' },
-          { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
-          { label: 'Attendance', href: '/admin/attendance', icon: '📅' },
-          { label: 'Results', href: '/admin/results', icon: '📝' },
-          { label: 'Fees', href: '/admin/fees', icon: '💳' },
-          { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
-          { label: 'Messages', href: '/admin/messages', icon: '💬' },
-        ]
+  const navItems = navMode === 'finance' ? FINANCE_NAV_ITEMS : ADMIN_NAV_ITEMS
 
   if (status === 'loading' || !session) {
     return <div>Loading...</div>

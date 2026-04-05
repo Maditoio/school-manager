@@ -12,7 +12,7 @@ import { useToast } from '@/components/ui/Toast'
 import { BadgeDollarSign, FileText, Plus, ReceiptText, ShieldCheck, Wallet } from 'lucide-react'
 import { translateText } from '@/lib/client-i18n'
 import { useLocale } from '@/lib/locale-context'
-
+import { FINANCE_NAV_ITEMS } from '@/lib/admin-nav'
 type ExpenseCategory =
   | 'MAINTENANCE'
   | 'SALARIES'
@@ -521,11 +521,7 @@ export default function FinanceExpensesPage() {
     },
   ], [selectedExpenseId, locale, session?.user?.id, session?.user?.role, expenseApprovalThreshold, approvingSaving])
 
-  const navItems = [
-    { label: 'Fees', href: '/finance/fees', icon: '💳' },
-    { label: 'Expenses', href: '/finance/expenses', icon: '🧾' },
-    { label: 'Fund Requests', href: '/finance/fund-requests', icon: '💰' },
-  ]
+  const navItems = FINANCE_NAV_ITEMS
 
   if (status === 'loading' || !session) {
     return <div>Loading...</div>

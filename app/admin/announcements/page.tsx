@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, TextArea } from '@/components/ui/Form'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
+import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 
 interface Announcement {
   id: string
@@ -112,17 +113,7 @@ export default function AnnouncementsPage() {
     return <div>Loading...</div>
   }
 
-  const navItems = [
-    { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
-    { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
-    { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
-    { label: 'Classes', href: '/admin/classes', icon: '🏫' },
-    { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
-    { label: 'Attendance', href: '/admin/attendance', icon: '📅' },
-    { label: 'Results', href: '/admin/results', icon: '📝' },
-    { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
-    { label: 'Messages', href: '/admin/messages', icon: '💬' },
-  ]
+  const navItems = ADMIN_NAV_ITEMS
 
   return (
     <DashboardLayout

@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/Toast'
 import { translateText } from '@/lib/client-i18n'
 import { useLocale } from '@/lib/locale-context'
 import { UserPlus } from 'lucide-react'
+import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 
 type UserRole = 'TEACHER' | 'PARENT' | 'FINANCE' | 'FINANCE_MANAGER'
 
@@ -258,19 +259,7 @@ export default function AdminUsersPage() {
     },
   ], [locale])
 
-  const navItems = [
-    { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
-    { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
-    { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
-    { label: 'Classes', href: '/admin/classes', icon: '🏫' },
-    { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
-    { label: 'Attendance', href: '/admin/attendance', icon: '📅' },
-    { label: 'Results', href: '/admin/results', icon: '📝' },
-    { label: 'Fees', href: '/admin/fees', icon: '💳' },
-    { label: 'Users', href: '/admin/users', icon: '👥' },
-    { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
-    { label: 'Messages', href: '/admin/messages', icon: '💬' },
-  ]
+  const navItems = ADMIN_NAV_ITEMS
 
   if (status === 'loading' || !session?.user) return <div>Loading...</div>
 

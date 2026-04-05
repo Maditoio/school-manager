@@ -7,6 +7,7 @@ import Table from '@/components/ui/Table'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
+import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 
 interface Student {
   id: string
@@ -236,17 +237,7 @@ export default function AttendancePage() {
     return <div>Loading...</div>
   }
 
-  const navItems = [
-    { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
-    { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
-    { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
-    { label: 'Classes', href: '/admin/classes', icon: '🏫' },
-    { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
-    { label: 'Attendance', href: '/admin/attendance', icon: '📅' },
-    { label: 'Results', href: '/admin/results', icon: '📝' },
-    { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
-    { label: 'Messages', href: '/admin/messages', icon: '💬' },
-  ]
+  const navItems = ADMIN_NAV_ITEMS
 
   return (
     <DashboardLayout

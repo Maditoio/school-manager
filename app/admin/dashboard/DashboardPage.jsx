@@ -11,6 +11,7 @@ import CalendarSection from './sections/CalendarSection'
 import { dashboardData } from './dashboardData'
 import { useLocale } from '@/lib/locale-context'
 import { translateDashboardDynamic, translateText } from '@/lib/client-i18n'
+import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 
 function sectionLabel(text) {
   return (
@@ -238,19 +239,7 @@ export default function DashboardPage({ user }) {
     ? user.name.trim()
     : dashboardData.header.principalName
 
-  const navItems = [
-    { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
-    { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
-    { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
-    { label: 'Classes', href: '/admin/classes', icon: '🏫' },
-    { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
-    { label: 'Attendance', href: '/admin/attendance', icon: '📅' },
-    { label: 'Results', href: '/admin/results', icon: '📝' },
-    { label: 'Fees', href: '/admin/fees', icon: '💳' },
-    { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
-    { label: 'Messages', href: '/admin/messages', icon: '💬' },
-    { label: 'Interaction Logs', href: '/admin/interaction-logs', icon: '🕵️' },
-  ]
+  const navItems = ADMIN_NAV_ITEMS
 
   return (
     <DashboardLayout user={user} navItems={navItems}>
