@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
 
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

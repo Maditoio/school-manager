@@ -165,9 +165,10 @@ export default function MeetingAgendaPage() {
       }}
       navItems={navItems}
     >
-      <div className="space-y-4 print:space-y-6">
+      {/* ── Screen view ─────────────────────────────────────────────────── */}
+      <div className="space-y-4 print:hidden">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 print:hidden">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-[24px] font-bold ui-text-primary">Meeting Agenda</h1>
             <p className="mt-1 ui-text-secondary">
@@ -180,19 +181,8 @@ export default function MeetingAgendaPage() {
           </div>
         </div>
 
-        {/* Print header — only visible on print */}
-        <div className="hidden print:block">
-          <h1 className="text-2xl font-bold">School Finance — Meeting Agenda</h1>
-          {agenda && (
-            <p className="text-sm text-gray-500 mt-1">
-              Period: {new Date(agenda.periodFrom).toLocaleDateString()} – {new Date(agenda.periodTo).toLocaleDateString()} ·
-              Generated: {new Date(agenda.generatedAt).toLocaleString()}
-            </p>
-          )}
-        </div>
-
         {/* Date range controls */}
-        <Card className="p-4 print:hidden">
+        <Card className="p-4">
           <div className="flex flex-wrap items-end gap-3">
             <Input label="Period from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
             <Input label="Period to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
@@ -236,7 +226,6 @@ export default function MeetingAgendaPage() {
                     key={si}
                     className={`rounded-xl border p-5 ${cfg.bg} ${cfg.border}`}
                   >
-                    {/* Section header */}
                     <div className="mb-4 flex items-center gap-2">
                       {cfg.icon}
                       <h2 className="font-semibold ui-text-primary">{section.section}</h2>
@@ -251,7 +240,6 @@ export default function MeetingAgendaPage() {
                       </p>
                     )}
 
-                    {/* Category breakdown (info section) */}
                     {section.priority === 'info' ? (
                       <div className="grid gap-2 md:grid-cols-2">
                         {section.points.map((p, pi) => (
@@ -271,7 +259,6 @@ export default function MeetingAgendaPage() {
                         ))}
                       </div>
                     ) : (
-                      /* Request cards */
                       <ol className="space-y-3">
                         {section.points.map((p, pi) => (
                           <li
@@ -322,7 +309,6 @@ export default function MeetingAgendaPage() {
               })
             )}
 
-            {/* Admin-only pending total callout */}
             {isAdmin && agenda.summary.pending > 0 && (
               <Card className="p-4 border-l-4 border-amber-500">
                 <p className="font-medium ui-text-primary">
@@ -336,6 +322,170 @@ export default function MeetingAgendaPage() {
           </>
         )}
       </div>
+
+      {/* ── Print-only document ──────────────────────────────────────────── */}
+      {agenda && (
+        <div className="hidden print:block font-sans text-black bg-white text-sm" style={{ fontFamily: 'Georgia, serif' }}>
+          {/* Letterhead */}
+          <div className="border-b-2 border-black pb-4 mb-6">
+            <div className="text-center">
+              <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">OFFICIAL DOCUMENT</p>
+              <h1 className="text-2xl font-bold uppercase tracking-wide">School Finance Department</h1>
+              <h2 className="text-lg font-semibold mt-1">Meeting Agenda</h2>
+            </div>
+            <div className="mt-4 flex justify-between text-xs text-gray-600">
+              <span>
+                <strong>Period:</strong>{' '}
+                {new Date(agenda.periodFrom).toLocaleDateString('en-ZA', { day: '2-digit', month: 'long', year: 'numeric' })}
+                {' – '}
+                {new Date(agenda.periodTo).toLocaleDateString('en-ZA', { day: '2-digit', month: 'long', year: 'numeric' })}
+              </span>
+              <span>
+                <strong>Generated:</strong>{' '}
+                {new Date(agenda.generatedAt).toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' })}
+              </span>
+            </div>
+          </div>
+
+          {/* Summary table */}
+          <div className="mb-6">
+            <h3 className="text-sm font-bold uppercase tracking-wide border-b border-gray-300 pb-1 mb-3">1. Summary</h3>
+            <table className="w-full border-collapse text-xs">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border border-gray-300 px-3 py-1.5 text-left font-semibold">Metric</th>
+                  <th className="border border-gray-300 px-3 py-1.5 text-right font-semibold">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ['Total Requests', agenda.summary.total],
+                  ['Pending Review', agenda.summary.pending],
+                  ['Approved', agenda.summary.approved],
+                  ['Rejected', agenda.summary.rejected],
+                  ['Total Value Requested', formatCurrency(agenda.summary.totalRequested)],
+                  ['Total Value Approved', formatCurrency(agenda.summary.totalApproved)],
+                  ['Total Value Pending', formatCurrency(agenda.summary.totalPending)],
+                ].map(([label, value]) => (
+                  <tr key={String(label)}>
+                    <td className="border border-gray-300 px-3 py-1.5">{label}</td>
+                    <td className="border border-gray-300 px-3 py-1.5 text-right font-medium">{value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Agenda items */}
+          {agenda.talkingPoints.length === 0 ? (
+            <p className="text-gray-500 italic">No fund requests found for this period.</p>
+          ) : (
+            agenda.talkingPoints.map((section, si) => {
+              const sectionNumber = si + 2 // starts at 2 (after Summary)
+              const priorityLabels: Record<string, string> = {
+                high: 'ACTION REQUIRED',
+                medium: 'FOR REVIEW',
+                low: 'COMPLETED',
+                info: 'OVERVIEW',
+              }
+              return (
+                <div key={si} className="mb-6 break-inside-avoid">
+                  <h3 className="text-sm font-bold uppercase tracking-wide border-b border-gray-300 pb-1 mb-3">
+                    {sectionNumber}. {section.section}
+                    <span className="ml-3 text-xs font-normal normal-case text-gray-500">
+                      [{priorityLabels[section.priority] ?? section.priority.toUpperCase()}]
+                    </span>
+                  </h3>
+
+                  {section.note && (
+                    <p className="mb-2 text-xs italic text-gray-600 border-l-2 border-gray-400 pl-2">{section.note}</p>
+                  )}
+
+                  {section.priority === 'info' ? (
+                    <table className="w-full border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="border border-gray-300 px-3 py-1.5 text-left font-semibold">Category</th>
+                          <th className="border border-gray-300 px-3 py-1.5 text-right font-semibold">Requests</th>
+                          <th className="border border-gray-300 px-3 py-1.5 text-right font-semibold">Total Value</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {section.points.map((p, pi) => (
+                          <tr key={pi}>
+                            <td className="border border-gray-300 px-3 py-1.5">
+                              {categoryLabels[p.category ?? ''] ?? p.category}
+                            </td>
+                            <td className="border border-gray-300 px-3 py-1.5 text-right">{p.count}</td>
+                            <td className="border border-gray-300 px-3 py-1.5 text-right font-medium">
+                              {formatCurrency(p.total ?? 0)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <table className="w-full border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="border border-gray-300 px-3 py-1.5 text-left font-semibold w-5">#</th>
+                          <th className="border border-gray-300 px-3 py-1.5 text-left font-semibold">Item</th>
+                          <th className="border border-gray-300 px-3 py-1.5 text-left font-semibold">Requested By</th>
+                          <th className="border border-gray-300 px-3 py-1.5 text-left font-semibold">Category</th>
+                          <th className="border border-gray-300 px-3 py-1.5 text-right font-semibold">Amount</th>
+                          <th className="border border-gray-300 px-3 py-1.5 text-left font-semibold">Status / Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {section.points.map((p, pi) => (
+                          <tr key={pi} className={pi % 2 === 1 ? 'bg-gray-50' : ''}>
+                            <td className="border border-gray-300 px-3 py-1.5 text-center text-gray-500">{pi + 1}</td>
+                            <td className="border border-gray-300 px-3 py-1.5">
+                              <p className="font-medium">{p.title}</p>
+                              {p.description && (
+                                <p className="text-gray-500 mt-0.5">{p.description}</p>
+                              )}
+                            </td>
+                            <td className="border border-gray-300 px-3 py-1.5">
+                              {p.requestedBy && <p>{p.requestedBy}</p>}
+                              {p.requestedByRole && (
+                                <p className="text-gray-500 text-xs">{p.requestedByRole.replace(/_/g, ' ').toLowerCase()}</p>
+                              )}
+                            </td>
+                            <td className="border border-gray-300 px-3 py-1.5">
+                              {categoryLabels[p.category ?? ''] ?? p.category ?? '—'}
+                            </td>
+                            <td className="border border-gray-300 px-3 py-1.5 text-right font-medium whitespace-nowrap">
+                              {p.amount !== undefined ? formatCurrency(p.amount) : '—'}
+                            </td>
+                            <td className="border border-gray-300 px-3 py-1.5">
+                              {p.requiresAdminApproval && (
+                                <span className="font-semibold text-red-700">Needs Admin Approval</span>
+                              )}
+                              {p.reviewedBy && (
+                                <p className="text-gray-600">Reviewed by: {p.reviewedBy}</p>
+                              )}
+                              {p.date && (
+                                <p className="text-gray-500 text-xs">{new Date(p.date).toLocaleDateString('en-ZA')}</p>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              )
+            })
+          )}
+
+          {/* Footer */}
+          <div className="mt-8 pt-4 border-t border-gray-300 flex justify-between text-xs text-gray-400">
+            <span>School Finance — Confidential</span>
+            <span>Printed: {new Date().toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   )
 }

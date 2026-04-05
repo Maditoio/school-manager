@@ -524,8 +524,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const action = body?.action
 
-    // createSchedule
+    // createSchedule — only SCHOOL_ADMIN and FINANCE_MANAGER may create fee schedules
     if (action === 'createSchedule') {
+      if (!hasRole(role, ['SCHOOL_ADMIN', 'FINANCE_MANAGER'])) {
+        return NextResponse.json({ error: 'Only Finance Managers can create fee schedules' }, { status: 403 })
+      }
       const validation = createFeeScheduleSchema.safeParse(body)
       if (!validation.success) {
         return NextResponse.json(
@@ -637,8 +640,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ schedule }, { status: 201 })
     }
 
-    // recordPayment
+    // recordPayment — only SCHOOL_ADMIN and FINANCE may record payments
     if (action === 'recordPayment') {
+      if (!hasRole(role, ['SCHOOL_ADMIN', 'FINANCE'])) {
+        return NextResponse.json({ error: 'Only Finance staff can record payments' }, { status: 403 })
+      }
       const validation = recordFeePaymentSchema.safeParse(body)
       if (!validation.success) {
         return NextResponse.json(

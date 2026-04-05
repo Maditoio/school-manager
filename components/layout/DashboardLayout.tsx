@@ -216,22 +216,25 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
   return (
     <div className="min-h-screen bg-background ui-text-primary">
       {!isParentView ? (
-        <Sidebar
-          items={translatedNavItems}
-          user={translatedUser}
-          onLogout={handleLogout}
-          onDesktopWidthChange={setDesktopSidebarWidth}
-        />
+        <div className="print:hidden">
+          <Sidebar
+            items={translatedNavItems}
+            user={translatedUser}
+            onLogout={handleLogout}
+            onDesktopWidthChange={setDesktopSidebarWidth}
+          />
+        </div>
       ) : null}
 
       <div
-        className="flex min-h-screen flex-col overflow-hidden"
+        className="flex min-h-screen flex-col overflow-hidden print:ml-0"
         style={{
           marginLeft: isParentView ? 0 : desktopSidebarWidth,
           transition: 'margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         {!isParentView ? (
+          <div className="print:hidden">
           <Toolbar
             sidebarOpen={isSidebarOpen}
             schoolName={schoolName}
@@ -240,6 +243,7 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
             language={locale}
             onLanguageChange={handleLanguageChange}
           />
+          </div>
         ) : null}
         <main className={`flex-1 overflow-auto p-4 ${isParentView ? 'pt-4 pb-24 md:pt-6 md:pb-24' : 'pt-20 pb-20 md:p-6 md:pt-22 md:pb-6'}`}>
           {translatedChildren}

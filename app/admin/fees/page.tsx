@@ -684,6 +684,7 @@ export default function AdminFeesPage({
         </div>
 
         <div className="flex flex-wrap gap-3">
+          {(isAdmin || session?.user?.role === 'FINANCE_MANAGER') && (
           <button
             onClick={() => setShowScheduleModal(true)}
             className="ui-button ui-button-primary inline-flex items-center gap-2"
@@ -691,6 +692,8 @@ export default function AdminFeesPage({
             <Plus className="h-4 w-4" />
             Create Fee Schedule
           </button>
+          )}
+          {(isAdmin || session?.user?.role === 'FINANCE') && (
           <button
             onClick={() => setShowPaymentModal(true)}
             className="ui-button ui-button-secondary inline-flex items-center gap-2"
@@ -698,6 +701,7 @@ export default function AdminFeesPage({
             <Wallet className="h-4 w-4" />
             Record Payment
           </button>
+          )}
         </div>
 
         {/* Pending approval panel (visible to both admin and finance) */}

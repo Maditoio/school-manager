@@ -542,10 +542,12 @@ export default function FinanceExpensesPage() {
             <h1 className="text-[24px] font-bold ui-text-primary">Expenses</h1>
             <p className="mt-1 ui-text-secondary">Track operational costs, salaries, student support, maintenance, and every school expense with a full audit trail.</p>
           </div>
+          {session?.user?.role !== 'FINANCE_MANAGER' && (
           <Button onClick={openCreateModal} className="inline-flex items-center gap-2">
             <Plus className="h-4 w-4" />
             Add Expense
           </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
