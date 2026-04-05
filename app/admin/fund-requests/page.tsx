@@ -130,7 +130,7 @@ export default function AdminFundRequestsPage() {
         showToast(payload.error || 'Failed to approve', 'error')
         return
       }
-      showToast('Request approved — expense record created', 'success')
+      showToast('Request approved', 'success')
       await fetchRequests()
     } catch {
       showToast('Failed to approve', 'error')

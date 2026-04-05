@@ -5,8 +5,13 @@ import { hasRole } from '@/lib/auth-utils'
 import { z } from 'zod'
 
 const reviewSchema = z.object({
-  action: z.enum(['approve', 'reject', 'withdraw']),
+  action: z.enum(['approve', 'reject', 'withdraw', 'recordExpense']),
   reviewNote: z.string().max(500).optional(),
+  // recordExpense fields
+  amount: z.number().positive().optional(),
+  expenseDate: z.string().optional(),
+  referenceNumber: z.string().max(100).optional(),
+  notes: z.string().max(500).optional(),
 })
 
 async function resolveUserContext(sessionUser: {
@@ -60,11 +65,54 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         amount: true,
         urgency: true,
         status: true,
+        expenseId: true,
       },
     })
 
     if (!fundRequest || fundRequest.schoolId !== ctx.schoolId) {
       return NextResponse.json({ error: 'Fund request not found' }, { status: 404 })
+    }
+
+    // recordExpense — FINANCE (or SCHOOL_ADMIN) records the actual expense against an approved request
+    if (action === 'recordExpense') {
+      if (!ctx.role || !(['FINANCE', 'SCHOOL_ADMIN'] as string[]).includes(ctx.role)) {
+        return NextResponse.json({ error: 'Only Finance staff can record expenses' }, { status: 403 })
+      }
+      if (fundRequest.status !== 'APPROVED') {
+        return NextResponse.json({ error: 'Can only record an expense against an approved request' }, { status: 400 })
+      }
+      if (fundRequest.expenseId) {
+        return NextResponse.json({ error: 'An expense has already been recorded for this request' }, { status: 409 })
+      }
+
+      const amount = validation.data.amount ?? fundRequest.amount
+      const expenseDateRaw = validation.data.expenseDate
+      const expenseDate = expenseDateRaw ? new Date(expenseDateRaw) : new Date()
+      if (isNaN(expenseDate.getTime())) {
+        return NextResponse.json({ error: 'Invalid expense date' }, { status: 400 })
+      }
+
+      const newExpense = await prisma.expense.create({
+        data: {
+          schoolId: ctx.schoolId,
+          title: fundRequest.title,
+          description: validation.data.notes ?? fundRequest.description ?? null,
+          category: fundRequest.category,
+          amount,
+          expenseDate,
+          referenceNumber: validation.data.referenceNumber ?? null,
+          status: 'RECORDED',
+          createdById: ctx.userId,
+          updatedById: ctx.userId,
+        },
+      })
+
+      const updated = await prisma.fundRequest.update({
+        where: { id },
+        data: { expenseId: newExpense.id },
+      })
+
+      return NextResponse.json({ fundRequest: updated, expenseId: newExpense.id })
     }
 
     if (fundRequest.status !== 'PENDING') {
@@ -94,11 +142,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     if (action === 'approve') {
-      // FINANCE_MANAGER can only approve up to threshold
+      // FINANCE_MANAGER can only approve up to threshold (if a threshold is configured)
       if (ctx.role === 'FINANCE_MANAGER') {
         const settings = await prisma.schoolSettings.findUnique({ where: { schoolId: ctx.schoolId } })
         const threshold = settings?.expenseApprovalThreshold ?? 0
-        if (threshold <= 0 || fundRequest.amount > threshold) {
+        if (threshold > 0 && fundRequest.amount > threshold) {
           return NextResponse.json(
             { error: `Amount exceeds your approval limit of ${threshold}. Admin approval required.` },
             { status: 403 },
@@ -106,21 +154,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         }
       }
 
-      // Auto-create expense on approval
-      const newExpense = await prisma.expense.create({
-        data: {
-          schoolId: ctx.schoolId,
-          title: fundRequest.title,
-          description: fundRequest.description ?? null,
-          category: fundRequest.category,
-          amount: fundRequest.amount,
-          expenseDate: new Date(),
-          status: 'RECORDED',
-          createdById: ctx.userId,
-          updatedById: ctx.userId,
-        },
-      })
-
+      // Approve — FINANCE role will record the actual expense later once invoice is available
       const updated = await prisma.fundRequest.update({
         where: { id },
         data: {
@@ -128,11 +162,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           reviewedById: ctx.userId,
           reviewedAt: new Date(),
           reviewNote: reviewNote ?? null,
-          expenseId: newExpense.id,
         },
       })
 
-      return NextResponse.json({ fundRequest: updated, expenseId: newExpense.id })
+      return NextResponse.json({ fundRequest: updated })
     }
 
     // Reject

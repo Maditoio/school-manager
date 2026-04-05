@@ -64,7 +64,7 @@ export default function FinanceFundRequestsPage() {
   const [threshold, setThreshold] = useState(0)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('PENDING')
+  const [statusFilter, setStatusFilter] = useState('')
   const [page, setPage] = useState(1)
   const pageSize = 15
 
@@ -85,6 +85,11 @@ export default function FinanceFundRequestsPage() {
 
   // Approve loading state
   const [approvingId, setApprovingId] = useState<string | null>(null)
+
+  // Record Expense modal state
+  const [recordTarget, setRecordTarget] = useState<FundRequest | null>(null)
+  const [recordForm, setRecordForm] = useState({ amount: '', expenseDate: '', referenceNumber: '', notes: '' })
+  const [recording, setRecording] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') redirect('/login')
@@ -185,7 +190,7 @@ export default function FinanceFundRequestsPage() {
         showToast(payload.error || 'Failed to approve', 'error')
         return
       }
-      showToast('Request approved — expense record created', 'success')
+      showToast('Request approved — Finance can now record the expense', 'success')
       await fetchRequests()
     } catch {
       showToast('Failed to approve', 'error')
@@ -220,6 +225,47 @@ export default function FinanceFundRequestsPage() {
       showToast('Failed to reject', 'error')
     } finally {
       setRejecting(false)
+    }
+  }
+
+  const handleRecordExpense = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!recordTarget) return
+    const amount = parseFloat(recordForm.amount)
+    if (isNaN(amount) || amount <= 0) {
+      showToast('Enter a valid amount', 'warning')
+      return
+    }
+    if (!recordForm.expenseDate) {
+      showToast('Invoice date is required', 'warning')
+      return
+    }
+    setRecording(true)
+    try {
+      const res = await fetch(`/api/fund-requests/${recordTarget.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'recordExpense',
+          amount,
+          expenseDate: recordForm.expenseDate,
+          referenceNumber: recordForm.referenceNumber.trim() || undefined,
+          notes: recordForm.notes.trim() || undefined,
+        }),
+      })
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        showToast(payload.error || 'Failed to record expense', 'error')
+        return
+      }
+      showToast('Expense recorded and linked to fund request', 'success')
+      setRecordTarget(null)
+      setRecordForm({ amount: '', expenseDate: '', referenceNumber: '', notes: '' })
+      await fetchRequests()
+    } catch {
+      showToast('Failed to record expense', 'error')
+    } finally {
+      setRecording(false)
     }
   }
 
@@ -278,33 +324,57 @@ export default function FinanceFundRequestsPage() {
       key: 'actions',
       label: '',
       renderCell: (r: FundRequest) => {
-        if (r.status !== 'PENDING') return null
-        if (!isFinanceManager) return null
-        const withinLimit = threshold > 0 && r.amount <= threshold
-        if (!withinLimit) {
+        // FINANCE_MANAGER: approve / reject PENDING requests
+        if (isFinanceManager && r.status === 'PENDING') {
+          // threshold=0 means no limit configured — FM can approve any amount
+          const exceedsLimit = threshold > 0 && r.amount > threshold
+          if (exceedsLimit) {
+            return <span className="text-xs text-amber-600 font-medium">Requires admin approval</span>
+          }
           return (
-            <span className="text-xs text-amber-600 font-medium">Requires admin</span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={approvingId === r.id}
+                onClick={() => handleApprove(r.id)}
+                className="text-emerald-600 hover:underline text-sm disabled:opacity-50"
+              >
+                {approvingId === r.id ? '…' : 'Approve'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setRejectTarget(r.id); setRejectNote('') }}
+                className="text-red-600 hover:underline text-sm"
+              >
+                Reject
+              </button>
+            </div>
           )
         }
-        return (
-          <div className="flex gap-2">
+        // FINANCE: record expense against approved requests
+        if (!isFinanceManager && r.status === 'APPROVED') {
+          if (r.expenseId) {
+            return <span className="text-xs text-emerald-600 font-medium">✓ Expense recorded</span>
+          }
+          return (
             <button
               type="button"
-              disabled={approvingId === r.id}
-              onClick={() => handleApprove(r.id)}
-              className="text-emerald-600 hover:underline text-sm disabled:opacity-50"
+              onClick={() => {
+                setRecordTarget(r)
+                setRecordForm({
+                  amount: String(r.amount),
+                  expenseDate: new Date().toISOString().slice(0, 10),
+                  referenceNumber: '',
+                  notes: '',
+                })
+              }}
+              className="rounded bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-700"
             >
-              {approvingId === r.id ? '…' : 'Approve'}
+              Record Expense
             </button>
-            <button
-              type="button"
-              onClick={() => { setRejectTarget(r.id); setRejectNote('') }}
-              className="text-red-600 hover:underline text-sm"
-            >
-              Reject
-            </button>
-          </div>
-        )
+          )
+        }
+        return null
       },
     },
   ]
@@ -391,6 +461,61 @@ export default function FinanceFundRequestsPage() {
               </div>
             </form>
           </Card>
+        )}
+
+        {/* Record Expense modal */}
+        {recordTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Record Expense</h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Approved request: <span className="font-medium text-gray-700">{recordTarget.title}</span>
+                  <span className="ml-2 text-gray-400">· {categoryLabels[recordTarget.category] ?? recordTarget.category}</span>
+                </p>
+              </div>
+              <form onSubmit={handleRecordExpense} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="Invoice Amount *"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={recordForm.amount}
+                    onChange={(e) => setRecordForm((p) => ({ ...p, amount: e.target.value }))}
+                    placeholder={String(recordTarget.amount)}
+                  />
+                  <Input
+                    label="Invoice Date *"
+                    type="date"
+                    value={recordForm.expenseDate}
+                    onChange={(e) => setRecordForm((p) => ({ ...p, expenseDate: e.target.value }))}
+                  />
+                </div>
+                <Input
+                  label="Invoice / Reference Number"
+                  value={recordForm.referenceNumber}
+                  onChange={(e) => setRecordForm((p) => ({ ...p, referenceNumber: e.target.value }))}
+                  placeholder="e.g. INV-2026-0042"
+                />
+                <TextArea
+                  label="Notes"
+                  value={recordForm.notes}
+                  onChange={(e) => setRecordForm((p) => ({ ...p, notes: e.target.value }))}
+                  placeholder="Optional: invoice details, supplier name, etc."
+                  rows={2}
+                />
+                <div className="flex gap-3">
+                  <Button type="submit" disabled={recording}>
+                    {recording ? 'Recording…' : 'Record Expense'}
+                  </Button>
+                  <Button variant="secondary" type="button" onClick={() => setRecordTarget(null)}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
 
         {/* Reject modal */}
