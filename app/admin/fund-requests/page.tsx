@@ -229,7 +229,11 @@ export default function AdminFundRequestsPage() {
       key: 'reviewNote',
       label: 'Note',
       renderCell: (r: FundRequest) =>
-        r.status !== 'PENDING' ? (r.reviewNote ?? '-') : null,
+        r.status !== 'PENDING' && r.reviewNote ? (
+          <span title={r.reviewNote} className="cursor-help underline decoration-dotted decoration-gray-400 text-xs">
+            {r.reviewNote.length > 30 ? r.reviewNote.slice(0, 30) + '…' : r.reviewNote}
+          </span>
+        ) : null,
     },
     {
       key: 'createdAt',
@@ -238,7 +242,7 @@ export default function AdminFundRequestsPage() {
       renderCell: (r: FundRequest) => new Date(r.createdAt).toLocaleDateString(),
     },
     {
-      key: 'actions',
+      key: 'review',
       label: '',
       renderCell: (r: FundRequest) => {
         if (r.status !== 'PENDING') return null
