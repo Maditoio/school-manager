@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Form'
 import { useToast } from '@/components/ui/Toast'
 import { AlertTriangle, CheckCircle2, Clock, Info, TrendingUp } from 'lucide-react'
-import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { ADMIN_NAV_ITEMS, FINANCE_NAV_ITEMS } from '@/lib/admin-nav'
 
 const categoryLabels: Record<string, string> = {
   MAINTENANCE: 'Maintenance',
@@ -152,7 +152,8 @@ export default function MeetingAgendaPage() {
   const handlePrint = () => window.print()
 
   const isAdmin = session?.user?.role === 'SCHOOL_ADMIN'
-  const navItems = ADMIN_NAV_ITEMS
+  const isFinanceRole = session?.user?.role === 'FINANCE' || session?.user?.role === 'FINANCE_MANAGER'
+  const navItems = isFinanceRole ? FINANCE_NAV_ITEMS : ADMIN_NAV_ITEMS
 
   if (status === 'loading' || !session?.user) return <div>Loading...</div>
 
