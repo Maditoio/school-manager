@@ -324,9 +324,11 @@ export default function FinanceFundRequestsPage() {
             <h1 className="text-2xl font-bold text-gray-900">Fund Requests</h1>
             <p className="text-gray-500 mt-1">Review and manage staff fund requests.</p>
           </div>
+          {!isFinanceManager && (
           <Button onClick={() => setShowForm((v) => !v)}>
             {showForm ? 'Cancel' : '+ New Request'}
           </Button>
+          )}
         </div>
 
         {isFinanceManager && threshold > 0 && (

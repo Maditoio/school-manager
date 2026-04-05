@@ -82,7 +82,7 @@ export default async function TeacherDashboard() {
     { label: 'Attendance', href: '/teacher/attendance', icon: '📅' },
     { label: 'Off Days', href: '/teacher/off-days', icon: '🛌' },
     { label: 'Results', href: '/teacher/results', icon: '📝' },
-    { label: 'Fund Requests', href: '/teacher/fund-requests', icon: '💰' },
+
     { label: 'Announcements', href: '/teacher/announcements', icon: '📢' },
     { label: 'Messages', href: '/teacher/messages', icon: '💬' },
   ]

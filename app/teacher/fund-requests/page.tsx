@@ -68,7 +68,8 @@ export default function TeacherFundRequestsPage() {
 
   useEffect(() => {
     if (status === 'unauthenticated') redirect('/login')
-    if (session?.user?.role && session.user.role !== 'TEACHER') redirect('/login')
+    // Fund requests are no longer available for teachers
+    if (session?.user?.role) redirect('/teacher/dashboard')
   }, [session, status])
 
   const fetchRequests = useCallback(async () => {
@@ -181,7 +182,6 @@ export default function TeacherFundRequestsPage() {
     { label: 'Attendance', href: '/teacher/attendance', icon: '📅' },
     { label: 'Off Days', href: '/teacher/off-days', icon: '🛌' },
     { label: 'Results', href: '/teacher/results', icon: '📝' },
-    { label: 'Fund Requests', href: '/teacher/fund-requests', icon: '💰' },
     { label: 'Announcements', href: '/teacher/announcements', icon: '📢' },
     { label: 'Messages', href: '/teacher/messages', icon: '💬' },
   ]

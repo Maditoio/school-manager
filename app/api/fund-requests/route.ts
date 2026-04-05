@@ -5,7 +5,7 @@ import { hasRole } from '@/lib/auth-utils'
 import { ExpenseCategory, FundRequestStatus, UserRole } from '@prisma/client'
 import { z } from 'zod'
 
-const REQUESTER_ROLES: UserRole[] = ['TEACHER', 'FINANCE', 'FINANCE_MANAGER']
+const REQUESTER_ROLES: UserRole[] = ['FINANCE']
 const REVIEWER_ROLES: UserRole[] = ['FINANCE_MANAGER', 'FINANCE', 'SCHOOL_ADMIN']
 const ALL_ALLOWED_ROLES: UserRole[] = [...new Set([...REQUESTER_ROLES, ...REVIEWER_ROLES])]
 
@@ -51,15 +51,7 @@ export async function GET(request: NextRequest) {
     const statusFilter = searchParams.get('status') as FundRequestStatus | null
     const urgencyFilter = searchParams.get('urgency')
 
-    const isReviewer = ctx.role ? REVIEWER_ROLES.includes(ctx.role as UserRole) : false
-    const isTeacher = ctx.role === 'TEACHER'
-
     const where: Record<string, unknown> = { schoolId: ctx.schoolId }
-
-    // Teachers only see their own requests
-    if (isTeacher && !isReviewer) {
-      where.requestedById = ctx.userId
-    }
 
     if (statusFilter && Object.values(FundRequestStatus).includes(statusFilter)) {
       where.status = statusFilter
