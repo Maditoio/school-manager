@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { getClientLocale, translateText } from '@/lib/client-i18n'
 import {
   ArrowDownUp,
   ChevronLeft,
@@ -117,6 +118,12 @@ export default function Table<T extends RowData = RowData>({
   rowKey = 'id',
   ariaLabel,
 }: TableProps<T>) {
+  const locale = getClientLocale()
+  const tTitle = translateText(title, locale)
+  const tEmptyMessage = translateText(emptyMessage, locale)
+  const tFilterLabel = translateText(filterLabel, locale)
+  const tSearchPlaceholder = translateText('Search...', locale)
+
   const [searchValue, setSearchValue] = useState('')
   const [selectedRowKey, setSelectedRowKey] = useState<string | number | null>(null)
   const [openMenuState, setOpenMenuState] = useState<{
@@ -303,7 +310,7 @@ export default function Table<T extends RowData = RowData>({
       aria-label={ariaLabel || title || 'Data table'}
     >
       <div className="flex min-h-14 items-center justify-between gap-3 border-b px-4 py-3 sm:px-5" style={{ borderColor: 'var(--border-subtle)' }}>
-        <h3 className="truncate text-[15px] font-semibold ui-text-primary">{title}</h3>
+        <h3 className="truncate text-[15px] font-semibold ui-text-primary">{tTitle}</h3>
 
         <div className="flex items-center gap-2">
           <label className="relative hidden sm:block">
@@ -312,7 +319,7 @@ export default function Table<T extends RowData = RowData>({
               type="text"
               value={searchValue}
               onChange={handleSearchChange}
-              placeholder="Search..."
+              placeholder={tSearchPlaceholder}
               className="h-8 w-40 rounded-lg border pl-8 pr-2.5 text-[12px] transition-all duration-200 ease-in-out focus:outline-none"
               style={{
                 background: 'var(--field-bg)',
@@ -361,7 +368,7 @@ export default function Table<T extends RowData = RowData>({
               }}
             >
               <Filter className="h-3.5 w-3.5" />
-              <span>{filterLabel}</span>
+              <span>{tFilterLabel}</span>
             </button>
 
             {filterOptions?.length && isFilterOpen ? (
@@ -583,7 +590,7 @@ export default function Table<T extends RowData = RowData>({
             {!loading && visibleRows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-4 py-8 text-center text-sm ui-text-secondary">
-                  {emptyMessage}
+                  {tEmptyMessage}
                 </td>
               </tr>
             ) : null}

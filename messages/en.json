@@ -1158,7 +1158,10 @@
     "noApprovalThreshold": "No approval threshold is set. Contact the administrator to configure your approval limit.",
     "enterValidAmount": "Enter a valid amount",
     "invoiceDateRequired": "Invoice date is required",
-    "rejectReasonRequired": "A reason is required for rejection"
+    "rejectReasonRequired": "A reason is required for rejection",
+    "approvalLimitIntro": "Your approval limit is",
+    "approvalLimitOutro": ". Requests above this require administrator approval.",
+    "searchPlaceholder": "Search…"
   },
   "meetingAgenda": {
     "pageTitle": "Meeting Agenda",
@@ -1205,5 +1208,11 @@
     "printCompleted": "COMPLETED",
     "printOverview": "OVERVIEW",
     "noFundRequests": "No fund requests found for this period."
+  },
+  "table": {
+    "defaultTitle": "Data Table",
+    "searchPlaceholder": "Search...",
+    "filterLabel": "Filter",
+    "noRecordsFound": "No records found."
   }
 }

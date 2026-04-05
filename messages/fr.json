@@ -1156,7 +1156,10 @@
     "noApprovalThreshold": "Aucun seuil d'approbation n'est défini. Contactez l'administrateur pour configurer votre limite.",
     "enterValidAmount": "Entrez un montant valide",
     "invoiceDateRequired": "La date de la facture est requise",
-    "rejectReasonRequired": "Une raison est requise pour rejeter la demande"
+    "rejectReasonRequired": "Une raison est requise pour rejeter la demande",
+    "approvalLimitIntro": "Votre limite d’approbation est",
+    "approvalLimitOutro": ". Les demandes au-dessus nécessitent l’approbation de l’administrateur.",
+    "searchPlaceholder": "Rechercher…"
   },
   "meetingAgenda": {
     "pageTitle": "Ordre du Jour",
@@ -1203,5 +1206,11 @@
     "printCompleted": "TERMINÉ",
     "printOverview": "VUE D’ENSEMBLE",
     "noFundRequests": "Aucune demande de fonds pour cette période."
+  },
+  "table": {
+    "defaultTitle": "Tableau de données",
+    "searchPlaceholder": "Rechercher...",
+    "filterLabel": "Filtrer",
+    "noRecordsFound": "Aucun enregistrement trouvé."
   }
 }

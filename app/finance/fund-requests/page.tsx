@@ -10,6 +10,7 @@ import { Input, Select, TextArea } from '@/components/ui/Form'
 import Table from '@/components/ui/Table'
 import { useToast } from '@/components/ui/Toast'
 import { FINANCE_NAV_ITEMS } from '@/lib/admin-nav'
+import { getClientLocale, translateText } from '@/lib/client-i18n'
 
 type FundRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
@@ -272,24 +273,26 @@ export default function FinanceFundRequestsPage() {
   if (status === 'loading' || !session) return <div>Loading...</div>
 
   const navItems = FINANCE_NAV_ITEMS
+  const locale = getClientLocale()
+  const t = (s: string) => translateText(s, locale)
 
   const columns = [
-    { key: 'requestedByName', label: 'From', sortable: true },
-    { key: 'title', label: 'Title', sortable: true },
+    { key: 'requestedByName', label: t('From'), sortable: true },
+    { key: 'title', label: t('Title'), sortable: true },
     {
       key: 'category',
-      label: 'Category',
+      label: t('Category'),
       renderCell: (r: FundRequest) => categoryLabels[r.category] ?? r.category,
     },
     {
       key: 'amount',
-      label: 'Amount',
+      label: t('Amount'),
       sortable: true,
       renderCell: (r: FundRequest) => `$${r.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
     },
     {
       key: 'urgency',
-      label: 'Urgency',
+      label: t('Urgency'),
       renderCell: (r: FundRequest) => (
         <span
           className={`px-2 py-0.5 rounded text-xs font-medium ${
@@ -302,7 +305,7 @@ export default function FinanceFundRequestsPage() {
     },
     {
       key: 'status',
-      label: 'Status',
+      label: t('Status'),
       renderCell: (r: FundRequest) => (
         <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[r.status]}`}>
           {r.status}
@@ -311,7 +314,7 @@ export default function FinanceFundRequestsPage() {
     },
     {
       key: 'reviewNote',
-      label: 'Note',
+      label: t('Note'),
       renderCell: (r: FundRequest) =>
         r.reviewNote ? (
           <span title={r.reviewNote} className="cursor-help underline decoration-dotted decoration-gray-400 text-xs">
@@ -321,7 +324,7 @@ export default function FinanceFundRequestsPage() {
     },
     {
       key: 'createdAt',
-      label: 'Date',
+      label: t('Date'),
       sortable: true,
       renderCell: (r: FundRequest) => new Date(r.createdAt).toLocaleDateString(),
     },
@@ -334,7 +337,7 @@ export default function FinanceFundRequestsPage() {
           // threshold=0 means no limit configured — FM can approve any amount
           const exceedsLimit = threshold > 0 && r.amount > threshold
           if (exceedsLimit) {
-            return <span className="text-xs text-amber-600 font-medium">Requires admin approval</span>
+            return <span className="text-xs text-amber-600 font-medium">{t('Requires admin approval')}</span>
           }
           return (
             <div className="flex gap-2">
@@ -344,14 +347,14 @@ export default function FinanceFundRequestsPage() {
                 onClick={() => handleApprove(r.id)}
                 className="text-emerald-600 hover:underline text-sm disabled:opacity-50"
               >
-                {approvingId === r.id ? '…' : 'Approve'}
+                {approvingId === r.id ? '…' : t('Approve')}
               </button>
               <button
                 type="button"
                 onClick={() => { setRejectTarget(r.id); setRejectNote('') }}
                 className="text-red-600 hover:underline text-sm"
               >
-                Reject
+                {t('Reject')}
               </button>
             </div>
           )
@@ -359,7 +362,7 @@ export default function FinanceFundRequestsPage() {
         // FINANCE: record expense against approved requests
         if (!isFinanceManager && r.status === 'APPROVED') {
           if (r.expenseId) {
-            return <span className="text-xs text-emerald-600 font-medium">✓ Expense recorded</span>
+            return <span className="text-xs text-emerald-600 font-medium">{t('\u2713 Expense recorded')}</span>
           }
           return (
             <button
@@ -375,7 +378,7 @@ export default function FinanceFundRequestsPage() {
               }}
               className="rounded bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-700"
             >
-              Record Expense
+              {t('Record Expense')}
             </button>
           )
         }

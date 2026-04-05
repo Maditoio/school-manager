@@ -542,7 +542,10 @@
     "noApprovalThreshold": "Hakuna kiwango cha idhini kilichowekwa. Wasiliana na msimamizi.",
     "enterValidAmount": "Ingiza kiasi halali",
     "invoiceDateRequired": "Tarehe ya ankara inahitajika",
-    "rejectReasonRequired": "Sababu inahitajika kwa kukataa ombi"
+    "rejectReasonRequired": "Sababu inahitajika kwa kukataa ombi",
+    "approvalLimitIntro": "Kiwango chako cha idhini ni",
+    "approvalLimitOutro": ". Maombi yanayozidi kiasi hiki yanahitaji idhini ya msimamizi.",
+    "searchPlaceholder": "Tafuta…"
   },
   "meetingAgenda": {
     "pageTitle": "Ajenda ya Mkutano",
@@ -589,5 +592,11 @@
     "printCompleted": "IMEKAMILIKA",
     "printOverview": "MUHTASARI",
     "noFundRequests": "Hakuna maombi ya fedha kwa kipindi hiki."
+  },
+  "table": {
+    "defaultTitle": "Jedwali la Data",
+    "searchPlaceholder": "Tafuta...",
+    "filterLabel": "Chuja",
+    "noRecordsFound": "Hakuna rekodi zilizopatikana."
   }
 }
