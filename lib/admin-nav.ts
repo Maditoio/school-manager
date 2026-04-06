@@ -49,3 +49,17 @@ export const FINANCE_NAV_ITEMS: NavItem[] = [
   { label: 'Fund Requests',  href: '/finance/fund-requests' },
   { label: 'Meeting Agenda', href: '/admin/meeting-agenda' },
 ]
+
+/** Teacher navigation */
+export const TEACHER_NAV_ITEMS: NavItem[] = [
+  { label: 'Dashboard',    href: '/teacher/dashboard',    icon: '📊' },
+  { label: 'My Classes',   href: '/teacher/classes',      icon: '🏫' },
+  { label: 'Students',     href: '/teacher/students',     icon: '👨‍🎓' },
+  { label: 'Assessments',  href: '/teacher/assessments',  icon: '📋' },
+  { label: 'Attendance',   href: '/teacher/attendance',   icon: '📅' },
+  { label: 'Off Days',     href: '/teacher/off-days',     icon: '🛌' },
+  { label: 'Results',      href: '/teacher/results',      icon: '📝' },
+  { label: 'Announcements',href: '/teacher/announcements',icon: '📢' },
+  { label: 'Messages',     href: '/teacher/messages',     icon: '💬' },
+  { label: 'Fund Requests',href: '/teacher/fund-requests',icon: '📦' },
+]

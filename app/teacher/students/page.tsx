@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Select } from '@/components/ui/Form'
+import Table from '@/components/ui/Table'
 import { useSession } from 'next-auth/react'
 import { redirect, useRouter } from 'next/navigation'
+import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
 
 interface Student {
   id: string
@@ -95,15 +97,34 @@ export default function TeacherStudentsPage() {
     return <div>Loading...</div>
   }
 
-  const navItems = [
-    { label: 'Dashboard', href: '/teacher/dashboard', icon: '📊' },
-    { label: 'My Classes', href: '/teacher/classes', icon: '🏫' },
-    { label: 'Students', href: '/teacher/students', icon: '👨‍🎓' },
-    { label: 'Assessments', href: '/teacher/assessments', icon: '📋' },
-    { label: 'Attendance', href: '/teacher/attendance', icon: '📅' },
-    { label: 'Results', href: '/teacher/results', icon: '📝' },
-    { label: 'Announcements', href: '/teacher/announcements', icon: '📢' },
-    { label: 'Messages', href: '/teacher/messages', icon: '💬' },
+  const columns = [
+    { key: 'admissionNumber', label: 'Admission No', sortable: true },
+    {
+      key: 'name',
+      label: 'Name',
+      sortable: false,
+      renderCell: (s: Student) => `${s.firstName} ${s.lastName}`,
+    },
+    { key: 'gender', label: 'Gender' },
+    {
+      key: 'dateOfBirth',
+      label: 'Date of Birth',
+      sortable: true,
+      renderCell: (s: Student) => new Date(s.dateOfBirth).toLocaleDateString(),
+    },
+    {
+      key: 'view',
+      label: '',
+      renderCell: (s: Student) => (
+        <button
+          type="button"
+          onClick={() => viewStudentDetails(s.id)}
+          className="rounded bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-700"
+        >
+          View
+        </button>
+      ),
+    },
   ]
 
   return (
@@ -113,85 +134,35 @@ export default function TeacherStudentsPage() {
         role: 'Teacher',
         email: session.user.email,
       }}
-      navItems={navItems}
+      navItems={TEACHER_NAV_ITEMS}
     >
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Students</h1>
-          <p className="text-gray-700 mt-2">Students in your classes</p>
+          <h1 className="text-2xl font-bold text-gray-900">My Students</h1>
+          <p className="text-gray-500 mt-1">Students in your classes</p>
         </div>
 
-        <Card className="p-6">
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-800 mb-2">Select Class</label>
+        <Card className="p-4">
+          <div className="mb-4">
             <Select
+              label="Select Class"
               value={selectedClass}
               onChange={(e) => setSelectedClass(e.target.value)}
-            >
-              <option value="">Select Class</option>
-              {classes.map((cls) => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.name}
-                </option>
-              ))}
-            </Select>
+              options={classes.map((cls) => ({ value: cls.id, label: cls.name }))}
+            />
           </div>
-
-          {loading ? (
-            <div>Loading...</div>
-          ) : selectedClass ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full border border-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                      Admission No
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                      Gender
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                      Date of Birth
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {students.length > 0 ? students.map((student) => (
-                    <tr
-                      key={student.id}
-                      onClick={() => viewStudentDetails(student.id)}
-                      className="cursor-pointer transition-colors hover:bg-blue-50"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {student.admissionNumber}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {student.firstName} {student.lastName}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                        {student.gender}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                        {new Date(student.dateOfBirth).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  )) : (
-                    <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-gray-700">
-                        No students in this class
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center text-gray-700">Please select a class</div>
-          )}
         </Card>
+
+        {selectedClass && (
+          <Table
+            title="Students"
+            columns={columns}
+            data={students}
+            loading={loading}
+            emptyMessage="No students in this class"
+            rowKey="id"
+          />
+        )}
       </div>
     </DashboardLayout>
   )

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, Select, TextArea } from '@/components/ui/Form'
 import Table from '@/components/ui/Table'
 import { useToast } from '@/components/ui/Toast'
+import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
 
 type FundRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
@@ -174,17 +175,7 @@ export default function TeacherFundRequestsPage() {
 
   if (status === 'loading' || !session) return <div>Loading...</div>
 
-  const navItems = [
-    { label: 'Dashboard', href: '/teacher/dashboard', icon: '📊' },
-    { label: 'My Classes', href: '/teacher/classes', icon: '🏫' },
-    { label: 'Students', href: '/teacher/students', icon: '👨‍🎓' },
-    { label: 'Assessments', href: '/teacher/assessments', icon: '📋' },
-    { label: 'Attendance', href: '/teacher/attendance', icon: '📅' },
-    { label: 'Off Days', href: '/teacher/off-days', icon: '🛌' },
-    { label: 'Results', href: '/teacher/results', icon: '📝' },
-    { label: 'Announcements', href: '/teacher/announcements', icon: '📢' },
-    { label: 'Messages', href: '/teacher/messages', icon: '💬' },
-  ]
+  const navItems = TEACHER_NAV_ITEMS
 
   const columns = [
     { key: 'title', label: 'Title', sortable: true },

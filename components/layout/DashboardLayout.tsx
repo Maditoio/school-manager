@@ -204,7 +204,7 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
 
   const translatedChildren = useMemo(() => {
     const role = String(session?.user?.role || '')
-    const shouldTranslatePageContent = locale !== 'en' && (role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN' || role === 'FINANCE' || role === 'FINANCE_MANAGER')
+    const shouldTranslatePageContent = locale !== 'en' && (role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN' || role === 'FINANCE' || role === 'FINANCE_MANAGER' || role === 'TEACHER')
 
     if (!shouldTranslatePageContent) {
       return children
