@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card, StatCard } from '@/components/ui/Card'
 import { prisma } from '@/lib/prisma'
+import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
 
 async function getDashboardStats(teacherId: string, schoolId: string) {
   try {
@@ -74,18 +75,7 @@ export default async function TeacherDashboard() {
 
   const stats = await getDashboardStats(session.user.id, session.user.schoolId)
 
-  const navItems = [
-    { label: 'Dashboard', href: '/teacher/dashboard', icon: '📊' },
-    { label: 'My Classes', href: '/teacher/classes', icon: '🏫' },
-    { label: 'Students', href: '/teacher/students', icon: '👨‍🎓' },
-    { label: 'Assessments', href: '/teacher/assessments', icon: '📋' },
-    { label: 'Attendance', href: '/teacher/attendance', icon: '📅' },
-    { label: 'Off Days', href: '/teacher/off-days', icon: '🛌' },
-    { label: 'Results', href: '/teacher/results', icon: '📝' },
-
-    { label: 'Announcements', href: '/teacher/announcements', icon: '📢' },
-    { label: 'Messages', href: '/teacher/messages', icon: '💬' },
-  ]
+  const navItems = TEACHER_NAV_ITEMS
 
   return (
     <DashboardLayout

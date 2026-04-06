@@ -235,9 +235,10 @@ export default function Table<T extends RowData = RowData>({
 
   const renderHeaderCell = (column: TableColumn<T>) => {
     const sortable = Boolean(column.sortable)
+    const tLabel = translateText(column.label, locale)
 
     if (!sortable) {
-      return <span>{column.label}</span>
+      return <span>{tLabel}</span>
     }
 
     return (
@@ -246,7 +247,7 @@ export default function Table<T extends RowData = RowData>({
         onClick={() => onSort?.(column.key)}
         className="group inline-flex items-center gap-1.5 text-left text-inherit"
       >
-        <span>{column.label}</span>
+        <span>{tLabel}</span>
         <ArrowDownUp className="h-3.5 w-3.5 opacity-0 transition-opacity duration-150 ease-in-out group-hover:opacity-70" />
       </button>
     )
@@ -412,7 +413,7 @@ export default function Table<T extends RowData = RowData>({
                         }
                       }}
                     >
-                      {option.label}
+                      {translateText(option.label, locale)}
                     </button>
                   )
                 })}
@@ -741,7 +742,7 @@ export default function Table<T extends RowData = RowData>({
                   e.currentTarget.style.background = 'transparent'
                 }}
               >
-                {action.label}
+                {translateText(action.label, locale)}
               </button>
             ))
           ) : (

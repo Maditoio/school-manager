@@ -700,7 +700,24 @@
       "quiz": "Quiz",
       "test": "Test",
       "exam": "Examen",
-      "assignment": "Devoir"
+      "assignment": "Devoir",
+      "subtitle": "Créer et gérer des évaluations pour vos classes",
+      "createAssessmentBtn": "+ Créer une évaluation",
+      "createNewAssessment": "Créer une nouvelle évaluation",
+      "subjectColon": "Matière :",
+      "totalMarksColon": "Total de notes :",
+      "dueDateColon": "Date limite :",
+      "descriptionColon": "Description :",
+      "typeQUIZ": "QUIZ",
+      "typeTEST": "TEST",
+      "typeEXAM": "EXAMEN",
+      "typeASSIGNMENT": "DEVOIR",
+      "noAssessmentsFull": "Aucune évaluation créée pour le moment. Cliquez sur \"Créer une évaluation\" pour commencer.",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette évaluation ? Cela supprimera également toutes les notes des étudiants.",
+      "failedCreateAssessment": "Échec de la création de l'évaluation",
+      "failedDeleteAssessment": "Échec de la suppression de l'évaluation",
+      "gradeStudentsBtn": "Noter les étudiants",
+      "deleteBtn": "Supprimer"
     },
     "grading": {
       "title": "Noter les étudiants",
@@ -759,7 +776,12 @@
       "markReadButton": "Marquer comme lu",
       "newBadge": "Nouveau",
       "messageSent": "Message envoyé avec succès",
-      "failedSendMessage": "Échec de l'envoi du message"
+      "failedSendMessage": "Échec de l'envoi du message",
+      "subtitle": "Communiquer avec les parents et les administrateurs",
+      "loadingMessages": "Chargement des messages...",
+      "allFilter": "Tous",
+      "sentFilter": "Envoyés",
+      "receivedFilter": "Reçus"
     },
     "announcements": {
       "title": "Annonces de classe",
@@ -870,6 +892,20 @@
       "withdrawBtn": "Retirer",
       "searchPlaceholder": "Rechercher des demandes…",
       "noRequests": "Aucune demande de fonds pour l’instant"
+    },
+    "dashboard": {
+      "title": "Tableau de bord enseignant",
+      "subtitle": "Gérez vos classes et vos étudiants",
+      "quickActions": "Actions rapides",
+      "assignedClasses": "Classes assignées",
+      "mySubjects": "Mes matières",
+      "pendingResults": "Résultats en attente",
+      "markAttendance": "Marquer la présence",
+      "attendanceDesc": "Marquer la présence pour vos classes",
+      "enterResults": "Saisir les résultats",
+      "resultsDesc": "Ajouter les scores des tests et examens",
+      "bookOffDay": "Réserver un congé",
+      "offDayDesc": "Soumettre votre période de congé"
     }
   },
   "school": {

@@ -671,7 +671,24 @@
       "quiz": "Quiz",
       "test": "Test",
       "exam": "Exam",
-      "assignment": "Assignment"
+      "assignment": "Assignment",
+      "subtitle": "Create and manage assessments for your classes",
+      "createAssessmentBtn": "+ Create Assessment",
+      "createNewAssessment": "Create New Assessment",
+      "subjectColon": "Subject:",
+      "totalMarksColon": "Total Marks:",
+      "dueDateColon": "Due Date:",
+      "descriptionColon": "Description:",
+      "typeQUIZ": "QUIZ",
+      "typeTEST": "TEST",
+      "typeEXAM": "EXAM",
+      "typeASSIGNMENT": "ASSIGNMENT",
+      "noAssessmentsFull": "No assessments created yet. Click \"Create Assessment\" to get started.",
+      "deleteConfirm": "Are you sure you want to delete this assessment? This will also delete all student grades.",
+      "failedCreateAssessment": "Failed to create assessment",
+      "failedDeleteAssessment": "Failed to delete assessment",
+      "gradeStudentsBtn": "Grade Students",
+      "deleteBtn": "Delete"
     },
     "grading": {
       "title": "Grade Students",
@@ -730,7 +747,12 @@
       "markReadButton": "Mark Read",
       "newBadge": "New",
       "messageSent": "Message sent successfully",
-      "failedSendMessage": "Failed to send message"
+      "failedSendMessage": "Failed to send message",
+      "subtitle": "Communicate with parents and admins",
+      "loadingMessages": "Loading messages...",
+      "allFilter": "All",
+      "sentFilter": "Sent",
+      "receivedFilter": "Received"
     },
     "announcements": {
       "title": "Class Announcements",
@@ -841,6 +863,20 @@
       "withdrawBtn": "Withdraw",
       "searchPlaceholder": "Search requests…",
       "noRequests": "No fund requests yet"
+    },
+    "dashboard": {
+      "title": "Teacher Dashboard",
+      "subtitle": "Manage your classes and students",
+      "quickActions": "Quick Actions",
+      "assignedClasses": "Assigned Classes",
+      "mySubjects": "My Subjects",
+      "pendingResults": "Pending Results",
+      "markAttendance": "Mark Attendance",
+      "attendanceDesc": "Take attendance for your classes",
+      "enterResults": "Enter Results",
+      "resultsDesc": "Add test and exam scores",
+      "bookOffDay": "Book Off Day",
+      "offDayDesc": "Submit your leave date range"
     }
   },
   "school": {
