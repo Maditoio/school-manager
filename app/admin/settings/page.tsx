@@ -11,6 +11,8 @@ import { useToast } from '@/components/ui/Toast'
 import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 import { CURRENCY_OPTIONS, useCurrency } from '@/lib/currency-context'
 import type { CurrencyCode } from '@/lib/currency-context'
+import { translateText } from '@/lib/client-i18n'
+import { useLocale } from '@/lib/locale-context'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,6 +40,8 @@ export default function AdminSettingsPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
   const { currency: activeCurrency, setCurrency: setContextCurrency, formatCurrency } = useCurrency()
+  const { locale } = useLocale()
+  const t = useCallback((s: string) => translateText(s, locale), [locale])
 
   // Finance settings
   const [threshold, setThreshold] = useState(0)
@@ -75,9 +79,9 @@ export default function AdminSettingsPage() {
       const res = await fetch('/api/schools/settings')
       const data = await res.json()
       if (res.ok) {
-        const t = data.expenseApprovalThreshold ?? 0
-        setThreshold(t)
-        setThresholdInput(String(t))
+        const thresh = data.expenseApprovalThreshold ?? 0
+        setThreshold(thresh)
+        setThresholdInput(String(thresh))
         if (data.currency) setCurrencyInput(data.currency as CurrencyCode)
       }
     } catch {
@@ -102,11 +106,11 @@ export default function AdminSettingsPage() {
         setSelectedAcademicYearId(years[0].id)
       }
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Failed to fetch terms', 'error')
+      showToast(error instanceof Error ? error.message : t('Failed to fetch terms'), 'error')
     } finally {
       setTermsLoading(false)
     }
-  }, [selectedAcademicYearId, showToast])
+  }, [selectedAcademicYearId, showToast, t])
 
   useEffect(() => {
     if (session?.user?.role === 'SCHOOL_ADMIN') {
@@ -120,7 +124,7 @@ export default function AdminSettingsPage() {
   const handleSaveThreshold = async () => {
     const value = parseFloat(thresholdInput)
     if (isNaN(value) || value < 0) {
-      showToast('Please enter a valid non-negative amount', 'warning')
+      showToast(t('Please enter a valid non-negative amount'), 'warning')
       return
     }
     try {
@@ -132,14 +136,14 @@ export default function AdminSettingsPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        showToast(data.error || 'Failed to save setting', 'error')
+        showToast(data.error || t('Failed to save setting'), 'error')
         return
       }
       setThreshold(data.expenseApprovalThreshold)
       setThresholdInput(String(data.expenseApprovalThreshold))
-      showToast('Approval limit saved', 'success')
+      showToast(t('Approval limit saved'), 'success')
     } catch {
-      showToast('Failed to save setting', 'error')
+      showToast(t('Failed to save setting'), 'error')
     } finally {
       setThresholdSaving(false)
     }
@@ -157,13 +161,13 @@ export default function AdminSettingsPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        showToast(data.error || 'Failed to save currency', 'error')
+        showToast(data.error || t('Failed to save currency'), 'error')
         return
       }
       setContextCurrency(data.currency as CurrencyCode)
-      showToast('Currency saved', 'success')
+      showToast(t('Currency saved'), 'success')
     } catch {
-      showToast('Failed to save currency', 'error')
+      showToast(t('Failed to save currency'), 'error')
     } finally {
       setCurrencySaving(false)
     }
@@ -175,7 +179,7 @@ export default function AdminSettingsPage() {
     event.preventDefault()
     const year = Number(yearInput)
     if (isNaN(year) || year < 2000 || year > 2100) {
-      showToast('Enter a valid year between 2000 and 2100', 'warning')
+      showToast(t('Enter a valid year between 2000 and 2100'), 'warning')
       return
     }
     try {
@@ -186,12 +190,12 @@ export default function AdminSettingsPage() {
         body: JSON.stringify({ action: 'createAcademicYear', year, name: `Academic Year ${year}` }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Failed to create academic year')
-      showToast('Academic year saved', 'success')
+      if (!res.ok) throw new Error(data?.error || t('Failed to create academic year'))
+      showToast(t('Academic year saved'), 'success')
       await fetchTerms()
       if (data?.academicYear?.id) setSelectedAcademicYearId(data.academicYear.id)
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Failed to create academic year', 'error')
+      showToast(error instanceof Error ? error.message : t('Failed to create academic year'), 'error')
     } finally {
       setTermsSaving(false)
     }
@@ -202,7 +206,7 @@ export default function AdminSettingsPage() {
   const createTerm = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!selectedAcademicYearId || !termName || !startDate || !endDate) {
-      showToast('Academic year, name, start date and end date are required', 'warning')
+      showToast(t('Academic year, name, start date and end date are required'), 'warning')
       return
     }
     try {
@@ -213,14 +217,14 @@ export default function AdminSettingsPage() {
         body: JSON.stringify({ action: 'createTerm', academicYearId: selectedAcademicYearId, name: termName, startDate, endDate }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Failed to create term')
-      showToast('Term created', 'success')
+      if (!res.ok) throw new Error(data?.error || t('Failed to create term'))
+      showToast(t('Term created'), 'success')
       setTermName('Term 1')
       setStartDate('')
       setEndDate('')
       await fetchTerms()
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Failed to create term', 'error')
+      showToast(error instanceof Error ? error.message : t('Failed to create term'), 'error')
     } finally {
       setTermsSaving(false)
     }
@@ -237,11 +241,11 @@ export default function AdminSettingsPage() {
         body: JSON.stringify({ action: 'setCurrentTerm', termId }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Failed to set current term')
-      showToast('Current term updated', 'success')
+      if (!res.ok) throw new Error(data?.error || t('Failed to set current term'))
+      showToast(t('Current term updated'), 'success')
       await fetchTerms()
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Failed to set current term', 'error')
+      showToast(error instanceof Error ? error.message : t('Failed to set current term'), 'error')
     } finally {
       setTermsSaving(false)
     }
@@ -258,11 +262,11 @@ export default function AdminSettingsPage() {
         body: JSON.stringify({ isLocked: !term.isLocked }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Failed to update lock status')
-      showToast(term.isLocked ? 'Term unlocked' : 'Term locked', 'success')
+      if (!res.ok) throw new Error(data?.error || t('Failed to update lock status'))
+      showToast(term.isLocked ? t('Term unlocked') : t('Term locked'), 'success')
       await fetchTerms()
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Failed to update term lock', 'error')
+      showToast(error instanceof Error ? error.message : t('Failed to update lock status'), 'error')
     } finally {
       setTermsSaving(false)
     }
@@ -280,22 +284,22 @@ export default function AdminSettingsPage() {
     [academicYears]
   )
 
-  if (status === 'loading' || !session?.user) return <div>Loading...</div>
+  if (status === 'loading' || !session?.user) return <div>{t('Loading...')}</div>
 
   return (
     <DashboardLayout
       user={{
         name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Admin',
-        role: 'School Admin',
+        role: t('School Admin'),
         email: session.user.email,
       }}
       navItems={ADMIN_NAV_ITEMS}
     >
       <div className="space-y-6">
         <div>
-          <h1 className="text-[24px] font-bold ui-text-primary">Settings</h1>
+          <h1 className="text-[24px] font-bold ui-text-primary">{t('Settings')}</h1>
           <p className="mt-1 ui-text-secondary">
-            Manage school-wide configurations — finance rules and academic calendar.
+            {t('Manage school-wide configurations — finance rules and academic calendar.')}
           </p>
         </div>
 
@@ -303,17 +307,17 @@ export default function AdminSettingsPage() {
         {/* Finance Settings                                          */}
         {/* ──────────────────────────────────────────────────────── */}
         <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider ui-text-secondary">Finance</h2>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider ui-text-secondary">{t('Finance')}</h2>
 
           <div className="space-y-4">
             {/* Currency */}
-            <Card title="School Currency" className="p-5">
+            <Card title={t('School Currency')} className="p-5">
               <p className="text-sm ui-text-secondary mb-4">
-                Select the currency used across all financial displays — fees, expenses, fund requests, and invoices.
+                {t('Select the currency used across all financial displays — fees, expenses, fund requests, and invoices.')}
               </p>
               <div className="flex items-end gap-3 max-w-sm">
                 <Select
-                  label="Currency"
+                  label={t('Currency')}
                   value={currencyInput}
                   onChange={(e) => setCurrencyInput(e.target.value as CurrencyCode)}
                   options={CURRENCY_OPTIONS.map((opt) => ({ value: opt.code, label: opt.label }))}
@@ -324,20 +328,19 @@ export default function AdminSettingsPage() {
                   onClick={handleSaveCurrency}
                   className="shrink-0"
                 >
-                  Save
+                  {t('Save')}
                 </Button>
               </div>
             </Card>
 
             {/* Approval Threshold */}
-            <Card title="Finance Manager Approval Limit" className="p-5">
+            <Card title={t('Finance Manager Approval Limit')} className="p-5">
               <p className="text-sm ui-text-secondary mb-4">
-                Finance managers can approve expense requests and expenses up to this amount without requiring
-                administrator sign-off. Set to <strong>0</strong> to disable delegation entirely.
+                {t('Finance managers can approve expense requests and expenses up to this amount without requiring administrator sign-off. Set to 0 to disable delegation entirely.')}
               </p>
               <div className="flex items-end gap-3 max-w-sm">
                 <Input
-                  label="Approval limit"
+                  label={t('Approval limit')}
                   type="number"
                   min="0"
                   step="0.01"
@@ -350,16 +353,16 @@ export default function AdminSettingsPage() {
                   onClick={handleSaveThreshold}
                   className="shrink-0"
                 >
-                  Save
+                  {t('Save')}
                 </Button>
               </div>
               {threshold > 0 ? (
                 <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
-                  Current limit: {formatCurrency(threshold)}
+                  {t('Current limit:')} {formatCurrency(threshold)}
                 </p>
               ) : (
                 <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-                  Delegation disabled — only administrators can approve expenses and fund requests
+                  {t('Delegation disabled — only administrators can approve expenses and fund requests')}
                 </p>
               )}
             </Card>
@@ -370,79 +373,79 @@ export default function AdminSettingsPage() {
         {/* Academic Calendar                                         */}
         {/* ──────────────────────────────────────────────────────── */}
         <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider ui-text-secondary">Academic Calendar</h2>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider ui-text-secondary">{t('Academic Calendar')}</h2>
 
           <div className="space-y-4">
             {/* Create Academic Year */}
-            <Card title="Create Academic Year" className="p-5">
+            <Card title={t('Create Academic Year')} className="p-5">
               <form className="flex flex-col gap-3 md:flex-row md:items-end" onSubmit={createAcademicYear}>
                 <Input
-                  label="Year"
+                  label={t('Year')}
                   type="number"
                   min={2000}
                   max={2100}
                   value={yearInput}
                   onChange={(e) => setYearInput(e.target.value)}
                 />
-                <Button type="submit" isLoading={termsSaving}>Save</Button>
+                <Button type="submit" isLoading={termsSaving}>{t('Save')}</Button>
               </form>
             </Card>
 
             {/* Create Term */}
-            <Card title="Add Term to Academic Year" className="p-5">
+            <Card title={t('Add Term to Academic Year')} className="p-5">
               <form className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5" onSubmit={createTerm}>
                 <Select
-                  label="Academic Year"
+                  label={t('Academic Year')}
                   value={selectedAcademicYearId}
                   onChange={(e) => setSelectedAcademicYearId(e.target.value)}
                 >
-                  <option value="">Select year</option>
+                  <option value="">{t('Select year')}</option>
                   {academicYears.map((year) => (
                     <option key={year.id} value={year.id}>{year.name}</option>
                   ))}
                 </Select>
                 <Input
-                  label="Term Name"
+                  label={t('Term Name')}
                   value={termName}
                   onChange={(e) => setTermName(e.target.value)}
                   placeholder="Term 1"
                 />
                 <Input
-                  label="Start Date"
+                  label={t('Start Date')}
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                 />
                 <Input
-                  label="End Date"
+                  label={t('End Date')}
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
                 />
                 <div className="flex items-end">
-                  <Button type="submit" isLoading={termsSaving} className="w-full">Add Term</Button>
+                  <Button type="submit" isLoading={termsSaving} className="w-full">{t('Add Term')}</Button>
                 </div>
               </form>
             </Card>
 
             {/* Terms list */}
-            <Card title="Academic Terms" className="p-5">
+            <Card title={t('Academic Terms')} className="p-5">
               {termsLoading ? (
-                <p className="ui-text-secondary">Loading terms…</p>
+                <p className="ui-text-secondary">{t('Loading terms...')}</p>
               ) : allTerms.length === 0 ? (
-                <p className="ui-text-secondary">No terms yet. Create an academic year above, then add terms to it.</p>
+                <p className="ui-text-secondary">{t('No terms yet. Create an academic year above, then add terms to it.')}</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="min-w-full border-collapse text-sm">
                     <thead>
                       <tr className="border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">Year</th>
-                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">Term</th>
-                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">Start</th>
-                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">End</th>
-                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">Current</th>
-                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">Locked</th>
-                        <th className="px-3 py-2 text-right ui-text-secondary font-medium">Actions</th>
+                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">{t('Year')}</th>
+                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">{t('Term')}</th>
+                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">{t('Start')}</th>
+                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">{t('End')}</th>
+                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">{t('Current')}</th>
+                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">{t('Locked')}</th>
+                        <th className="px-3 py-2 text-right ui-text-secondary font-medium">{t('Actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -454,14 +457,14 @@ export default function AdminSettingsPage() {
                           <td className="px-3 py-2 ui-text-secondary">{new Date(term.endDate).toLocaleDateString()}</td>
                           <td className="px-3 py-2">
                             {term.isCurrent ? (
-                              <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-600 dark:text-emerald-400">Current</span>
+                              <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-600 dark:text-emerald-400">{t('Current')}</span>
                             ) : (
                               <span className="text-xs ui-text-secondary">—</span>
                             )}
                           </td>
                           <td className="px-3 py-2">
                             {term.isLocked ? (
-                              <span className="rounded-full bg-slate-500/20 px-2 py-0.5 text-xs ui-text-secondary">Locked</span>
+                              <span className="rounded-full bg-slate-500/20 px-2 py-0.5 text-xs ui-text-secondary">{t('Locked')}</span>
                             ) : (
                               <span className="text-xs ui-text-secondary">—</span>
                             )}
@@ -474,7 +477,7 @@ export default function AdminSettingsPage() {
                                 disabled={term.isCurrent || termsSaving}
                                 onClick={() => setCurrentTerm(term.id)}
                               >
-                                Set Current
+                                {t('Set Current')}
                               </Button>
                               <Button
                                 size="sm"
@@ -482,7 +485,7 @@ export default function AdminSettingsPage() {
                                 disabled={termsSaving}
                                 onClick={() => toggleLock(term)}
                               >
-                                {term.isLocked ? 'Unlock' : 'Lock'}
+                                {term.isLocked ? t('Unlock') : t('Lock')}
                               </Button>
                             </div>
                           </td>
