@@ -609,7 +609,12 @@
     "rejectReasonRequired": "Sababu inahitajika kwa kukataa ombi",
     "approvalLimitIntro": "Kiwango chako cha idhini ni",
     "approvalLimitOutro": ". Maombi yanayozidi kiasi hiki yanahitaji idhini ya msimamizi.",
-    "searchPlaceholder": "Tafuta…"
+    "searchPlaceholder": "Tafuta…",
+    "searchByTitleOrRequester": "Tafuta kwa kichwa au mwombaji…",
+    "thresholdPrefix": "Maombi yanayozidi kiwango cha FM (",
+    "thresholdSuffix": ") yanahitaji idhini yako.",
+    "notSet": "haijawekwa",
+    "exceedsFMLimit": "Inazidi kikomo cha idhini cha msimamizi wa fedha"
   },
   "meetingAgenda": {
     "pageTitle": "Ajenda ya Mkutano",
@@ -661,7 +666,10 @@
     "defaultTitle": "Jedwali la Data",
     "searchPlaceholder": "Tafuta...",
     "filterLabel": "Chuja",
-    "noRecordsFound": "Hakuna rekodi zilizopatikana."
+    "noRecordsFound": "Hakuna rekodi zilizopatikana.",
+    "showing": "Inaonyesha",
+    "of": "wa",
+    "results": "matokeo"
   },
   "teacher": {
     "nav": {

@@ -73,9 +73,12 @@ function buildPageWindow(currentPage: number, totalPages: number) {
   return [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2]
 }
 
-function formatRange(startIndex: number, endIndex: number, totalCount: number) {
-  if (totalCount === 0) return 'Showing 0 of 0 results'
-  return `Showing ${startIndex + 1}–${Math.min(endIndex, totalCount)} of ${totalCount} results`
+function formatRange(startIndex: number, endIndex: number, totalCount: number, locale: ReturnType<typeof getClientLocale>) {
+  const showing = translateText('Showing', locale)
+  const ofWord = translateText('of', locale)
+  const results = translateText('results', locale)
+  if (totalCount === 0) return `${showing} 0 ${ofWord} 0 ${results}`
+  return `${showing} ${startIndex + 1}–${Math.min(endIndex, totalCount)} ${ofWord} ${totalCount} ${results}`
 }
 
 function normalizeExportValue(value: unknown): string {
@@ -603,7 +606,7 @@ export default function Table<T extends RowData = RowData>({
         className="flex min-h-13 items-center justify-between border-t px-4 sm:px-5"
         style={{ borderColor: 'var(--border-subtle)' }}
       >
-        <p className="text-[12px] ui-text-secondary">{formatRange(startIndex, endIndex, resolvedTotal)}</p>
+        <p className="text-[12px] ui-text-secondary">{formatRange(startIndex, endIndex, resolvedTotal, locale)}</p>
 
         <div className="flex items-center gap-2">
           <button

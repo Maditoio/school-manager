@@ -11,6 +11,8 @@ import Table from '@/components/ui/Table'
 import { useToast } from '@/components/ui/Toast'
 import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 import { useCurrency } from '@/lib/currency-context'
+import { translateText } from '@/lib/client-i18n'
+import { useLocale } from '@/lib/locale-context'
 
 type FundRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
@@ -58,6 +60,8 @@ export default function AdminFundRequestsPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
   const { formatCurrency } = useCurrency()
+  const { locale } = useLocale()
+  const t = useCallback((s: string) => translateText(s, locale), [locale])
 
   const [requests, setRequests] = useState<FundRequest[]>([])
   const [threshold, setThreshold] = useState(0)
@@ -84,18 +88,18 @@ export default function AdminFundRequestsPage() {
       if (statusFilter) params.set('status', statusFilter)
       const res = await fetch(`/api/fund-requests?${params}`, { cache: 'no-store' })
       if (!res.ok) {
-        showToast('Failed to load fund requests', 'error')
+        showToast(t('Failed to load fund requests'), 'error')
         return
       }
       const data = await res.json()
       setRequests(Array.isArray(data.requests) ? data.requests : [])
       setThreshold(data.expenseApprovalThreshold ?? 0)
     } catch {
-      showToast('Failed to load fund requests', 'error')
+      showToast(t('Failed to load fund requests'), 'error')
     } finally {
       setLoading(false)
     }
-  }, [showToast, statusFilter])
+  }, [showToast, statusFilter, t])
 
   useEffect(() => {
     if (session?.user?.role === 'SCHOOL_ADMIN') fetchRequests()
@@ -129,13 +133,13 @@ export default function AdminFundRequestsPage() {
       })
       const payload = await res.json().catch(() => ({}))
       if (!res.ok) {
-        showToast(payload.error || 'Failed to approve', 'error')
+        showToast(payload.error || t('Failed to approve'), 'error')
         return
       }
-      showToast('Request approved', 'success')
+      showToast(t('Request approved'), 'success')
       await fetchRequests()
     } catch {
-      showToast('Failed to approve', 'error')
+      showToast(t('Failed to approve'), 'error')
     } finally {
       setApprovingId(null)
     }
@@ -144,7 +148,7 @@ export default function AdminFundRequestsPage() {
   const handleReject = async () => {
     if (!rejectTarget) return
     if (!rejectNote.trim()) {
-      showToast('A reason is required for rejection', 'warning')
+      showToast(t('A reason is required for rejection'), 'warning')
       return
     }
     setRejecting(true)
@@ -156,42 +160,42 @@ export default function AdminFundRequestsPage() {
       })
       const payload = await res.json().catch(() => ({}))
       if (!res.ok) {
-        showToast(payload.error || 'Failed to reject', 'error')
+        showToast(payload.error || t('Failed to reject'), 'error')
         return
       }
-      showToast('Request rejected', 'success')
+      showToast(t('Request rejected'), 'success')
       setRejectTarget(null)
       setRejectNote('')
       await fetchRequests()
     } catch {
-      showToast('Failed to reject', 'error')
+      showToast(t('Failed to reject'), 'error')
     } finally {
       setRejecting(false)
     }
   }
 
-  if (status === 'loading' || !session) return <div>Loading...</div>
+  if (status === 'loading' || !session) return <div>{t('Loading...')}</div>
 
   const navItems = ADMIN_NAV_ITEMS
 
   const columns = [
-    { key: 'requestedByName', label: 'From', sortable: true },
+    { key: 'requestedByName', label: t('From'), sortable: true },
     {
       key: 'requestedByRole',
-      label: 'Role',
+      label: t('Role'),
       renderCell: (r: FundRequest) => (
         <span className="text-xs text-gray-500 capitalize">{r.requestedByRole.replace('_', ' ').toLowerCase()}</span>
       ),
     },
-    { key: 'title', label: 'Title', sortable: true },
+    { key: 'title', label: t('Title'), sortable: true },
     {
       key: 'category',
-      label: 'Category',
-      renderCell: (r: FundRequest) => categoryLabels[r.category] ?? r.category,
+      label: t('Category'),
+      renderCell: (r: FundRequest) => t(categoryLabels[r.category] ?? r.category),
     },
     {
       key: 'amount',
-      label: 'Amount',
+      label: t('Amount'),
       sortable: true,
       renderCell: (r: FundRequest) => {
         const aboveThreshold = threshold > 0 && r.amount > threshold
@@ -199,7 +203,7 @@ export default function AdminFundRequestsPage() {
           <span className={aboveThreshold ? 'font-semibold text-amber-700' : ''}>
             {formatCurrency(r.amount)}
             {aboveThreshold && (
-              <span className="ml-1 text-xs text-amber-500" title="Exceeds FM approval limit">↑</span>
+              <span className="ml-1 text-xs text-amber-500" title={t('Exceeds FM approval limit')}>↑</span>
             )}
           </span>
         )
@@ -207,29 +211,29 @@ export default function AdminFundRequestsPage() {
     },
     {
       key: 'urgency',
-      label: 'Urgency',
+      label: t('Urgency'),
       renderCell: (r: FundRequest) => (
         <span
           className={`px-2 py-0.5 rounded text-xs font-medium ${
             r.urgency === 'URGENT' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-600'
           }`}
         >
-          {r.urgency}
+          {r.urgency === 'URGENT' ? t('Urgent') : t('Normal')}
         </span>
       ),
     },
     {
       key: 'status',
-      label: 'Status',
+      label: t('Status'),
       renderCell: (r: FundRequest) => (
         <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[r.status]}`}>
-          {r.status}
+          {r.status === 'PENDING' ? t('Pending') : r.status === 'APPROVED' ? t('Approved') : t('Rejected')}
         </span>
       ),
     },
     {
       key: 'reviewNote',
-      label: 'Note',
+      label: t('Note'),
       renderCell: (r: FundRequest) =>
         r.status !== 'PENDING' && r.reviewNote ? (
           <span title={r.reviewNote} className="cursor-help underline decoration-dotted decoration-gray-400 text-xs">
@@ -239,7 +243,7 @@ export default function AdminFundRequestsPage() {
     },
     {
       key: 'createdAt',
-      label: 'Date',
+      label: t('Date'),
       sortable: true,
       renderCell: (r: FundRequest) => new Date(r.createdAt).toLocaleDateString(),
     },
@@ -256,14 +260,14 @@ export default function AdminFundRequestsPage() {
               onClick={() => handleApprove(r.id)}
               className="text-emerald-600 hover:underline text-sm disabled:opacity-50"
             >
-              {approvingId === r.id ? '…' : 'Approve'}
+              {approvingId === r.id ? '…' : t('Approve')}
             </button>
             <button
               type="button"
               onClick={() => { setRejectTarget(r.id); setRejectNote('') }}
               className="text-red-600 hover:underline text-sm"
             >
-              Reject
+              {t('Reject')}
             </button>
           </div>
         )
@@ -275,7 +279,7 @@ export default function AdminFundRequestsPage() {
     <DashboardLayout
       user={{
         name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Admin',
-        role: 'School Admin',
+        role: t('School Admin'),
         email: session.user.email,
       }}
       navItems={navItems}
@@ -283,15 +287,18 @@ export default function AdminFundRequestsPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Fund Requests
+            {t('Fund Requests')}
             {statusFilter === 'PENDING' && pendingCount > 0 && (
               <span className="ml-3 text-sm font-medium bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">
-                {pendingCount} pending
+                {pendingCount} {t('Pending').toLowerCase()}
               </span>
             )}
           </h1>
           <p className="text-gray-500 mt-1">
-            Review all staff fund requests. Requests above the FM threshold ({threshold > 0 ? formatCurrency(threshold) : 'not set'}) require your approval.
+            {t('Review all staff fund requests.')}{' '}
+            {t('Requests above the FM threshold (')}
+            {threshold > 0 ? formatCurrency(threshold) : t('not set')}
+            {t(') require your approval.')}
           </p>
         </div>
 
@@ -299,30 +306,30 @@ export default function AdminFundRequestsPage() {
         {rejectTarget && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900">Reject Request</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{t('Reject Request')}</h2>
               <TextArea
-                label="Reason *"
+                label={t('Reason *')}
                 value={rejectNote}
                 onChange={(e) => setRejectNote(e.target.value)}
-                placeholder="Explain why the request is being rejected"
+                placeholder={t('Explain why the request is being rejected')}
                 rows={3}
               />
               <div className="flex gap-3">
                 <Button variant="danger" disabled={rejecting} onClick={handleReject}>
-                  {rejecting ? 'Rejecting…' : 'Reject'}
+                  {rejecting ? t('Rejecting…') : t('Reject')}
                 </Button>
                 <Button variant="secondary" onClick={() => { setRejectTarget(null); setRejectNote('') }}>
-                  Cancel
+                  {t('Cancel')}
                 </Button>
               </div>
             </div>
           </div>
         )}
 
-        <Card title="Requests">
+        <Card title={t('Requests')}>
           <div className="flex flex-wrap gap-3 mb-4">
             <Input
-              placeholder="Search by title or requester…"
+              placeholder={t('Search by title or requester…')}
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1) }}
               className="max-w-xs"
@@ -331,10 +338,10 @@ export default function AdminFundRequestsPage() {
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
               options={[
-                { value: '', label: 'All statuses' },
-                { value: 'PENDING', label: 'Pending' },
-                { value: 'APPROVED', label: 'Approved' },
-                { value: 'REJECTED', label: 'Rejected' },
+                { value: '', label: t('All statuses') },
+                { value: 'PENDING', label: t('Pending') },
+                { value: 'APPROVED', label: t('Approved') },
+                { value: 'REJECTED', label: t('Rejected') },
               ]}
             />
           </div>
@@ -342,7 +349,7 @@ export default function AdminFundRequestsPage() {
             columns={columns}
             data={paginated}
             loading={loading}
-            emptyMessage="No fund requests found"
+            emptyMessage={t('No fund requests found')}
             page={page}
             pageSize={pageSize}
             totalCount={filtered.length}

@@ -1330,7 +1330,12 @@
     "rejectReasonRequired": "Une raison est requise pour rejeter la demande",
     "approvalLimitIntro": "Votre limite d’approbation est",
     "approvalLimitOutro": ". Les demandes au-dessus nécessitent l’approbation de l’administrateur.",
-    "searchPlaceholder": "Rechercher…"
+    "searchPlaceholder": "Rechercher…",
+    "searchByTitleOrRequester": "Rechercher par titre ou demandeur…",
+    "thresholdPrefix": "Les demandes au-dessus du seuil FM (",
+    "thresholdSuffix": ") nécessitent votre approbation.",
+    "notSet": "non défini",
+    "exceedsFMLimit": "Dépasse la limite d'approbation du gestionnaire financier"
   },
   "meetingAgenda": {
     "pageTitle": "Ordre du Jour",
@@ -1382,6 +1387,9 @@
     "defaultTitle": "Tableau de données",
     "searchPlaceholder": "Rechercher...",
     "filterLabel": "Filtrer",
-    "noRecordsFound": "Aucun enregistrement trouvé."
+    "noRecordsFound": "Aucun enregistrement trouvé.",
+    "showing": "Affichage",
+    "of": "sur",
+    "results": "résultats"
   }
 }

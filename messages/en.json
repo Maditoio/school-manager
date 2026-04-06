@@ -1330,7 +1330,12 @@
     "rejectReasonRequired": "A reason is required for rejection",
     "approvalLimitIntro": "Your approval limit is",
     "approvalLimitOutro": ". Requests above this require administrator approval.",
-    "searchPlaceholder": "Search…"
+    "searchPlaceholder": "Search…",
+    "searchByTitleOrRequester": "Search by title or requester…",
+    "thresholdPrefix": "Requests above the FM threshold (",
+    "thresholdSuffix": ") require your approval.",
+    "notSet": "not set",
+    "exceedsFMLimit": "Exceeds FM approval limit"
   },
   "meetingAgenda": {
     "pageTitle": "Meeting Agenda",
@@ -1382,6 +1387,9 @@
     "defaultTitle": "Data Table",
     "searchPlaceholder": "Search...",
     "filterLabel": "Filter",
-    "noRecordsFound": "No records found."
+    "noRecordsFound": "No records found.",
+    "showing": "Showing",
+    "of": "of",
+    "results": "results"
   }
 }
