@@ -662,7 +662,9 @@
       "gradedStatus": "Imekaguliwa",
       "notGraded": "Haijakaguliwa",
       "noResultsFound": "Hakuna matokeo yaliyopatikana kwa vichujio vilivyochaguliwa.",
-      "loading": "Inapakia matokeo ya tathmini..."
+      "loading": "Inapakia matokeo ya tathmini...",
+      "assessmentLabel": "Tathmini",
+      "allAssessments": "Tathmini Zote"
     },
     "announcements": {
       "title": "Matangazo ya Darasa",
@@ -714,7 +716,9 @@
       "title": "Madarasa Yangu",
       "subtitle": "Madarasa unayofundisha",
       "noClasses": "Hakuna madarasa yaliyopewa bado.",
-      "students": "Wanafunzi"
+      "students": "Wanafunzi",
+      "subjectsLabel": "Masomo :",
+      "noSubjectsAssigned": "Hakuna masomo yaliyopewa"
     },
     "assessments": {
       "title": "Tathmini",

@@ -656,7 +656,9 @@
       "title": "Mes classes",
       "subtitle": "Classes que vous enseignez",
       "noClasses": "Aucune classe assignée pour le moment.",
-      "students": "Étudiants"
+      "students": "Étudiants",
+      "subjectsLabel": "Matières :",
+      "noSubjectsAssigned": "Aucune matière assignée"
     },
     "assessments": {
       "title": "Évaluations",
@@ -837,7 +839,9 @@
       "statusCol": "Statut",
       "gradedStatus": "Noté",
       "notGraded": "Non noté",
-      "loading": "Chargement des résultats..."
+      "loading": "Chargement des résultats...",
+      "assessmentLabel": "Évaluation",
+      "allAssessments": "Toutes les évaluations"
     },
     "students": {
       "title": "Mes Élèves",

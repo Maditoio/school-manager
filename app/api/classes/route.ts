@@ -62,6 +62,30 @@ export async function GET() {
       orderBy: { name: 'asc' },
     })
 
+    // For teachers, enrich with the subjects they teach in each class
+    if (session.user.role === 'TEACHER' && classes.length > 0) {
+      const assignments = await prisma.classSubjectTeacher.findMany({
+        where: {
+          teacherId: session.user.id,
+          classId: { in: classes.map((c) => c.id) },
+          ...(session.user.schoolId ? { schoolId: session.user.schoolId } : {}),
+        },
+        include: {
+          subject: { select: { id: true, name: true, code: true } },
+        },
+        orderBy: { subject: { name: 'asc' } },
+      })
+
+      const subjectMap = new Map<string, Array<{ id: string; name: string; code: string | null }>>()
+      for (const a of assignments) {
+        if (!subjectMap.has(a.classId)) subjectMap.set(a.classId, [])
+        subjectMap.get(a.classId)!.push(a.subject)
+      }
+
+      const enrichedClasses = classes.map((c) => ({ ...c, subjects: subjectMap.get(c.id) ?? [] }))
+      return NextResponse.json({ classes: enrichedClasses })
+    }
+
     return NextResponse.json({ classes })
   } catch (error) {
     console.error('Error fetching classes:', error)

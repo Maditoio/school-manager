@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const classId = searchParams.get('classId') || undefined
     const subjectId = searchParams.get('subjectId') || undefined
+    const assessmentId = searchParams.get('assessmentId') || undefined
 
     if (!db.studentAssessment || !classDb.class) {
       return NextResponse.json({ error: 'Assessment results unavailable' }, { status: 500 })
@@ -80,18 +81,18 @@ export async function GET(request: NextRequest) {
     let teacherClassIds: string[] | null = null
 
     if (session.user.role === 'TEACHER') {
-      const teacherClasses = await classDb.class.findMany({
-        where: {
-          schoolId: session.user.schoolId,
-          teacherId: session.user.id,
-        },
-        select: {
-          id: true,
-          name: true,
-        },
-      })
+      const assignedRows = await prisma.$queryRaw<Array<{ id: string }>>`
+        SELECT DISTINCT c.id
+        FROM classes c
+        LEFT JOIN class_subject_teachers cst ON cst.class_id = c.id
+        WHERE c.school_id = ${session.user.schoolId}
+          AND (
+            c.teacher_id = ${session.user.id}
+            OR cst.teacher_id = ${session.user.id}
+          )
+      `
 
-      teacherClassIds = teacherClasses.map((item) => item.id)
+      teacherClassIds = assignedRows.map((r) => r.id)
 
       if (teacherClassIds.length === 0) {
         return NextResponse.json({ results: [] })
@@ -106,6 +107,7 @@ export async function GET(request: NextRequest) {
       schoolId: session.user.schoolId,
       ...(classId ? { classId } : {}),
       ...(subjectId ? { subjectId } : {}),
+      ...(assessmentId ? { id: assessmentId } : {}),
     }
 
     if (session.user.role === 'TEACHER' && !classId && teacherClassIds) {

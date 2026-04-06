@@ -11,6 +11,7 @@ interface Class {
   id: string
   name: string
   _count?: { students: number }
+  subjects?: { id: string; name: string; code?: string | null }[]
 }
 
 export default function TeacherClassesPage() {
@@ -91,6 +92,23 @@ export default function TeacherClassesPage() {
                 <div className="space-y-3">
                   <h3 className="text-xl font-semibold text-gray-900">{cls.name}</h3>
                   <p className="text-gray-600">👨‍🎓 Students: {cls._count?.students || 0}</p>
+                  {cls.subjects && cls.subjects.length > 0 ? (
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-1">📚 Subjects:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {cls.subjects.map((s) => (
+                          <span
+                            key={s.id}
+                            className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200"
+                          >
+                            {s.code ? `${s.code} – ` : ''}{s.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400">No subjects assigned</p>
+                  )}
                 </div>
               </Card>
             ))}

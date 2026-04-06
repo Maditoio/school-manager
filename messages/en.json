@@ -627,7 +627,9 @@
       "title": "My Classes",
       "subtitle": "Classes you are teaching",
       "noClasses": "No classes assigned yet.",
-      "students": "Students"
+      "students": "Students",
+      "subjectsLabel": "Subjects:",
+      "noSubjectsAssigned": "No subjects assigned"
     },
     "assessments": {
       "title": "Assessments",
@@ -808,7 +810,9 @@
       "statusCol": "Status",
       "gradedStatus": "Graded",
       "notGraded": "Not Graded",
-      "loading": "Loading assessment results..."
+      "loading": "Loading assessment results...",
+      "assessmentLabel": "Assessment",
+      "allAssessments": "All Assessments"
     },
     "students": {
       "title": "My Students",
