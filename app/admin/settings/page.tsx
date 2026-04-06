@@ -316,11 +316,8 @@ export default function AdminSettingsPage() {
                   label="Currency"
                   value={currencyInput}
                   onChange={(e) => setCurrencyInput(e.target.value as CurrencyCode)}
-                >
-                  {CURRENCY_OPTIONS.map((opt) => (
-                    <option key={opt.code} value={opt.code}>{opt.label}</option>
-                  ))}
-                </Select>
+                  options={CURRENCY_OPTIONS.map((opt) => ({ value: opt.code, label: opt.label }))}
+                />
                 <Button
                   type="button"
                   isLoading={currencySaving}
