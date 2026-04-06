@@ -21,7 +21,7 @@ const VALID_CURRENCIES = ['USD', 'ZAR', 'FCFA', 'CDF'] as const
 export async function GET() {
   try {
     const session = await auth()
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER', 'TEACHER'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER', 'TEACHER'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

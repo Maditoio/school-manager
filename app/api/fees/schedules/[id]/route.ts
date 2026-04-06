@@ -11,7 +11,7 @@ export async function PATCH(
   try {
     const session = await auth()
 
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -37,7 +37,7 @@ export async function PATCH(
         where: { email: sessionUser.email.toLowerCase() },
         select: { id: true, schoolId: true, role: true },
       })
-      if (user?.schoolId && user.role === 'SCHOOL_ADMIN') {
+      if (user?.schoolId && (user.role === 'SCHOOL_ADMIN' || user.role === 'DEPUTY_ADMIN')) {
         schoolId = user.schoolId
         userId = user.id
       }

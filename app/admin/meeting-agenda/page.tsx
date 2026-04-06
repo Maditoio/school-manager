@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Form'
 import { useToast } from '@/components/ui/Toast'
 import { AlertTriangle, CheckCircle2, Clock, Info, TrendingUp } from 'lucide-react'
-import { ADMIN_NAV_ITEMS, FINANCE_NAV_ITEMS } from '@/lib/admin-nav'
+import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS, FINANCE_NAV_ITEMS } from '@/lib/admin-nav'
 import { useCurrency } from '@/lib/currency-context'
 
 const categoryLabels: Record<string, string> = {
@@ -95,7 +95,7 @@ const priorityConfig: Record<string, { bg: string; border: string; icon: React.R
   },
 }
 
-const ALLOWED_ROLES = ['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER', 'TEACHER']
+const ALLOWED_ROLES = ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER', 'TEACHER']
 
 export default function MeetingAgendaPage() {
   const { data: session, status } = useSession()
@@ -149,9 +149,9 @@ export default function MeetingAgendaPage() {
 
   const handlePrint = () => window.print()
 
-  const isAdmin = session?.user?.role === 'SCHOOL_ADMIN'
+  const isAdmin = session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'DEPUTY_ADMIN'
   const isFinanceRole = session?.user?.role === 'FINANCE' || session?.user?.role === 'FINANCE_MANAGER'
-  const navItems = isFinanceRole ? FINANCE_NAV_ITEMS : ADMIN_NAV_ITEMS
+  const navItems = isFinanceRole ? FINANCE_NAV_ITEMS : (session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS)
 
   if (status === 'loading' || !session?.user) return <div>Loading...</div>
 

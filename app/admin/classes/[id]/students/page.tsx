@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { Minus } from 'lucide-react'
 import { useConfirmDialog } from '@/lib/useConfirmDialog'
-import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 
 interface Student {
   id: string
@@ -55,7 +55,7 @@ export default function ClassStudentsPage() {
     if (status === 'unauthenticated') {
       redirect('/login')
     }
-    if (session?.user?.role !== 'SCHOOL_ADMIN') {
+    if (session?.user?.role !== 'SCHOOL_ADMIN' && session?.user?.role !== 'DEPUTY_ADMIN') {
       redirect('/login')
     }
   }, [session, status])
@@ -274,7 +274,7 @@ export default function ClassStudentsPage() {
 
   const canMoveSelected = !!targetClassId && selectedAssignedIds.length > 0 && !transferring
 
-  const navItems = ADMIN_NAV_ITEMS
+  const navItems = session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS
 
   const filteredAssigned = useMemo(() => {
     const query = assignedSearch.trim().toLowerCase()
@@ -306,7 +306,7 @@ export default function ClassStudentsPage() {
     <DashboardLayout
       user={{
         name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Admin',
-        role: 'School Admin',
+        role: session?.user?.role === 'DEPUTY_ADMIN' ? 'Deputy Admin' : 'School Admin',
         email: session.user.email,
       }}
       navItems={navItems}

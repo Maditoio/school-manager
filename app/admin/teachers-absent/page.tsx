@@ -8,7 +8,7 @@ import Table from '@/components/ui/Table'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Form'
 import { useToast } from '@/components/ui/Toast'
-import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 
 type TeacherAbsentRow = {
   id: string
@@ -45,7 +45,7 @@ export default function TeachersAbsentPage() {
       redirect('/login')
     }
 
-    if (session?.user?.role !== 'SCHOOL_ADMIN') {
+    if (session?.user?.role !== 'SCHOOL_ADMIN' && session?.user?.role !== 'DEPUTY_ADMIN') {
       redirect('/login')
     }
   }, [session, status])
@@ -127,7 +127,7 @@ export default function TeachersAbsentPage() {
     <DashboardLayout
       user={{
         name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Admin',
-        role: 'School Admin',
+        role: session?.user?.role === 'DEPUTY_ADMIN' ? 'Deputy Admin' : 'School Admin',
         email: session.user.email,
       }}
       navItems={navItems}

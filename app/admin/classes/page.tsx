@@ -12,7 +12,7 @@ import { BookOpen, CalendarDays, GraduationCap, MoreHorizontal, PencilLine, Tras
 import enMessages from '@/messages/en.json'
 import frMessages from '@/messages/fr.json'
 import swMessages from '@/messages/sw.json'
-import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 
 interface Class {
   id: string
@@ -80,7 +80,7 @@ export default function ClassesPage() {
     if (status === 'unauthenticated') {
       redirect('/login')
     }
-    if (session?.user?.role !== 'SCHOOL_ADMIN') {
+    if (session?.user?.role !== 'SCHOOL_ADMIN' && session?.user?.role !== 'DEPUTY_ADMIN') {
       redirect('/login')
     }
   }, [session, status])
@@ -295,13 +295,13 @@ export default function ClassesPage() {
     return <div>{tCommon('loading', 'Loading...')}</div>
   }
 
-  const navItems = ADMIN_NAV_ITEMS
+  const navItems = session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS
 
   return (
     <DashboardLayout
       user={{
         name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Admin',
-        role: 'School Admin',
+        role: session?.user?.role === 'DEPUTY_ADMIN' ? 'Deputy Admin' : 'School Admin',
         email: session.user.email,
       }}
       navItems={navItems}

@@ -45,6 +45,7 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/') {
     switch (role) {
       case 'SCHOOL_ADMIN':
+      case 'DEPUTY_ADMIN':
         return NextResponse.redirect(new URL('/admin/dashboard', request.url))
       case 'FINANCE':
         return NextResponse.redirect(new URL('/finance/fees', request.url))
@@ -64,8 +65,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/unauthorized', request.url))
   }
 
-  if (pathname.startsWith('/admin') && role !== 'SCHOOL_ADMIN') {
+  if (pathname.startsWith('/admin') && role !== 'SCHOOL_ADMIN' && role !== 'DEPUTY_ADMIN') {
     return NextResponse.redirect(new URL('/unauthorized', request.url))
+  }
+
+  // DEPUTY_ADMIN cannot access settings or take attendance
+  if (role === 'DEPUTY_ADMIN' && (
+    pathname.startsWith('/admin/settings') ||
+    pathname.startsWith('/admin/attendance')
+  )) {
+    return NextResponse.redirect(new URL('/admin/dashboard', request.url))
   }
 
   if (pathname.startsWith('/finance') && role !== 'FINANCE' && role !== 'FINANCE_MANAGER') {

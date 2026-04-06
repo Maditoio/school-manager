@@ -17,7 +17,7 @@ async function resolveSchoolContext(sessionUser: { id?: string | null; email?: s
     select: { id: true, schoolId: true, role: true },
   })
 
-  if (!user || !user.schoolId || !['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER'].includes(user.role)) {
+  if (!user || !user.schoolId || !['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER'].includes(user.role)) {
     return null
   }
 
@@ -28,7 +28,7 @@ async function resolveSchoolContext(sessionUser: { id?: string | null; email?: s
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth()
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE_MANAGER'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE_MANAGER'])) {
       return NextResponse.json({ error: 'Only school administrators or finance managers can approve expenses' }, { status: 403 })
     }
 
@@ -94,7 +94,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth()
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -193,7 +193,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth()
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

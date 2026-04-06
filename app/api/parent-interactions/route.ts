@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth()
 
-    if (!session?.user || !['SCHOOL_ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) {
+    if (!session?.user || !['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {}
 
-    if (session.user.role === 'SCHOOL_ADMIN') {
+    if (session.user.role === 'SCHOOL_ADMIN' || session.user.role === 'DEPUTY_ADMIN') {
       if (!session.user.schoolId) {
         return NextResponse.json({ error: 'School ID required' }, { status: 400 })
       }

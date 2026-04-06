@@ -35,7 +35,7 @@ async function resolveUserContext(sessionUser: {
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth()
-    if (!session?.user || !hasRole(session.user.role, ['FINANCE', 'FINANCE_MANAGER', 'SCHOOL_ADMIN'])) {
+    if (!session?.user || !hasRole(session.user.role, ['FINANCE', 'FINANCE_MANAGER', 'SCHOOL_ADMIN', 'DEPUTY_ADMIN'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

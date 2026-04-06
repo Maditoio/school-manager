@@ -130,7 +130,7 @@ function serverFormatCurrency(currency: string, amount: number): string {
 export default async function FeeInvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
 
-  if (!session?.user || !['SCHOOL_ADMIN', 'FINANCE'].includes(session.user.role)) {
+  if (!session?.user || !['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE'].includes(session.user.role)) {
     redirect('/login')
   }
 

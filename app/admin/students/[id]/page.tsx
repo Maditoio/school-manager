@@ -136,7 +136,7 @@ export default function StudentDetailsPage() {
     if (status === 'unauthenticated') {
       redirect('/login')
     }
-    if (session?.user?.role !== 'SCHOOL_ADMIN') {
+    if (session?.user?.role !== 'SCHOOL_ADMIN' && session?.user?.role !== 'DEPUTY_ADMIN') {
       redirect('/login')
     }
   }, [session, status])
@@ -171,20 +171,26 @@ export default function StudentDetailsPage() {
     load()
   }, [studentId, session])
 
-  const navItems = useMemo(
-    () => [
-      { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
-      { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
-      { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
-      { label: 'Classes', href: '/admin/classes', icon: '🏫' },
-      { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
-      { label: 'Attendance', href: '/admin/attendance', icon: '📅' },
-      { label: 'Results', href: '/admin/results', icon: '📝' },
-      { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
-      { label: 'Messages', href: '/admin/messages', icon: '💬' },
-    ],
-    []
-  )
+  const navItems = session?.user?.role === 'DEPUTY_ADMIN' ? [
+    { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
+    { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
+    { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
+    { label: 'Classes', href: '/admin/classes', icon: '🏫' },
+    { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
+    { label: 'Results', href: '/admin/results', icon: '📝' },
+    { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
+    { label: 'Messages', href: '/admin/messages', icon: '💬' },
+  ] : [
+    { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
+    { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
+    { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
+    { label: 'Classes', href: '/admin/classes', icon: '🏫' },
+    { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
+    { label: 'Attendance', href: '/admin/attendance', icon: '📅' },
+    { label: 'Results', href: '/admin/results', icon: '📝' },
+    { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
+    { label: 'Messages', href: '/admin/messages', icon: '💬' },
+  ]
 
   const filteredAttendance = useMemo(() => {
     if (!data) return []
@@ -303,7 +309,7 @@ export default function StudentDetailsPage() {
     <DashboardLayout
       user={{
         name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Admin',
-        role: 'School Admin',
+        role: session?.user?.role === 'DEPUTY_ADMIN' ? 'Deputy Admin' : 'School Admin',
         email: session.user.email,
       }}
       navItems={navItems}

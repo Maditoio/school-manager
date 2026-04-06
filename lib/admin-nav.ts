@@ -42,6 +42,11 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: 'Settings',          href: '/admin/settings' },
 ]
 
+/** Deputy Admin navigation — same as ADMIN but without Attendance and Settings */
+export const DEPUTY_ADMIN_NAV_ITEMS: NavItem[] = ADMIN_NAV_ITEMS.filter(
+  item => item.href !== '/admin/attendance' && item.href !== '/admin/settings'
+)
+
 /** Finance-role navigation (FINANCE, FINANCE_MANAGER) */
 export const FINANCE_NAV_ITEMS: NavItem[] = [
   { label: 'Fees',           href: '/finance/fees' },

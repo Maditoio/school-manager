@@ -13,7 +13,7 @@ import { BadgeDollarSign, ReceiptText, ShieldCheck, Wallet } from 'lucide-react'
 import { translateText } from '@/lib/client-i18n'
 import { useLocale } from '@/lib/locale-context'
 import { useCurrency } from '@/lib/currency-context'
-import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 
 type ExpenseCategory =
   | 'MAINTENANCE' | 'SALARIES' | 'BURSARIES' | 'SPECIAL_DISCOUNTS'
@@ -118,7 +118,7 @@ export default function AdminExpensesPage() {
 
   useEffect(() => {
     if (status === 'unauthenticated') redirect('/login')
-    if (session?.user?.role && session.user.role !== 'SCHOOL_ADMIN') redirect('/admin/dashboard')
+    if (session?.user?.role && session.user.role !== 'SCHOOL_ADMIN' && session.user.role !== 'DEPUTY_ADMIN') redirect('/admin/dashboard')
   }, [session, status])
 
   const fetchExpenses = useCallback(async () => {
@@ -378,7 +378,7 @@ export default function AdminExpensesPage() {
     },
   ], [locale, approvingSaving])
 
-  const navItems = ADMIN_NAV_ITEMS
+  const navItems = session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS
 
   if (status === 'loading' || !session?.user) return <div>Loading...</div>
 
@@ -386,7 +386,7 @@ export default function AdminExpensesPage() {
     <DashboardLayout
       user={{
         name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Admin',
-        role: 'School Admin',
+        role: session?.user?.role === 'DEPUTY_ADMIN' ? 'Deputy Admin' : 'School Admin',
         email: session.user.email,
       }}
       navItems={navItems}

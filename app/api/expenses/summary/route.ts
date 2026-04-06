@@ -17,7 +17,7 @@ async function resolveSchoolContext(sessionUser: {
     where: { email: sessionUser.email.toLowerCase() },
     select: { id: true, schoolId: true, role: true },
   })
-  if (!user?.schoolId || !['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER'].includes(user.role)) return null
+  if (!user?.schoolId || !['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER'].includes(user.role)) return null
   return { schoolId: user.schoolId, userId: user.id }
 }
 
@@ -27,7 +27,7 @@ async function resolveSchoolContext(sessionUser: {
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

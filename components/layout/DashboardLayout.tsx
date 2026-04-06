@@ -156,7 +156,7 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
 
   const translatedNavItems = useMemo(() => {
     const enhancedNavItems = [...navItems]
-    const isSchoolAdmin = session?.user?.role === 'SCHOOL_ADMIN' || user.role.toLowerCase() === 'school admin'
+    const isSchoolAdmin = session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'DEPUTY_ADMIN' || user.role.toLowerCase() === 'school admin' || user.role.toLowerCase() === 'deputy admin'
 
     if (isSchoolAdmin && !enhancedNavItems.some((item) => item.href === '/admin/terms')) {
       const insertAfter = enhancedNavItems.findIndex((item) => item.href === '/admin/fees')
@@ -204,7 +204,7 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
 
   const translatedChildren = useMemo(() => {
     const role = String(session?.user?.role || '')
-    const shouldTranslatePageContent = locale !== 'en' && (role === 'SCHOOL_ADMIN' || role === 'SUPER_ADMIN' || role === 'FINANCE' || role === 'FINANCE_MANAGER' || role === 'TEACHER')
+    const shouldTranslatePageContent = locale !== 'en' && (role === 'SCHOOL_ADMIN' || role === 'DEPUTY_ADMIN' || role === 'SUPER_ADMIN' || role === 'FINANCE' || role === 'FINANCE_MANAGER' || role === 'TEACHER')
 
     if (!shouldTranslatePageContent) {
       return children

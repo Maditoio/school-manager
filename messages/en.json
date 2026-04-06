@@ -35,6 +35,7 @@
   "roles": {
     "super_admin": "Super Admin",
     "school_admin": "School Admin",
+    "deputy_admin": "Deputy Admin",
     "finance": "Finance",
     "finance_manager": "Finance Manager",
     "teacher": "Teacher",

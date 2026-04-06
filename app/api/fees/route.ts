@@ -157,7 +157,7 @@ async function resolveFeesUserContext(sessionUser: {
     select: { id: true, schoolId: true, role: true },
   })
 
-  if (!user || !['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER'].includes(user.role) || !user.schoolId) return null
+  if (!user || !['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER'].includes(user.role) || !user.schoolId) return null
 
   return { userId: user.id, schoolId: user.schoolId }
 }
@@ -209,7 +209,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth()
 
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -510,7 +510,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
 
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -526,7 +526,7 @@ export async function POST(request: NextRequest) {
 
     // createSchedule — only SCHOOL_ADMIN and FINANCE_MANAGER may create fee schedules
     if (action === 'createSchedule') {
-      if (!hasRole(role, ['SCHOOL_ADMIN', 'FINANCE_MANAGER'])) {
+      if (!hasRole(role, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE_MANAGER'])) {
         return NextResponse.json({ error: 'Only Finance Managers can create fee schedules' }, { status: 403 })
       }
       const validation = createFeeScheduleSchema.safeParse(body)
@@ -566,11 +566,11 @@ export async function POST(request: NextRequest) {
       const normalizedSemester = periodType === 'SEMESTER' ? (semester ?? null) : null
       const normalizedClassId = classId ?? null
 
-      // SCHOOL_ADMIN auto-approves; FINANCE / FINANCE_MANAGER create as pending
+      // SCHOOL_ADMIN and DEPUTY_ADMIN auto-approve; FINANCE / FINANCE_MANAGER create as pending
       const status: FeeScheduleStatus =
-        role === 'SCHOOL_ADMIN' ? 'APPROVED' : 'PENDING_APPROVAL'
-      const approvedBy = role === 'SCHOOL_ADMIN' ? userId : null
-      const approvedAt = role === 'SCHOOL_ADMIN' ? new Date() : null
+        (role === 'SCHOOL_ADMIN' || role === 'DEPUTY_ADMIN') ? 'APPROVED' : 'PENDING_APPROVAL'
+      const approvedBy = (role === 'SCHOOL_ADMIN' || role === 'DEPUTY_ADMIN') ? userId : null
+      const approvedAt = (role === 'SCHOOL_ADMIN' || role === 'DEPUTY_ADMIN') ? new Date() : null
 
       const delegates = getPrismaDelegates()
 

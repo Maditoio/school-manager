@@ -11,7 +11,7 @@ import CalendarSection from './sections/CalendarSection'
 import { dashboardData } from './dashboardData'
 import { useLocale } from '@/lib/locale-context'
 import { translateDashboardDynamic, translateText } from '@/lib/client-i18n'
-import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 
 function sectionLabel(text) {
   return (
@@ -239,7 +239,7 @@ export default function DashboardPage({ user }) {
     ? user.name.trim()
     : dashboardData.header.principalName
 
-  const navItems = ADMIN_NAV_ITEMS
+  const navItems = user?.role === 'Deputy Admin' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS
 
   return (
     <DashboardLayout user={user} navItems={navItems}>

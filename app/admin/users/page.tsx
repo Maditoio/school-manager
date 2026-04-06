@@ -12,7 +12,7 @@ import { useToast } from '@/components/ui/Toast'
 import { translateText } from '@/lib/client-i18n'
 import { useLocale } from '@/lib/locale-context'
 import { UserPlus } from 'lucide-react'
-import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 
 type UserRole = 'TEACHER' | 'PARENT' | 'FINANCE' | 'FINANCE_MANAGER'
 
@@ -58,7 +58,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     if (status === 'unauthenticated') redirect('/login')
-    if (session?.user?.role && session.user.role !== 'SCHOOL_ADMIN') redirect('/login')
+    if (session?.user?.role && session.user.role !== 'SCHOOL_ADMIN' && session.user.role !== 'DEPUTY_ADMIN') redirect('/login')
   }, [session, status])
 
   const fetchUsers = useCallback(async () => {
@@ -73,7 +73,7 @@ export default function AdminUsersPage() {
         return
       }
       const filtered = (Array.isArray(data.users) ? data.users : []).filter(
-        (u: { role: string }) => u.role !== 'SCHOOL_ADMIN' && u.role !== 'SUPER_ADMIN'
+        (u: { role: string }) => u.role !== 'SCHOOL_ADMIN' && u.role !== 'SUPER_ADMIN' && u.role !== 'DEPUTY_ADMIN'
       ) as UserItem[]
       setUsers(filtered)
     } catch {
@@ -84,7 +84,7 @@ export default function AdminUsersPage() {
   }, [roleFilter, locale])
 
   useEffect(() => {
-    if (session?.user?.role === 'SCHOOL_ADMIN') fetchUsers()
+    if (session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'DEPUTY_ADMIN') fetchUsers()
   }, [session?.user?.role, fetchUsers])
 
   const filteredUsers = useMemo(() => {
@@ -259,7 +259,7 @@ export default function AdminUsersPage() {
     },
   ], [locale])
 
-  const navItems = ADMIN_NAV_ITEMS
+  const navItems = session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS
 
   if (status === 'loading' || !session?.user) return <div>Loading...</div>
 
@@ -267,7 +267,7 @@ export default function AdminUsersPage() {
     <DashboardLayout
       user={{
         name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Admin',
-        role: 'School Admin',
+        role: session?.user?.role === 'DEPUTY_ADMIN' ? 'Deputy Admin' : 'School Admin',
         email: session.user.email,
       }}
       navItems={navItems}

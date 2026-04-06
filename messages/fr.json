@@ -64,6 +64,7 @@
   "roles": {
     "super_admin": "Super Administrateur",
     "school_admin": "Administrateur d'École",
+    "deputy_admin": "Directeur Adjoint",
     "finance": "Finance",
     "finance_manager": "Responsable Financier",
     "teacher": "Enseignant",

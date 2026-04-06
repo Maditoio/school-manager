@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -81,7 +81,7 @@ export default function TeacherProfilePage({ params }: { params: Promise<{ id: s
     if (status === 'unauthenticated') {
       redirect('/login')
     }
-    if (session?.user?.role !== 'SCHOOL_ADMIN') {
+    if (session?.user?.role !== 'SCHOOL_ADMIN' && session?.user?.role !== 'DEPUTY_ADMIN') {
       redirect('/login')
     }
   }, [session, status])
@@ -154,22 +154,30 @@ export default function TeacherProfilePage({ params }: { params: Promise<{ id: s
     }
   }
 
-  const navItems = useMemo(
-    () => [
-      { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
-      { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
-      { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
-      { label: 'Classes', href: '/admin/classes', icon: '🏫' },
-      { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
-      { label: 'Attendance', href: '/admin/attendance', icon: '📅' },
-      { label: 'Results', href: '/admin/results', icon: '📝' },
-      { label: 'Fees', href: '/admin/fees', icon: '💳' },
-      { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
-      { label: 'Messages', href: '/admin/messages', icon: '💬' },
-      { label: 'Interaction Logs', href: '/admin/interaction-logs', icon: '🕵️' },
-    ],
-    []
-  )
+  const navItems = session?.user?.role === 'DEPUTY_ADMIN' ? [
+    { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
+    { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
+    { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
+    { label: 'Classes', href: '/admin/classes', icon: '🏫' },
+    { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
+    { label: 'Results', href: '/admin/results', icon: '📝' },
+    { label: 'Fees', href: '/admin/fees', icon: '💳' },
+    { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
+    { label: 'Messages', href: '/admin/messages', icon: '💬' },
+    { label: 'Interaction Logs', href: '/admin/interaction-logs', icon: '🕵️' },
+  ] : [
+    { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
+    { label: 'Students', href: '/admin/students', icon: '👨‍🎓' },
+    { label: 'Teachers', href: '/admin/teachers', icon: '👨‍🏫' },
+    { label: 'Classes', href: '/admin/classes', icon: '🏫' },
+    { label: 'Subjects', href: '/admin/subjects', icon: '📚' },
+    { label: 'Attendance', href: '/admin/attendance', icon: '📅' },
+    { label: 'Results', href: '/admin/results', icon: '📝' },
+    { label: 'Fees', href: '/admin/fees', icon: '💳' },
+    { label: 'Announcements', href: '/admin/announcements', icon: '📢' },
+    { label: 'Messages', href: '/admin/messages', icon: '💬' },
+    { label: 'Interaction Logs', href: '/admin/interaction-logs', icon: '🕵️' },
+  ]
 
   if (status === 'loading' || !session) {
     return <div>Loading...</div>
@@ -183,7 +191,7 @@ export default function TeacherProfilePage({ params }: { params: Promise<{ id: s
     <DashboardLayout
       user={{
         name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Admin',
-        role: 'School Admin',
+        role: session?.user?.role === 'DEPUTY_ADMIN' ? 'Deputy Admin' : 'School Admin',
         email: session.user.email,
       }}
       navItems={navItems}

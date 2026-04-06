@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card'
 import Table from '@/components/ui/Table'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
-import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 
 interface ClassItem {
   id: string
@@ -66,7 +66,7 @@ export default function AdminResultsPage() {
     if (status === 'unauthenticated') {
       redirect('/login')
     }
-    if (session?.user?.role !== 'SCHOOL_ADMIN') {
+    if (session?.user?.role !== 'SCHOOL_ADMIN' && session?.user?.role !== 'DEPUTY_ADMIN') {
       redirect('/login')
     }
   }, [session, status])
@@ -267,13 +267,13 @@ export default function AdminResultsPage() {
     return <div>Loading...</div>
   }
 
-  const navItems = ADMIN_NAV_ITEMS
+  const navItems = session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS
 
   return (
     <DashboardLayout
       user={{
         name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Admin',
-        role: 'School Admin',
+        role: session?.user?.role === 'DEPUTY_ADMIN' ? 'Deputy Admin' : 'School Admin',
         email: session.user.email,
       }}
       navItems={navItems}

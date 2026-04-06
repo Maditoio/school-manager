@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { hasRole } from '@/lib/auth-utils'
 import { UserRole } from '@prisma/client'
 
-const ALLOWED_ROLES: UserRole[] = ['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER', 'TEACHER']
+const ALLOWED_ROLES: UserRole[] = ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER', 'TEACHER']
 
 async function resolveUserContext(sessionUser: {
   id?: string | null

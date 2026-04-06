@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, Select, TextArea } from '@/components/ui/Form'
 import Table from '@/components/ui/Table'
 import { useToast } from '@/components/ui/Toast'
-import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 import { useCurrency } from '@/lib/currency-context'
 import { translateText } from '@/lib/client-i18n'
 import { useLocale } from '@/lib/locale-context'
@@ -78,7 +78,7 @@ export default function AdminFundRequestsPage() {
 
   useEffect(() => {
     if (status === 'unauthenticated') redirect('/login')
-    if (session?.user?.role && session.user.role !== 'SCHOOL_ADMIN') redirect('/login')
+    if (session?.user?.role && session.user.role !== 'SCHOOL_ADMIN' && session.user.role !== 'DEPUTY_ADMIN') redirect('/login')
   }, [session, status])
 
   const fetchRequests = useCallback(async () => {
@@ -102,7 +102,7 @@ export default function AdminFundRequestsPage() {
   }, [showToast, statusFilter, t])
 
   useEffect(() => {
-    if (session?.user?.role === 'SCHOOL_ADMIN') fetchRequests()
+    if (session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'DEPUTY_ADMIN') fetchRequests()
   }, [session, fetchRequests])
 
   const filtered = useMemo(() => {
@@ -176,7 +176,8 @@ export default function AdminFundRequestsPage() {
 
   if (status === 'loading' || !session) return <div>{t('Loading...')}</div>
 
-  const navItems = ADMIN_NAV_ITEMS
+  const navItems = session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS
+  const canApprove = session?.user?.role !== 'DEPUTY_ADMIN'
 
   const columns = [
     { key: 'requestedByName', label: t('From'), sortable: true },
@@ -252,6 +253,7 @@ export default function AdminFundRequestsPage() {
       label: '',
       renderCell: (r: FundRequest) => {
         if (r.status !== 'PENDING') return null
+        if (!canApprove) return null
         return (
           <div className="flex gap-2">
             <button
@@ -279,7 +281,7 @@ export default function AdminFundRequestsPage() {
     <DashboardLayout
       user={{
         name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Admin',
-        role: t('School Admin'),
+        role: session?.user?.role === 'DEPUTY_ADMIN' ? t('Deputy Admin') : t('School Admin'),
         email: session.user.email,
       }}
       navItems={navItems}

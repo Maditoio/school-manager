@@ -74,6 +74,15 @@ export const ROLE_PERMISSIONS = {
     'view:school-attendance',
     'create:announcement',
   ],
+  DEPUTY_ADMIN: [
+    'create:teacher',
+    'create:class',
+    'create:subject',
+    'create:student',
+    'link:parent',
+    'approve:results',
+    'create:announcement',
+  ],
   FINANCE: [
     'view:fees',
     'record:payments',

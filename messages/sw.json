@@ -26,6 +26,7 @@
   "roles": {
     "super_admin": "Msimamizi Mkuu",
     "school_admin": "Msimamizi wa Shule",
+    "deputy_admin": "Naibu Msimamizi",
     "teacher": "Mwalimu",
     "parent": "Mzazi"
   },

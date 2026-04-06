@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button'
 import Table from '@/components/ui/Table'
 import { useToast } from '@/components/ui/Toast'
 import { AlertTriangle, CircleCheck, Plus, Receipt, Users, Wallet } from 'lucide-react'
-import { ADMIN_NAV_ITEMS, FINANCE_NAV_ITEMS } from '@/lib/admin-nav'
+import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS, FINANCE_NAV_ITEMS } from '@/lib/admin-nav'
 import { useCurrency } from '@/lib/currency-context'
 
 type FeePeriodType = 'MONTHLY' | 'SEMESTER' | 'YEARLY'
@@ -19,7 +19,7 @@ type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'M_PESA' | 'ORANGE_MONEY' | 'OTH
 
 type FeesPageProps = {
   routePrefix?: '/admin' | '/finance'
-  allowedRoles?: Array<'SCHOOL_ADMIN' | 'FINANCE' | 'FINANCE_MANAGER'>
+  allowedRoles?: Array<'SCHOOL_ADMIN' | 'DEPUTY_ADMIN' | 'FINANCE' | 'FINANCE_MANAGER'>
   navMode?: 'admin' | 'finance'
 }
 
@@ -95,7 +95,7 @@ type RecentPayment = {
 
 export default function AdminFeesPage({
   routePrefix = '/admin',
-  allowedRoles = ['SCHOOL_ADMIN'],
+  allowedRoles = ['SCHOOL_ADMIN', 'DEPUTY_ADMIN'],
   navMode = 'admin',
 }: FeesPageProps = {}) {
   const { data: session, status } = useSession()
@@ -149,14 +149,15 @@ export default function AdminFeesPage({
   const [showPaymentStudentDropdown, setShowPaymentStudentDropdown] = useState(false)
   const pageSize = 10
 
-  const isAdmin = session?.user?.role === 'SCHOOL_ADMIN'
+  const isAdmin = session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'DEPUTY_ADMIN'
+  const canRecordPayment = session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'FINANCE'
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       redirect('/login')
     }
 
-    if (session?.user?.role && !allowedRoles.includes(session.user.role as 'SCHOOL_ADMIN' | 'FINANCE' | 'FINANCE_MANAGER')) {
+    if (session?.user?.role && !allowedRoles.includes(session.user.role as 'SCHOOL_ADMIN' | 'DEPUTY_ADMIN' | 'FINANCE' | 'FINANCE_MANAGER')) {
       redirect('/login')
     }
   }, [allowedRoles, session, status])
@@ -645,7 +646,7 @@ export default function AdminFeesPage({
     }
   }
 
-  const navItems = navMode === 'finance' ? FINANCE_NAV_ITEMS : ADMIN_NAV_ITEMS
+  const navItems = navMode === 'finance' ? FINANCE_NAV_ITEMS : (session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS)
 
   if (status === 'loading' || !session) {
     return <div>Loading...</div>
@@ -657,7 +658,7 @@ export default function AdminFeesPage({
     <DashboardLayout
       user={{
         name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Admin',
-        role: sessionRole === 'FINANCE' ? 'Finance' : 'School Admin',
+        role: sessionRole === 'FINANCE' ? 'Finance' : sessionRole === 'DEPUTY_ADMIN' ? 'Deputy Admin' : 'School Admin',
         email: session.user.email,
       }}
       navItems={navItems}
@@ -694,7 +695,7 @@ export default function AdminFeesPage({
             Create Fee Schedule
           </button>
           )}
-          {(isAdmin || session?.user?.role === 'FINANCE') && (
+          {canRecordPayment && (
           <button
             onClick={() => setShowPaymentModal(true)}
             className="ui-button ui-button-secondary inline-flex items-center gap-2"

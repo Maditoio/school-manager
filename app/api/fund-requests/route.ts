@@ -6,7 +6,7 @@ import { ExpenseCategory, FundRequestStatus, UserRole } from '@prisma/client'
 import { z } from 'zod'
 
 const REQUESTER_ROLES: UserRole[] = ['FINANCE']
-const REVIEWER_ROLES: UserRole[] = ['FINANCE_MANAGER', 'FINANCE', 'SCHOOL_ADMIN']
+const REVIEWER_ROLES: UserRole[] = ['FINANCE_MANAGER', 'FINANCE', 'SCHOOL_ADMIN', 'DEPUTY_ADMIN']
 const ALL_ALLOWED_ROLES: UserRole[] = [...new Set([...REQUESTER_ROLES, ...REVIEWER_ROLES])]
 
 const createFundRequestSchema = z.object({
