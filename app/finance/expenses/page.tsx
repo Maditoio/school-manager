@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/Toast'
 import { BadgeDollarSign, FileText, Plus, ReceiptText, ShieldCheck, Wallet } from 'lucide-react'
 import { translateText } from '@/lib/client-i18n'
 import { useLocale } from '@/lib/locale-context'
+import { useCurrency } from '@/lib/currency-context'
 import { FINANCE_NAV_ITEMS } from '@/lib/admin-nav'
 type ExpenseCategory =
   | 'MAINTENANCE'
@@ -102,10 +103,6 @@ const paymentMethodOptions = [
   { value: 'OTHER', label: 'Other' },
 ]
 
-function formatCurrency(value: number) {
-  return `R ${value.toLocaleString('en-ZA', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`
-}
-
 function formatCategory(category: ExpenseCategory) {
   return categoryOptions.find((item) => item.value === category)?.label || category.replaceAll('_', ' ')
 }
@@ -114,6 +111,7 @@ export default function FinanceExpensesPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
   const { locale } = useLocale()
+  const { formatCurrency } = useCurrency()
   const [loading, setLoading] = useState(true)
   const [expenses, setExpenses] = useState<ExpenseItem[]>([])
   const [auditLogs, setAuditLogs] = useState<ExpenseAuditLog[]>([])

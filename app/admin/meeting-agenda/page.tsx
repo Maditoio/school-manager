@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Form'
 import { useToast } from '@/components/ui/Toast'
 import { AlertTriangle, CheckCircle2, Clock, Info, TrendingUp } from 'lucide-react'
 import { ADMIN_NAV_ITEMS, FINANCE_NAV_ITEMS } from '@/lib/admin-nav'
+import { useCurrency } from '@/lib/currency-context'
 
 const categoryLabels: Record<string, string> = {
   MAINTENANCE: 'Maintenance',
@@ -26,10 +27,6 @@ const categoryLabels: Record<string, string> = {
   SPECIAL_DISCOUNTS: 'Special Discounts',
   SOFTWARE_LICENSES: 'Software Licenses',
   OTHER: 'Other',
-}
-
-function formatCurrency(value: number) {
-  return `R ${value.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 type TalkingPoint = {
@@ -103,6 +100,7 @@ const ALLOWED_ROLES = ['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER', 'TEACHER']
 export default function MeetingAgendaPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { formatCurrency } = useCurrency()
 
   const [loading, setLoading] = useState(true)
   const [agenda, setAgenda] = useState<AgendaData | null>(null)

@@ -10,6 +10,7 @@ import { Input, Select, TextArea } from '@/components/ui/Form'
 import Table from '@/components/ui/Table'
 import { useToast } from '@/components/ui/Toast'
 import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { useCurrency } from '@/lib/currency-context'
 
 type FundRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
@@ -56,6 +57,7 @@ const statusColors: Record<FundRequestStatus, string> = {
 export default function AdminFundRequestsPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { formatCurrency } = useCurrency()
 
   const [requests, setRequests] = useState<FundRequest[]>([])
   const [threshold, setThreshold] = useState(0)
@@ -195,7 +197,7 @@ export default function AdminFundRequestsPage() {
         const aboveThreshold = threshold > 0 && r.amount > threshold
         return (
           <span className={aboveThreshold ? 'font-semibold text-amber-700' : ''}>
-            ${r.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            {formatCurrency(r.amount)}
             {aboveThreshold && (
               <span className="ml-1 text-xs text-amber-500" title="Exceeds FM approval limit">↑</span>
             )}
@@ -289,7 +291,7 @@ export default function AdminFundRequestsPage() {
             )}
           </h1>
           <p className="text-gray-500 mt-1">
-            Review all staff fund requests. Requests above the FM threshold ({threshold > 0 ? `$${threshold.toLocaleString()}` : 'not set'}) require your approval.
+            Review all staff fund requests. Requests above the FM threshold ({threshold > 0 ? formatCurrency(threshold) : 'not set'}) require your approval.
           </p>
         </div>
 

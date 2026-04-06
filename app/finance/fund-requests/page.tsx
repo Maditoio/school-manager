@@ -11,6 +11,7 @@ import Table from '@/components/ui/Table'
 import { useToast } from '@/components/ui/Toast'
 import { FINANCE_NAV_ITEMS } from '@/lib/admin-nav'
 import { getClientLocale, translateText } from '@/lib/client-i18n'
+import { useCurrency } from '@/lib/currency-context'
 
 type FundRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
@@ -60,6 +61,7 @@ const statusColors: Record<FundRequestStatus, string> = {
 export default function FinanceFundRequestsPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { formatCurrency } = useCurrency()
 
   const [requests, setRequests] = useState<FundRequest[]>([])
   const [threshold, setThreshold] = useState(0)
@@ -288,7 +290,7 @@ export default function FinanceFundRequestsPage() {
       key: 'amount',
       label: t('Amount'),
       sortable: true,
-      renderCell: (r: FundRequest) => `$${r.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+      renderCell: (r: FundRequest) => formatCurrency(r.amount),
     },
     {
       key: 'urgency',
@@ -411,7 +413,7 @@ export default function FinanceFundRequestsPage() {
 
         {isFinanceManager && threshold > 0 && (
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-            Your approval limit is <strong>${threshold.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>. Requests above this require administrator approval.
+            Your approval limit is <strong>{formatCurrency(threshold)}</strong>. Requests above this require administrator approval.
           </div>
         )}
         {isFinanceManager && threshold === 0 && (

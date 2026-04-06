@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/Toast'
 import { BadgeDollarSign, ReceiptText, ShieldCheck, Wallet } from 'lucide-react'
 import { translateText } from '@/lib/client-i18n'
 import { useLocale } from '@/lib/locale-context'
+import { useCurrency } from '@/lib/currency-context'
 import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 
 type ExpenseCategory =
@@ -75,14 +76,11 @@ const categoryOptions: Array<{ value: ExpenseCategory; label: string }> = [
   { value: 'OTHER', label: 'Other' },
 ]
 
-function formatCurrency(value: number) {
-  return `R ${value.toLocaleString('en-ZA', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`
-}
-
 export default function AdminExpensesPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
   const { locale } = useLocale()
+  const { formatCurrency } = useCurrency()
 
   const [loading, setLoading] = useState(true)
   const [expenses, setExpenses] = useState<ExpenseItem[]>([])

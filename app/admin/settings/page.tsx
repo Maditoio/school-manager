@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Form'
 import { useToast } from '@/components/ui/Toast'
 import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { CURRENCY_OPTIONS, useCurrency } from '@/lib/currency-context'
+import type { CurrencyCode } from '@/lib/currency-context'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,11 +37,21 @@ type AcademicYear = {
 export default function AdminSettingsPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { currency: activeCurrency, setCurrency: setContextCurrency, formatCurrency } = useCurrency()
 
   // Finance settings
   const [threshold, setThreshold] = useState(0)
   const [thresholdInput, setThresholdInput] = useState('0')
   const [thresholdSaving, setThresholdSaving] = useState(false)
+
+  // Currency setting
+  const [currencyInput, setCurrencyInput] = useState<CurrencyCode>('ZAR')
+  const [currencySaving, setCurrencySaving] = useState(false)
+
+  // Keep local dropdown in sync with the context value (loaded asynchronously)
+  useEffect(() => {
+    setCurrencyInput(activeCurrency)
+  }, [activeCurrency])
 
   // Academic terms
   const [termsLoading, setTermsLoading] = useState(true)
@@ -66,6 +78,7 @@ export default function AdminSettingsPage() {
         const t = data.expenseApprovalThreshold ?? 0
         setThreshold(t)
         setThresholdInput(String(t))
+        if (data.currency) setCurrencyInput(data.currency as CurrencyCode)
       }
     } catch {
       // fail silently — not critical for page load
@@ -129,6 +142,30 @@ export default function AdminSettingsPage() {
       showToast('Failed to save setting', 'error')
     } finally {
       setThresholdSaving(false)
+    }
+  }
+
+  // ── Finance: save currency ─────────────────────────────────────────────────
+
+  const handleSaveCurrency = async () => {
+    try {
+      setCurrencySaving(true)
+      const res = await fetch('/api/schools/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currency: currencyInput }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        showToast(data.error || 'Failed to save currency', 'error')
+        return
+      }
+      setContextCurrency(data.currency as CurrencyCode)
+      showToast('Currency saved', 'success')
+    } catch {
+      showToast('Failed to save currency', 'error')
+    } finally {
+      setCurrencySaving(false)
     }
   }
 
@@ -268,39 +305,68 @@ export default function AdminSettingsPage() {
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider ui-text-secondary">Finance</h2>
 
-          <Card title="Finance Manager Approval Limit" className="p-5">
-            <p className="text-sm ui-text-secondary mb-4">
-              Finance managers can approve expense requests and expenses up to this amount without requiring
-              administrator sign-off. Set to <strong>0</strong> to disable delegation entirely.
-            </p>
-            <div className="flex items-end gap-3 max-w-sm">
-              <Input
-                label="Approval limit (R)"
-                type="number"
-                min="0"
-                step="0.01"
-                value={thresholdInput}
-                onChange={(e) => setThresholdInput(e.target.value)}
-              />
-              <Button
-                type="button"
-                isLoading={thresholdSaving}
-                onClick={handleSaveThreshold}
-                className="shrink-0"
-              >
-                Save
-              </Button>
-            </div>
-            {threshold > 0 ? (
-              <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
-                Current limit: R {threshold.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}
+          <div className="space-y-4">
+            {/* Currency */}
+            <Card title="School Currency" className="p-5">
+              <p className="text-sm ui-text-secondary mb-4">
+                Select the currency used across all financial displays — fees, expenses, fund requests, and invoices.
               </p>
-            ) : (
-              <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-                Delegation disabled — only administrators can approve expenses and fund requests
+              <div className="flex items-end gap-3 max-w-sm">
+                <Select
+                  label="Currency"
+                  value={currencyInput}
+                  onChange={(e) => setCurrencyInput(e.target.value as CurrencyCode)}
+                >
+                  {CURRENCY_OPTIONS.map((opt) => (
+                    <option key={opt.code} value={opt.code}>{opt.label}</option>
+                  ))}
+                </Select>
+                <Button
+                  type="button"
+                  isLoading={currencySaving}
+                  onClick={handleSaveCurrency}
+                  className="shrink-0"
+                >
+                  Save
+                </Button>
+              </div>
+            </Card>
+
+            {/* Approval Threshold */}
+            <Card title="Finance Manager Approval Limit" className="p-5">
+              <p className="text-sm ui-text-secondary mb-4">
+                Finance managers can approve expense requests and expenses up to this amount without requiring
+                administrator sign-off. Set to <strong>0</strong> to disable delegation entirely.
               </p>
-            )}
-          </Card>
+              <div className="flex items-end gap-3 max-w-sm">
+                <Input
+                  label="Approval limit"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={thresholdInput}
+                  onChange={(e) => setThresholdInput(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  isLoading={thresholdSaving}
+                  onClick={handleSaveThreshold}
+                  className="shrink-0"
+                >
+                  Save
+                </Button>
+              </div>
+              {threshold > 0 ? (
+                <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+                  Current limit: {formatCurrency(threshold)}
+                </p>
+              ) : (
+                <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                  Delegation disabled — only administrators can approve expenses and fund requests
+                </p>
+              )}
+            </Card>
+          </div>
         </section>
 
         {/* ──────────────────────────────────────────────────────── */}

@@ -10,6 +10,7 @@ import { Input, Select, TextArea } from '@/components/ui/Form'
 import Table from '@/components/ui/Table'
 import { useToast } from '@/components/ui/Toast'
 import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
+import { useCurrency } from '@/lib/currency-context'
 
 type FundRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
@@ -49,6 +50,7 @@ const statusColors: Record<FundRequestStatus, string> = {
 export default function TeacherFundRequestsPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { formatCurrency } = useCurrency()
 
   const [requests, setRequests] = useState<FundRequest[]>([])
   const [loading, setLoading] = useState(true)
@@ -189,7 +191,7 @@ export default function TeacherFundRequestsPage() {
       key: 'amount',
       label: 'Amount',
       sortable: true,
-      renderCell: (r: FundRequest) => `$${r.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+      renderCell: (r: FundRequest) => formatCurrency(r.amount),
     },
     {
       key: 'urgency',

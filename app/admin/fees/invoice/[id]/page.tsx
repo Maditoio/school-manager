@@ -114,6 +114,19 @@ async function getInvoiceData(paymentId: string, schoolId: string) {
   }
 }
 
+function serverFormatCurrency(currency: string, amount: number): string {
+  switch (currency) {
+    case 'USD':
+      return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    case 'FCFA':
+      return `FCFA ${Math.round(amount).toLocaleString('fr-FR')}`
+    case 'CDF':
+      return `FC ${amount.toLocaleString('fr-CD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    default: // ZAR
+      return `R ${amount.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+}
+
 export default async function FeeInvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
 
@@ -135,6 +148,13 @@ export default async function FeeInvoicePage({ params }: { params: Promise<{ id:
 
   const { id } = await params
   const payment = await getInvoiceData(id, session.user.schoolId)
+
+  const schoolSettings = await prisma.schoolSettings.findUnique({
+    where: { schoolId: session.user.schoolId },
+    select: { currency: true },
+  })
+  const currency = schoolSettings?.currency ?? 'ZAR'
+  const fc = (amount: number) => serverFormatCurrency(currency, amount)
 
   if (!payment) {
     return (
@@ -182,8 +202,8 @@ export default async function FeeInvoicePage({ params }: { params: Promise<{ id:
             <h2 className="text-sm font-semibold uppercase tracking-wide ui-text-secondary">{t('Payment Details')}</h2>
             <div className="mt-2 space-y-1 text-sm ui-text-primary">
               <p><span className="font-medium">{t('Fee Period:')}</span> {scheduleLabel}</p>
-              <p><span className="font-medium">{t('Amount Due:')}</span> {payment.schedule.amountDue.toFixed(2)}</p>
-              <p><span className="font-medium">{t('Amount Paid:')}</span> {payment.amountPaid.toFixed(2)}</p>
+              <p><span className="font-medium">{t('Amount Due:')}</span> {fc(payment.schedule.amountDue)}</p>
+              <p><span className="font-medium">{t('Amount Paid:')}</span> {fc(payment.amountPaid)}</p>
               <p><span className="font-medium">{t('Payment Method:')}</span> {t(formatPaymentMethod(payment.paymentMethod))}</p>
               <p><span className="font-medium">{t('Received By:')}</span> {receivedBy}</p>
             </div>

@@ -11,6 +11,7 @@ import Table from '@/components/ui/Table'
 import { useToast } from '@/components/ui/Toast'
 import { AlertTriangle, CircleCheck, Plus, Receipt, Users, Wallet } from 'lucide-react'
 import { ADMIN_NAV_ITEMS, FINANCE_NAV_ITEMS } from '@/lib/admin-nav'
+import { useCurrency } from '@/lib/currency-context'
 
 type FeePeriodType = 'MONTHLY' | 'SEMESTER' | 'YEARLY'
 type FeeStatus = 'PAID' | 'PARTIAL' | 'NOT_PAID' | 'NO_SCHEDULE'
@@ -99,7 +100,7 @@ export default function AdminFeesPage({
 }: FeesPageProps = {}) {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
-
+  const { formatCurrency } = useCurrency()
   const [loading, setLoading] = useState(true)
   const [periods, setPeriods] = useState<Period[]>([])
   const [selectedPeriodKey, setSelectedPeriodKey] = useState('')
@@ -245,7 +246,7 @@ export default function AdminFeesPage({
           student.status === 'NO_SCHEDULE' ? (
             <span className="text-xs text-amber-400">No schedule</span>
           ) : (
-            student.amountDue.toFixed(2)
+            formatCurrency(student.amountDue)
           ),
       },
       {
@@ -256,13 +257,13 @@ export default function AdminFeesPage({
           const overpaidAmount = Math.max(student.totalPaid - student.amountDue, 0)
           return (
             <div className="flex items-center gap-1.5">
-              <span>{student.totalPaid.toFixed(2)}</span>
+              <span>{formatCurrency(student.totalPaid)}</span>
               {overpaidAmount > 0 ? (
                 <span
                   className="text-xs font-semibold text-emerald-500"
-                  title={`Overpaid by ${overpaidAmount.toFixed(2)}`}
+                  title={`Overpaid by ${formatCurrency(overpaidAmount)}`}
                 >
-                  +{overpaidAmount.toFixed(2)}
+                  +{formatCurrency(overpaidAmount)}
                 </span>
               ) : null}
             </div>
@@ -278,11 +279,11 @@ export default function AdminFeesPage({
           if (student.balance < 0) {
             return (
               <span className="font-semibold text-emerald-500" title="Credit remaining">
-                +{Math.abs(student.balance).toFixed(2)}
+                +{formatCurrency(Math.abs(student.balance))}
               </span>
             )
           }
-          return student.balance.toFixed(2)
+          return formatCurrency(student.balance)
         },
       },
       {
@@ -322,7 +323,7 @@ export default function AdminFeesPage({
         key: 'amountPaid',
         label: 'Amount',
         sortable: true,
-        renderCell: (payment: RecentPayment) => payment.amountPaid.toFixed(2),
+        renderCell: (payment: RecentPayment) => formatCurrency(payment.amountPaid),
       },
       {
         key: 'paymentDate',
@@ -719,7 +720,7 @@ export default function AdminFeesPage({
                   <div className="flex flex-col gap-0.5">
                     <span className="font-medium ui-text-primary">{schedule.label}</span>
                     <span className="text-xs ui-text-secondary">
-                      Amount: {schedule.amountDue.toFixed(2)} · Submitted{' '}
+                      Amount: {formatCurrency(schedule.amountDue)} · Submitted{' '}
                       {new Date(schedule.createdAt).toLocaleDateString()}
                     </span>
                   </div>
@@ -961,7 +962,7 @@ export default function AdminFeesPage({
                             )
                           return (
                             <span className="ml-2 text-xs ui-text-secondary">
-                              Due: {sel.amountDue.toFixed(2)}
+                              Due: {formatCurrency(sel.amountDue)}
                             </span>
                           )
                         })()}
@@ -980,7 +981,7 @@ export default function AdminFeesPage({
                               <div className="font-medium ui-text-primary">{student.studentName}</div>
                               <div className="text-xs ui-text-secondary">
                                 {student.className} · {student.admissionNumber || 'No admission'}
-                                {student.scheduleId ? ` · Due: ${student.amountDue.toFixed(2)}` : ' · No schedule'}
+                                {student.scheduleId ? ` · Due: ${formatCurrency(student.amountDue)}` : ' · No schedule'}
                               </div>
                             </button>
                           ))
@@ -1128,14 +1129,14 @@ export default function AdminFeesPage({
           />
           <StatCard
             title="Collected"
-            value={summary.collectedAmount.toFixed(2)}
+            value={formatCurrency(summary.collectedAmount)}
             icon={<Wallet className="h-4 w-4" />}
           />
         </div>
 
         <Card title="Pending Collection">
           <div className="text-2xl font-semibold text-rose-500">
-            {summary.pendingAmount.toFixed(2)}
+            {formatCurrency(summary.pendingAmount)}
           </div>
           <p className="mt-1 text-sm ui-text-secondary">
             Amount still to be collected for selected period.
