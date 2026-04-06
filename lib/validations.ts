@@ -16,7 +16,7 @@ export const createUserSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   title: z.string().optional(),
   phone: z.string().optional(),
-  role: z.enum(['SCHOOL_ADMIN', 'FINANCE', 'FINANCE_MANAGER', 'TEACHER', 'PARENT']),
+  role: z.enum(['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER', 'TEACHER', 'PARENT']),
   schoolId: z.string().uuid().optional(),
 })
 

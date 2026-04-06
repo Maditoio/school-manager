@@ -14,7 +14,7 @@ import { useLocale } from '@/lib/locale-context'
 import { UserPlus } from 'lucide-react'
 import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 
-type UserRole = 'TEACHER' | 'PARENT' | 'FINANCE' | 'FINANCE_MANAGER'
+type UserRole = 'TEACHER' | 'PARENT' | 'FINANCE' | 'FINANCE_MANAGER' | 'DEPUTY_ADMIN'
 
 type UserItem = {
   id: string
@@ -26,6 +26,14 @@ type UserItem = {
 }
 
 type RoleFilter = '' | UserRole
+
+const ALL_ROLE_OPTIONS: Array<{ value: UserRole; labelKey: string }> = [
+  { value: 'DEPUTY_ADMIN', labelKey: 'Deputy Admin' },
+  { value: 'TEACHER', labelKey: 'Teacher' },
+  { value: 'PARENT', labelKey: 'Parent' },
+  { value: 'FINANCE', labelKey: 'Finance' },
+  { value: 'FINANCE_MANAGER', labelKey: 'Finance Manager' },
+]
 
 const ROLE_OPTIONS: Array<{ value: UserRole; labelKey: string }> = [
   { value: 'TEACHER', labelKey: 'Teacher' },
@@ -73,7 +81,7 @@ export default function AdminUsersPage() {
         return
       }
       const filtered = (Array.isArray(data.users) ? data.users : []).filter(
-        (u: { role: string }) => u.role !== 'SCHOOL_ADMIN' && u.role !== 'SUPER_ADMIN' && u.role !== 'DEPUTY_ADMIN'
+        (u: { role: string }) => u.role !== 'SCHOOL_ADMIN' && u.role !== 'SUPER_ADMIN'
       ) as UserItem[]
       setUsers(filtered)
     } catch {
@@ -191,6 +199,7 @@ export default function AdminUsersPage() {
   }
 
   const roleLabel = (role: UserRole) => {
+    if (role === 'DEPUTY_ADMIN') return translateText('Deputy Admin', locale)
     if (role === 'FINANCE') return translateText('Finance', locale)
     if (role === 'FINANCE_MANAGER') return translateText('Finance Manager', locale)
     if (role === 'PARENT') return translateText('Parent', locale)
@@ -298,7 +307,7 @@ export default function AdminUsersPage() {
               onChange={(e) => { setRoleFilter(e.target.value as RoleFilter); setTablePage(1) }}
             >
               <option value="">{translateText('All roles', locale)}</option>
-              {ROLE_OPTIONS.map((o) => (
+              {(session?.user?.role === 'SCHOOL_ADMIN' ? ALL_ROLE_OPTIONS : ROLE_OPTIONS).map((o) => (
                 <option key={o.value} value={o.value}>{translateText(o.labelKey, locale)}</option>
               ))}
             </Select>
@@ -368,7 +377,7 @@ export default function AdminUsersPage() {
                 value={formData.role}
                 onChange={(e) => setFormData((p) => ({ ...p, role: e.target.value as UserRole }))}
               >
-                {ROLE_OPTIONS.map((o) => (
+                {(session?.user?.role === 'SCHOOL_ADMIN' ? ALL_ROLE_OPTIONS : ROLE_OPTIONS).map((o) => (
                   <option key={o.value} value={o.value}>{translateText(o.labelKey, locale)}</option>
                 ))}
               </Select>
