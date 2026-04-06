@@ -27,7 +27,11 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        setError('Invalid email or password')
+        if (result.code === 'account_suspended') {
+          setError('Your account has been suspended. Please contact the administrator.')
+        } else {
+          setError('Invalid email or password')
+        }
       } else {
         router.push('/')
         router.refresh()

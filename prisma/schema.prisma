@@ -71,6 +71,9 @@ model User {
   lastName                 String?                @map("last_name")
   title                    String?
   phone                    String?
+  suspended                Boolean                @default(false)
+  suspendedAt              DateTime?              @map("suspended_at")
+  suspensionReason         String?                @map("suspension_reason")
   createdAt                DateTime               @default(now()) @map("created_at")
   updatedAt                DateTime               @updatedAt @map("updated_at")
   announcements            Announcement[]         @relation("AnnouncementCreator")

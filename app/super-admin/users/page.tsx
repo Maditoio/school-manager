@@ -23,8 +23,10 @@ interface UserItem {
   email: string
   firstName: string
   lastName: string
-  role: 'SCHOOL_ADMIN' | 'FINANCE' | 'FINANCE_MANAGER' | 'TEACHER' | 'PARENT' | 'SUPER_ADMIN'
+  role: 'SCHOOL_ADMIN' | 'FINANCE' | 'FINANCE_MANAGER' | 'TEACHER' | 'PARENT' | 'SUPER_ADMIN' | 'DEPUTY_ADMIN'
   schoolId: string | null
+  suspended: boolean
+  suspensionReason: string | null
   createdAt: string
   school?: {
     id: string
@@ -46,6 +48,10 @@ export default function SuperAdminUsersPage() {
   const [showModal, setShowModal] = useState(false)
   const [editingUser, setEditingUser] = useState<UserItem | null>(null)
   const [saving, setSaving] = useState(false)
+
+  const [suspendModalUser, setSuspendModalUser] = useState<UserItem | null>(null)
+  const [suspendReason, setSuspendReason] = useState('')
+  const [suspending, setSuspending] = useState(false)
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -219,7 +225,7 @@ export default function SuperAdminUsersPage() {
   }
 
   const handleDelete = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return
+    if (!confirm('Are you sure you want to permanently delete this user? This cannot be undone.')) return
 
     try {
       const res = await fetch(`/api/users/${userId}`, { method: 'DELETE' })
@@ -234,6 +240,58 @@ export default function SuperAdminUsersPage() {
     } catch (error) {
       console.error('Failed to delete user:', error)
       showToast('Failed to delete user', 'error')
+    }
+  }
+
+  const handleSuspend = async (user: UserItem) => {
+    if (user.suspended) {
+      // Unsuspend directly without modal
+      setSuspending(true)
+      try {
+        const res = await fetch(`/api/users/${user.id}/suspend`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ suspended: false }),
+        })
+        if (!res.ok) {
+          const data = await res.json()
+          showToast(data.error || 'Failed to unsuspend user', 'error')
+          return
+        }
+        showToast('User unsuspended successfully', 'success')
+        await fetchUsers()
+      } catch {
+        showToast('Failed to unsuspend user', 'error')
+      } finally {
+        setSuspending(false)
+      }
+    } else {
+      setSuspendReason('')
+      setSuspendModalUser(user)
+    }
+  }
+
+  const confirmSuspend = async () => {
+    if (!suspendModalUser) return
+    setSuspending(true)
+    try {
+      const res = await fetch(`/api/users/${suspendModalUser.id}/suspend`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suspended: true, reason: suspendReason }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        showToast(data.error || 'Failed to suspend user', 'error')
+        return
+      }
+      showToast('User suspended successfully', 'success')
+      setSuspendModalUser(null)
+      await fetchUsers()
+    } catch {
+      showToast('Failed to suspend user', 'error')
+    } finally {
+      setSuspending(false)
     }
   }
 
@@ -327,13 +385,14 @@ export default function SuperAdminUsersPage() {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Email</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">{t('common.rolesLabel')}</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">{t('school.schools.title')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">{t('classes.management.createdColumn')}</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">{t('generic.delete')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 bg-white">
                   {users.map((user) => (
-                    <tr key={user.id}>
+                    <tr key={user.id} className={user.suspended ? 'bg-red-50' : ''}>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {user.firstName} {user.lastName}
                       </td>
@@ -341,22 +400,48 @@ export default function SuperAdminUsersPage() {
                       <td className="px-4 py-3 text-sm text-gray-800">
                         {user.role === 'SCHOOL_ADMIN'
                           ? t('common.roles.school_admin')
-                          : user.role === 'FINANCE'
-                            ? t('common.roles.finance')
-                            : user.role === 'FINANCE_MANAGER'
-                              ? 'Finance Manager'
-                              : t('common.roles.teacher')}
+                          : user.role === 'DEPUTY_ADMIN'
+                            ? 'Deputy Admin'
+                            : user.role === 'FINANCE'
+                              ? t('common.roles.finance')
+                              : user.role === 'FINANCE_MANAGER'
+                                ? 'Finance Manager'
+                                : t('common.roles.teacher')}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-800">
                         {user.school?.name || (user.schoolId ? schoolLookup.get(user.schoolId) : '—') || '—'}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {user.suspended ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                            Suspended
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                            Active
+                          </span>
+                        )}
+                        {user.suspended && user.suspensionReason && (
+                          <p className="text-xs text-gray-500 mt-1 max-w-[140px] truncate" title={user.suspensionReason}>
+                            {user.suspensionReason}
+                          </p>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           <Button variant="secondary" onClick={() => openEditModal(user)}>
                             {t('generic.edit')}
+                          </Button>
+                          <Button
+                            variant={user.suspended ? 'secondary' : 'secondary'}
+                            onClick={() => handleSuspend(user)}
+                            disabled={suspending}
+                            className={user.suspended ? 'text-green-700 border-green-300 hover:bg-green-50' : 'text-yellow-700 border-yellow-300 hover:bg-yellow-50'}
+                          >
+                            {user.suspended ? 'Unsuspend' : 'Suspend'}
                           </Button>
                           <Button variant="danger" onClick={() => handleDelete(user.id)}>
                             {t('generic.delete')}
@@ -455,6 +540,43 @@ export default function SuperAdminUsersPage() {
                   </Button>
                 </div>
               </form>
+            </Card>
+          </div>
+        )}
+
+        {suspendModalUser && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-md p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Suspend User</h2>
+              <p className="text-gray-600 mb-4">
+                Suspend <strong>{suspendModalUser.firstName} {suspendModalUser.lastName}</strong>? They will not be able to log in until unsuspended.
+              </p>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reason (optional)</label>
+                <input
+                  type="text"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g. Policy violation, temporary leave..."
+                  value={suspendReason}
+                  onChange={(e) => setSuspendReason(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="secondary"
+                  onClick={() => setSuspendModalUser(null)}
+                  disabled={suspending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={confirmSuspend}
+                  disabled={suspending}
+                >
+                  {suspending ? 'Suspending...' : 'Suspend User'}
+                </Button>
+              </div>
             </Card>
           </div>
         )}

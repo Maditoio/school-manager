@@ -46,6 +46,8 @@ export async function GET(request: NextRequest) {
         lastName: true,
         role: true,
         schoolId: true,
+        suspended: true,
+        suspensionReason: true,
         school: {
           select: {
             id: true,
@@ -61,7 +63,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching users:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch users' },
+      { error: 'Failed to fetch users', detail: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }
@@ -166,7 +168,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating user:', error)
     return NextResponse.json(
-      { error: 'Failed to create user' },
+      { error: 'Failed to create user', detail: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }

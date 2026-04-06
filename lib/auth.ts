@@ -1,5 +1,6 @@
 import NextAuth, { DefaultSession } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
+import { CredentialsSignin } from "next-auth"
 import { prisma } from "@/lib/prisma"
 import { compare, hash } from "bcryptjs"
 import { UserRole } from "@prisma/client"
@@ -74,6 +75,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!user) {
           return null
+        }
+
+        // Check if user is suspended
+        if (user.suspended) {
+          const err = new CredentialsSignin('account_suspended')
+          err.code = 'account_suspended'
+          throw err
         }
 
         // Check if school is active (except for super admin)
