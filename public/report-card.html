@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Term 2 Report — Amahle Dlamini | Greenfield Academy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Reset ──────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ─── Variables ──────────────────────────────────────────────────── */
+    :root {
+      --navy:          #1a2744;
+      --navy-mid:      #243258;
+      --navy-light:    #354875;
+      --gold:          #b8962e;
+      --gold-light:    #e0ba5a;
+      --bg:            #ffffff;
+      --bg-strip:      #f4f6fb;
+      --bg-section:    #f8f9fc;
+      --border:        #d4d9e8;
+      --border-light:  #eaedf5;
+      --text-primary:  #141928;
+      --text-secondary:#4a5068;
+      --text-muted:    #8891aa;
+      /* Grade badges */
+      --a-bg: #d1fae5; --a-fg: #065f46;
+      --b-bg: #dbeafe; --b-fg: #1e40af;
+      --c-bg: #fef3c7; --c-fg: #92400e;
+      --d-bg: #ffedd5; --d-fg: #c2410c;
+      --f-bg: #fee2e2; --f-fg: #991b1b;
+    }
+
+    /* ─── Base ───────────────────────────────────────────────────────── */
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-primary);
+      background: #dde2ed;
+      min-height: 100vh;
+      padding: 32px 16px 48px;
+    }
+
+    /* ─── Watermark ──────────────────────────────────────────────────── */
+    #watermark {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+    .wm-inner {
+      position: absolute;
+      top: -40%; left: -40%;
+      width: 180%; height: 180%;
+      transform: rotate(-28deg);
+      display: flex;
+      flex-direction: column;
+      gap: 52px;
+      opacity: 0.032;
+    }
+    .wm-row {
+      display: flex;
+      gap: 72px;
+      white-space: nowrap;
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--navy);
+    }
+
+    /* ─── Print button ───────────────────────────────────────────────── */
+    .print-bar {
+      max-width: 794px;
+      margin: 0 auto 12px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .print-btn {
+      padding: 7px 18px;
+      background: var(--navy);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+    }
+    .print-btn:hover { background: var(--navy-mid); }
+
+    /* ─── Page container ─────────────────────────────────────────────── */
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 794px;
+      margin: 0 auto;
+      background: var(--bg);
+      border: 1px solid #c8cde0;
+      box-shadow: 0 6px 48px rgba(0,0,0,.14), 0 1px 6px rgba(0,0,0,.08);
+    }
+
+    /* ─── HEADER ─────────────────────────────────────────────────────── */
+    .rpt-header {
+      background: var(--navy);
+      color: white;
+      padding: 26px 36px 22px;
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      border-bottom: 4px solid var(--gold);
+    }
+    .school-logo {
+      width: 68px; height: 68px;
+      border-radius: 50%;
+      border: 2px solid var(--gold-light);
+      background: rgba(255,255,255,0.08);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-family: 'Playfair Display', serif;
+      font-size: 20px; font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--gold-light);
+    }
+    .header-main { flex: 1; }
+    .school-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px; font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+    .school-tagline {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold-light);
+      margin-bottom: 10px;
+    }
+    .header-meta {
+      display: flex;
+      gap: 22px;
+      flex-wrap: wrap;
+    }
+    .hm-item { display: flex; flex-direction: column; }
+    .hm-label {
+      font-size: 9px; text-transform: uppercase;
+      letter-spacing: 0.1em; color: rgba(255,255,255,.45);
+      margin-bottom: 1px;
+    }
+    .hm-value {
+      font-size: 12px; font-weight: 600;
+      color: rgba(255,255,255,.9);
+    }
+    .header-title { flex-shrink: 0; text-align: right; }
+    .report-title-main {
+      font-family: 'Playfair Display', serif;
+      font-size: 17px; font-weight: 600;
+      color: var(--gold-light);
+      line-height: 1.2;
+    }
+    .report-title-sub {
+      font-size: 9.5px; letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.4);
+      margin-top: 3px;
+    }
+
+    /* ─── STUDENT STRIP ──────────────────────────────────────────────── */
+    .student-strip {
+      background: var(--bg-strip);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 36px;
+      display: flex;
+      flex-wrap: wrap;
+    }
+    .sf {
+      flex: 1; min-width: 130px;
+      padding: 4px 16px 4px 0;
+      border-right: 1px solid var(--border);
+      margin-right: 16px;
+    }
+    .sf:last-child { border-right: none; margin-right: 0; }
+    .sf-label {
+      font-size: 9px; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+    .sf-value {
+      font-size: 13px; font-weight: 600;
+      color: var(--text-primary);
+    }
+    .sf-value.name {
+      font-family: 'Playfair Display', serif;
+      font-size: 15px;
+    }
+
+    /* ─── CONTENT WRAPPER ────────────────────────────────────────────── */
+    .rpt-body { padding: 24px 36px; }
+
+    /* ─── Section heading ────────────────────────────────────────────── */
+    .sec-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding-bottom: 7px;
+      border-bottom: 2px solid var(--navy);
+      margin-bottom: 14px;
+      margin-top: 26px;
+    }
+    .sec-title:first-child { margin-top: 0; }
+    .sec-dot {
+      width: 8px; height: 8px;
+      background: var(--gold);
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .sec-text {
+      font-family: 'Playfair Display', serif;
+      font-size: 12.5px; font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--navy);
+    }
+    .sec-badge {
+      margin-left: auto;
+      font-size: 10px; font-weight: 500;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-style: italic;
+    }
+
+    /* ─── GRADES TABLE ───────────────────────────────────────────────── */
+    .grades-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--border);
+      font-size: 12.5px;
+    }
+    .grades-table thead tr { background: var(--navy); }
+    .grades-table th {
+      color: rgba(255,255,255,.8);
+      font-size: 9.5px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 9px 11px;
+      text-align: left;
+      border-right: 1px solid rgba(255,255,255,.09);
+    }
+    .grades-table th:last-child { border-right: none; }
+    .grades-table td {
+      padding: 9px 11px;
+      border-bottom: 1px solid var(--border-light);
+      border-right: 1px solid var(--border-light);
+      vertical-align: middle;
+    }
+    .grades-table td:last-child { border-right: none; }
+    .grades-table tr.data-row:nth-child(even) td { background: var(--bg-section); }
+    .grades-table tr.data-row:hover td { background: #ecf0fa; }
+
+    /* Group header row */
+    .grades-table tr.grp td {
+      background: #e6eaf5;
+      font-size: 9.5px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--navy-light);
+      padding: 5px 11px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Sub-total row */
+    .grades-table tr.sub-total td {
+      background: #edf0f8;
+      font-size: 11px; font-weight: 600;
+      color: var(--navy);
+      border-top: 1px solid var(--border);
+      border-bottom: 2px solid var(--border);
+    }
+
+    .subject-cell { font-weight: 500; }
+    .teacher-cell { color: var(--text-secondary); font-size: 11.5px; }
+    .score-main { font-weight: 600; font-size: 13px; }
+    .score-pct { display: block; font-size: 9.5px; color: var(--text-muted); margin-top: 1px; }
+    .class-avg-val { font-size: 11.5px; color: var(--text-secondary); }
+    .class-avg-pct { font-size: 10px; color: var(--text-muted); }
+
+    /* Grade badge */
+    .badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 30px; height: 26px;
+      border-radius: 5px;
+      font-size: 12.5px; font-weight: 700;
+      letter-spacing: 0;
+    }
+    .badge-A { background: var(--a-bg); color: var(--a-fg); }
+    .badge-B { background: var(--b-bg); color: var(--b-fg); }
+    .badge-C { background: var(--c-bg); color: var(--c-fg); }
+    .badge-D { background: var(--d-bg); color: var(--d-fg); }
+    .badge-F { background: var(--f-bg); color: var(--f-fg); }
+
+    /* Remark cell — 2-line clamp, tooltip via title */
+    .remark {
+      font-size: 11.5px; color: var(--text-secondary);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      max-width: 210px;
+      cursor: help;
+    }
+
+    /* Column alignments */
+    .tr { text-align: right; }
+    .tc { text-align: center; }
+
+    /* ─── SUMMARY SECTION ────────────────────────────────────────────── */
+    .two-col-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .sum-card {
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 12px;
+      text-align: center;
+      background: var(--bg-section);
+    }
+    .sum-card.primary {
+      background: var(--navy);
+      border-color: var(--navy);
+    }
+    .sum-val {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px; font-weight: 700;
+      color: var(--navy);
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+    .sum-card.primary .sum-val { color: var(--gold-light); }
+    .sum-unit { font-size: 13px; font-weight: 400; font-family: 'Inter', sans-serif; }
+    .sum-label {
+      font-size: 9.5px; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-muted);
+    }
+    .sum-card.primary .sum-label { color: rgba(255,255,255,.45); }
+    .sum-sub { font-size: 10.5px; color: var(--text-secondary); margin-top: 2px; }
+    .sum-card.primary .sum-sub { color: rgba(255,255,255,.62); }
+
+    /* Grade distribution mini-row */
+    .grade-dist {
+      margin-top: 10px;
+      padding: 9px 12px;
+      background: var(--bg-section);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .gd-label {
+      font-size: 10px; font-weight: 600;
+      color: var(--text-primary);
+      min-width: 100px;
+    }
+    .gd-item {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 11px; color: var(--text-secondary);
+    }
+    .badge-xs {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 19px;
+      border-radius: 4px;
+      font-size: 10.5px; font-weight: 700;
+    }
+
+    /* ─── ATTENDANCE ─────────────────────────────────────────────────── */
+    .att-card {
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px 16px;
+      background: var(--bg-section);
+    }
+    .att-card-title {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.09em;
+      color: var(--navy);
+      margin-bottom: 10px;
+    }
+    .att-row {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .att-text { font-size: 11.5px; color: var(--text-secondary); min-width: 90px; }
+    .att-track {
+      flex: 1; height: 9px;
+      background: var(--border-light);
+      border-radius: 5px; overflow: hidden;
+    }
+    .att-fill {
+      height: 100%; border-radius: 5px;
+      background: var(--navy);
+    }
+    .att-pct {
+      font-weight: 700; font-size: 13px;
+      color: var(--navy); min-width: 40px; text-align: right;
+    }
+    .att-stats {
+      margin-top: 8px;
+      display: flex; gap: 18px;
+      font-size: 11px; color: var(--text-secondary);
+    }
+    .att-stats b { color: var(--text-primary); }
+    .att-chip {
+      margin-top: 10px; display: inline-block;
+      padding: 4px 10px; border-radius: 20px;
+      font-size: 10.5px; font-weight: 600;
+      background: var(--a-bg); color: var(--a-fg);
+    }
+
+    /* ─── FORM TEACHER COMMENT ───────────────────────────────────────── */
+    .comment-card {
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 18px 20px 14px;
+      background: var(--bg-section);
+      position: relative;
+    }
+    .comment-quote-mark {
+      font-family: 'Playfair Display', serif;
+      font-size: 72px; line-height: 1;
+      color: var(--border);
+      position: absolute;
+      top: 2px; left: 10px;
+      pointer-events: none;
+      user-select: none;
+    }
+    .comment-text {
+      font-size: 13px; color: var(--text-secondary);
+      line-height: 1.75; font-style: italic;
+      padding-left: 24px;
+    }
+    .comment-footer {
+      margin-top: 14px;
+      padding-left: 24px;
+      display: flex; align-items: flex-end;
+      justify-content: space-between;
+    }
+    .comment-teacher-name {
+      font-weight: 600; font-size: 12.5px;
+      color: var(--text-primary);
+    }
+    .comment-teacher-role {
+      font-size: 11px; color: var(--text-muted);
+      margin-top: 1px;
+    }
+    .sig-line {
+      border-bottom: 1px solid var(--border);
+      width: 110px;
+      text-align: center;
+      padding-bottom: 2px;
+      font-size: 9.5px; color: var(--text-muted);
+      letter-spacing: 0.06em;
+    }
+
+    /* ─── FINAL YEAR SECTION ─────────────────────────────────────────── */
+    .final-wrap {
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      overflow: hidden;
+    }
+    .final-header {
+      background: var(--bg-strip);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex; align-items: center;
+      justify-content: space-between;
+    }
+    .final-header-title {
+      font-size: 12px; font-weight: 600;
+      color: var(--navy);
+    }
+    .promo-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 12px; border-radius: 20px;
+      font-size: 10.5px; font-weight: 600;
+    }
+    .promo-yes { background: var(--a-bg); color: var(--a-fg); }
+    .promo-review { background: var(--c-bg); color: var(--c-fg); }
+    .final-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 12px;
+    }
+    .final-table th {
+      background: #eaecf7;
+      padding: 8px 12px;
+      font-size: 9.5px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      color: var(--navy);
+      border-right: 1px solid var(--border-light);
+      text-align: left;
+    }
+    .final-table th:nth-child(n+2) { text-align: center; }
+    .final-table th:last-child { border-right: none; }
+    .final-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-light);
+      border-right: 1px solid var(--border-light);
+    }
+    .final-table td:last-child { border-right: none; text-align: center; }
+    .final-table td:nth-child(n+2):not(:last-child) { text-align: center; }
+    .final-table tr:nth-child(even) td { background: var(--bg-section); }
+    .final-table tr.ft-total td {
+      background: var(--bg-strip);
+      font-weight: 700;
+      color: var(--navy);
+      border-top: 2px solid var(--border);
+    }
+    .yr-avg {
+      font-size: 14px; font-weight: 700;
+      color: var(--a-fg);
+    }
+    .pending-cell { color: #bbb; font-style: italic; }
+
+    /* ─── FOOTER ─────────────────────────────────────────────────────── */
+    .rpt-footer {
+      background: var(--bg-strip);
+      border-top: 2px solid var(--navy);
+      padding: 10px 36px;
+      display: flex; align-items: center;
+      justify-content: space-between;
+      font-size: 9.5px; color: var(--text-muted);
+    }
+    .footer-mid { text-align: center; }
+    .footer-motto {
+      font-family: 'Playfair Display', serif;
+      font-size: 11px; font-weight: 600;
+      color: var(--navy); margin-bottom: 2px;
+    }
+
+    /* ─── Utility ─────────────────────────────────────────────────────── */
+    .mb0 { margin-bottom: 0 !important; }
+
+    /* ─── PRINT ──────────────────────────────────────────────────────── */
+    @media print {
+      body { background: white; padding: 0; }
+      .print-bar { display: none; }
+      #watermark { position: fixed; }
+      .page {
+        max-width: 100%; margin: 0;
+        border: none; box-shadow: none;
+      }
+      .grades-table tr.data-row:hover td { background: inherit; }
+
+      @page { size: A4; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Watermark ── -->
+<div id="watermark" aria-hidden="true">
+  <div class="wm-inner" id="wm-inner"></div>
+</div>
+
+<!-- ── Print bar ── -->
+<div class="print-bar">
+  <button class="print-btn" onclick="window.print()">⎙ Print Report</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     PAGE
+═══════════════════════════════════════════════════ -->
+<div class="page">
+
+  <!-- ── HEADER ── -->
+  <header class="rpt-header">
+    <div class="school-logo">GA</div>
+
+    <div class="header-main">
+      <div class="school-name">Greenfield Academy</div>
+      <div class="school-tagline">Excellence · Integrity · Growth</div>
+      <div class="header-meta">
+        <div class="hm-item">
+          <span class="hm-label">Academic Year</span>
+          <span class="hm-value">2024 / 2025</span>
+        </div>
+        <div class="hm-item">
+          <span class="hm-label">Date Issued</span>
+          <span class="hm-value">7 April 2025</span>
+        </div>
+        <div class="hm-item">
+          <span class="hm-label">Report Reference</span>
+          <span class="hm-value">GFA-T2-2025-0042</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-title">
+      <div class="report-title-main">Term 2<br>Report</div>
+      <div class="report-title-sub">Official Academic Record</div>
+    </div>
+  </header>
+
+  <!-- ── STUDENT STRIP ── -->
+  <div class="student-strip">
+    <div class="sf">
+      <div class="sf-label">Student Name</div>
+      <div class="sf-value name">Amahle Dlamini</div>
+    </div>
+    <div class="sf">
+      <div class="sf-label">Student ID</div>
+      <div class="sf-value">GFA-2024-0042</div>
+    </div>
+    <div class="sf">
+      <div class="sf-label">Grade / Class</div>
+      <div class="sf-value">Grade 9B</div>
+    </div>
+    <div class="sf">
+      <div class="sf-label">Term</div>
+      <div class="sf-value">Term 2 of 3</div>
+    </div>
+    <div class="sf">
+      <div class="sf-label">Form Teacher</div>
+      <div class="sf-value">Mrs. P. Nkosi</div>
+    </div>
+  </div>
+
+  <!-- ── MAIN BODY ── -->
+  <div class="rpt-body">
+
+    <!-- ▸ GRADES TABLE -->
+    <div class="sec-title">
+      <div class="sec-dot"></div>
+      <span class="sec-text">Academic Performance — Term 2</span>
+      <span class="sec-badge">Overall grade scale: A ≥ 80 · B 70–79 · C 60–69 · D 50–59 · F &lt; 50</span>
+    </div>
+
+    <table class="grades-table">
+      <thead>
+        <tr>
+          <th style="width:22%">Subject</th>
+          <th style="width:17%">Teacher</th>
+          <th class="tr" style="width:11%">Score</th>
+          <th class="tr" style="width:11%">Class Avg</th>
+          <th class="tc" style="width:7%">Grade</th>
+          <th>Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- ●  S C I E N C E S -->
+        <tr class="grp"><td colspan="6">● Sciences</td></tr>
+
+        <tr class="data-row">
+          <td class="subject-cell">Mathematics</td>
+          <td class="teacher-cell">Mr. S. Bhengu</td>
+          <td class="tr">
+            <span class="score-main">84 / 100</span>
+            <span class="score-pct">84.0%</span>
+          </td>
+          <td class="tr">
+            <span class="class-avg-val">71.2</span>
+            <span class="class-avg-pct">&thinsp;/ 100</span>
+          </td>
+          <td class="tc"><span class="badge badge-A">A</span></td>
+          <td><div class="remark" title="Amahle shows strong analytical skills. Needs to improve speed in problem solving.">Amahle shows strong analytical skills. Needs to improve speed in problem solving.</div></td>
+        </tr>
+
+        <tr class="data-row">
+          <td class="subject-cell">Physical Science</td>
+          <td class="teacher-cell">Ms. T. Mokoena</td>
+          <td class="tr">
+            <span class="score-main">91 / 100</span>
+            <span class="score-pct">91.0%</span>
+          </td>
+          <td class="tr">
+            <span class="class-avg-val">74.5</span>
+            <span class="class-avg-pct">&thinsp;/ 100</span>
+          </td>
+          <td class="tc"><span class="badge badge-A">A</span></td>
+          <td><div class="remark" title="Excellent lab work and theoretical understanding. A consistently top-performing student.">Excellent lab work and theoretical understanding. A consistently top-performing student.</div></td>
+        </tr>
+
+        <tr class="data-row">
+          <td class="subject-cell">Life Sciences</td>
+          <td class="teacher-cell">Mr. D. Dube</td>
+          <td class="tr">
+            <span class="score-main">88 / 100</span>
+            <span class="score-pct">88.0%</span>
+          </td>
+          <td class="tr">
+            <span class="class-avg-val">73.1</span>
+            <span class="class-avg-pct">&thinsp;/ 100</span>
+          </td>
+          <td class="tc"><span class="badge badge-A">A</span></td>
+          <td><div class="remark" title="Consistently engaged. Outstanding project submission. Shows exceptional scientific curiosity.">Consistently engaged. Outstanding project submission. Shows exceptional scientific curiosity.</div></td>
+        </tr>
+
+        <tr class="sub-total">
+          <td colspan="2" style="padding-left:20px;">Sciences Sub-average</td>
+          <td class="tr">87.7 / 100</td>
+          <td class="tr">72.9</td>
+          <td class="tc"><span class="badge badge-A">A</span></td>
+          <td></td>
+        </tr>
+
+        <!-- ●  L A N G U A G E S -->
+        <tr class="grp"><td colspan="6">● Languages</td></tr>
+
+        <tr class="data-row">
+          <td class="subject-cell">English Home Language</td>
+          <td class="teacher-cell">Mrs. N. Sithole</td>
+          <td class="tr">
+            <span class="score-main">76 / 100</span>
+            <span class="score-pct">76.0%</span>
+          </td>
+          <td class="tr">
+            <span class="class-avg-val">69.8</span>
+            <span class="class-avg-pct">&thinsp;/ 100</span>
+          </td>
+          <td class="tc"><span class="badge badge-B">B</span></td>
+          <td><div class="remark" title="Good essay structure. Work on expanding vocabulary range and refining argumentative writing technique.">Good essay structure. Work on expanding vocabulary range and refining argumentative writing technique.</div></td>
+        </tr>
+
+        <tr class="sub-total">
+          <td colspan="2" style="padding-left:20px;">Languages Sub-average</td>
+          <td class="tr">76.0 / 100</td>
+          <td class="tr">69.8</td>
+          <td class="tc"><span class="badge badge-B">B</span></td>
+          <td></td>
+        </tr>
+
+        <!-- ●  S O C I A L  S C I E N C E S -->
+        <tr class="grp"><td colspan="6">● Social Sciences</td></tr>
+
+        <tr class="data-row">
+          <td class="subject-cell">Geography</td>
+          <td class="teacher-cell">Ms. Z. Khumalo</td>
+          <td class="tr">
+            <span class="score-main">72 / 100</span>
+            <span class="score-pct">72.0%</span>
+          </td>
+          <td class="tr">
+            <span class="class-avg-val">66.4</span>
+            <span class="class-avg-pct">&thinsp;/ 100</span>
+          </td>
+          <td class="tc"><span class="badge badge-B">B</span></td>
+          <td><div class="remark" title="Shows genuine interest in the subject but map interpretation and spatial analysis need more attention.">Shows genuine interest but map interpretation and spatial analysis need more attention.</div></td>
+        </tr>
+
+        <tr class="data-row">
+          <td class="subject-cell">History</td>
+          <td class="teacher-cell">Mr. R. Naidoo</td>
+          <td class="tr">
+            <span class="score-main">79 / 100</span>
+            <span class="score-pct">79.0%</span>
+          </td>
+          <td class="tr">
+            <span class="class-avg-val">71.9</span>
+            <span class="class-avg-pct">&thinsp;/ 100</span>
+          </td>
+          <td class="tc"><span class="badge badge-B">B</span></td>
+          <td><div class="remark" title="Good critical thinking and source analysis skills. Improve academic referencing and citation style in essays.">Good critical thinking and source analysis skills. Improve academic referencing in essay work.</div></td>
+        </tr>
+
+        <tr class="sub-total">
+          <td colspan="2" style="padding-left:20px;">Social Sciences Sub-average</td>
+          <td class="tr">75.5 / 100</td>
+          <td class="tr">69.2</td>
+          <td class="tc"><span class="badge badge-B">B</span></td>
+          <td></td>
+        </tr>
+
+        <!-- ●  L I F E  S K I L L S -->
+        <tr class="grp"><td colspan="6">● Life Skills</td></tr>
+
+        <tr class="data-row">
+          <td class="subject-cell">Life Orientation</td>
+          <td class="teacher-cell">Ms. A. van der Merwe</td>
+          <td class="tr">
+            <span class="score-main">95 / 100</span>
+            <span class="score-pct">95.0%</span>
+          </td>
+          <td class="tr">
+            <span class="class-avg-val">82.3</span>
+            <span class="class-avg-pct">&thinsp;/ 100</span>
+          </td>
+          <td class="tc"><span class="badge badge-A">A</span></td>
+          <td><div class="remark" title="An exemplary student in all Life Orientation activities. A true role model and source of motivation for her peers.">An exemplary student in all LO activities. A true role model and source of motivation for peers.</div></td>
+        </tr>
+
+        <tr class="sub-total">
+          <td colspan="2" style="padding-left:20px;">Life Skills Sub-average</td>
+          <td class="tr">95.0 / 100</td>
+          <td class="tr">82.3</td>
+          <td class="tc"><span class="badge badge-A">A</span></td>
+          <td></td>
+        </tr>
+
+      </tbody>
+    </table>
+
+    <!-- ▸ TERM SUMMARY -->
+    <div class="sec-title">
+      <div class="sec-dot"></div>
+      <span class="sec-text">Term Summary</span>
+    </div>
+
+    <div class="two-col-grid">
+
+      <!-- Left: Summary cards + grade distribution -->
+      <div>
+        <div class="summary-cards">
+          <div class="sum-card primary">
+            <div class="sum-val">83.6<span class="sum-unit">%</span></div>
+            <div class="sum-label">Overall Average</div>
+            <div class="sum-sub">Grade A — Distinction</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-val">7</div>
+            <div class="sum-label">Subjects Taken</div>
+            <div class="sum-sub">All completed</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-val">4<span class="sum-unit">th</span></div>
+            <div class="sum-label">Class Position</div>
+            <div class="sum-sub">out of 32 students</div>
+          </div>
+        </div>
+
+        <div class="grade-dist">
+          <span class="gd-label">Grade distribution</span>
+          <span class="gd-item">
+            <span class="badge-xs badge-A">A</span> 4 subjects
+          </span>
+          <span class="gd-item">
+            <span class="badge-xs badge-B">B</span> 3 subjects
+          </span>
+          <span class="gd-item">
+            <span class="badge-xs badge-C">C</span> 0 subjects
+          </span>
+          <span class="gd-item">
+            <span class="badge-xs badge-F">F</span> 0 subjects
+          </span>
+        </div>
+      </div>
+
+      <!-- Right: Attendance -->
+      <div class="att-card">
+        <div class="att-card-title">▪ Term Attendance Record</div>
+        <div class="att-row">
+          <div class="att-text">Days Present</div>
+          <div class="att-track">
+            <div class="att-fill" style="width:92.3%"></div>
+          </div>
+          <div class="att-pct">92.3%</div>
+        </div>
+        <div class="att-stats">
+          <span><b>48</b> days present</span>
+          <span><b>4</b> days absent</span>
+          <span><b>52</b> total school days</span>
+        </div>
+        <div class="att-chip">✓ Excellent attendance record</div>
+      </div>
+
+    </div><!-- end two-col-grid -->
+
+    <!-- ▸ FORM TEACHER COMMENT -->
+    <div class="sec-title">
+      <div class="sec-dot"></div>
+      <span class="sec-text">Form Teacher's Comment</span>
+    </div>
+
+    <div class="comment-card">
+      <div class="comment-quote-mark" aria-hidden="true">&ldquo;</div>
+      <p class="comment-text">
+        "Amahle is a diligent and motivated learner who contributes positively to the classroom environment.
+        With continued focus on weaker areas such as essay writing and spatial analysis, she is firmly on track
+        for an excellent year-end result. Her dedication in the Sciences is particularly commendable, and her
+        positive attitude inspires those around her. Keep it up!"
+      </p>
+      <div class="comment-footer">
+        <div>
+          <div class="comment-teacher-name">Mrs. Patricia Nkosi</div>
+          <div class="comment-teacher-role">Form Teacher — Grade 9B</div>
+        </div>
+        <div class="sig-line">Signature</div>
+      </div>
+    </div>
+
+    <!-- ▸ FINAL YEAR OVERVIEW -->
+    <div class="sec-title" style="margin-top:28px;">
+      <div class="sec-dot" style="background:var(--navy-light)"></div>
+      <span class="sec-text">Final Year Overview</span>
+      <span class="sec-badge">Term 3 results pending — projected from current trajectory</span>
+    </div>
+
+    <div class="final-wrap">
+      <div class="final-header">
+        <div class="final-header-title">Year-to-Date Performance by Subject</div>
+        <span class="promo-badge promo-yes">✓ On Track — Promotion to Grade 10</span>
+      </div>
+      <table class="final-table">
+        <thead>
+          <tr>
+            <th>Subject</th>
+            <th>Term 1</th>
+            <th>Term 2</th>
+            <th>Term 3</th>
+            <th>YTD Average</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Mathematics</td>
+            <td>81%</td>
+            <td>84%</td>
+            <td class="pending-cell">—</td>
+            <td><span class="badge badge-A" style="width:42px;font-size:11px;">82.5</span></td>
+          </tr>
+          <tr>
+            <td>Physical Science</td>
+            <td>87%</td>
+            <td>91%</td>
+            <td class="pending-cell">—</td>
+            <td><span class="badge badge-A" style="width:42px;font-size:11px;">89.0</span></td>
+          </tr>
+          <tr>
+            <td>English Home Language</td>
+            <td>73%</td>
+            <td>76%</td>
+            <td class="pending-cell">—</td>
+            <td><span class="badge badge-B" style="width:42px;font-size:11px;">74.5</span></td>
+          </tr>
+          <tr>
+            <td>Life Sciences</td>
+            <td>85%</td>
+            <td>88%</td>
+            <td class="pending-cell">—</td>
+            <td><span class="badge badge-A" style="width:42px;font-size:11px;">86.5</span></td>
+          </tr>
+          <tr>
+            <td>Geography</td>
+            <td>68%</td>
+            <td>72%</td>
+            <td class="pending-cell">—</td>
+            <td><span class="badge badge-B" style="width:42px;font-size:11px;">70.0</span></td>
+          </tr>
+          <tr>
+            <td>History</td>
+            <td>74%</td>
+            <td>79%</td>
+            <td class="pending-cell">—</td>
+            <td><span class="badge badge-B" style="width:42px;font-size:11px;">76.5</span></td>
+          </tr>
+          <tr>
+            <td>Life Orientation</td>
+            <td>93%</td>
+            <td>95%</td>
+            <td class="pending-cell">—</td>
+            <td><span class="badge badge-A" style="width:42px;font-size:11px;">94.0</span></td>
+          </tr>
+          <tr class="ft-total">
+            <td colspan="4">Overall Year-to-Date Average</td>
+            <td><span class="yr-avg">81.9%</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div><!-- end final-wrap -->
+
+  </div><!-- end rpt-body -->
+
+  <!-- ── FOOTER ── -->
+  <footer class="rpt-footer">
+    <div>Report ID: GFA-T2-2025-0042</div>
+    <div class="footer-mid">
+      <div class="footer-motto">Excellence · Integrity · Growth</div>
+      <div>This report is computer generated and valid without a physical signature.</div>
+    </div>
+    <div>Page 1 of 1</div>
+  </footer>
+
+</div><!-- end .page -->
+
+<script>
+  // Build watermark rows
+  (function () {
+    const inner = document.getElementById('wm-inner');
+    if (!inner) return;
+    const text = 'GREENFIELD ACADEMY';
+    for (let r = 0; r < 14; r++) {
+      const row = document.createElement('div');
+      row.className = 'wm-row';
+      for (let c = 0; c < 5; c++) {
+        const s = document.createElement('span');
+        s.textContent = text;
+        row.appendChild(s);
+      }
+      inner.appendChild(row);
+    }
+  })();
+</script>
+</body>
+</html>

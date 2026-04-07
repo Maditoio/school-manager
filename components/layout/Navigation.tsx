@@ -68,6 +68,7 @@ const iconBySegment: Record<string, React.ComponentType<{ className?: string }>>
   subjects: BookOpen,
   attendance: Calendar,
   results: ClipboardList,
+  reports: FileText,
   announcements: Bell,
   messages: MessageSquare,
   fees: LineChart,

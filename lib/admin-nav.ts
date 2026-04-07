@@ -22,6 +22,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: 'Teachers',  href: '/admin/teachers',  group: 'Academic' },
   { label: 'Classes',   href: '/admin/classes',   group: 'Academic' },
   { label: 'Subjects',  href: '/admin/subjects',  group: 'Academic' },
+  { label: 'Reports',   href: '/admin/reports',   group: 'Academic' },
 
   // ── Academic activity ─────────────────────────────────────────────
   { label: 'Attendance',  href: '/admin/attendance' },
