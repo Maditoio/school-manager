@@ -331,7 +331,3 @@ export default function AdminResultsPage() {
     </DashboardLayout>
   )
 }
-      </div>
-    </DashboardLayout>
-  )
-}
