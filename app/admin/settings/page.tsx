@@ -52,6 +52,10 @@ export default function AdminSettingsPage() {
   const [currencyInput, setCurrencyInput] = useState<CurrencyCode>('ZAR')
   const [currencySaving, setCurrencySaving] = useState(false)
 
+  // Branding
+  const [logoUrl, setLogoUrl] = useState<string>('')
+  const [logoSaving, setLogoSaving] = useState(false)
+
   // Keep local dropdown in sync with the context value (loaded asynchronously)
   useEffect(() => {
     setCurrencyInput(activeCurrency)
@@ -83,6 +87,7 @@ export default function AdminSettingsPage() {
         setThreshold(thresh)
         setThresholdInput(String(thresh))
         if (data.currency) setCurrencyInput(data.currency as CurrencyCode)
+        if (data.logoUrl) setLogoUrl(data.logoUrl)
       }
     } catch {
       // fail silently — not critical for page load
@@ -118,6 +123,42 @@ export default function AdminSettingsPage() {
       fetchTerms()
     }
   }, [session?.user?.role, fetchSettings, fetchTerms])
+
+  // ── Branding: save logo ────────────────────────────────────────────────────
+
+  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 300 * 1024) {
+      showToast(t('Image must be smaller than 300 KB'), 'warning')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string
+      setLogoUrl(result)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleSaveLogo = async () => {
+    try {
+      setLogoSaving(true)
+      const res = await fetch('/api/schools/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logoUrl }),
+      })
+      const data = await res.json()
+      if (!res.ok) { showToast(data.error || t('Failed to save logo'), 'error'); return }
+      setLogoUrl(data.logoUrl ?? '')
+      showToast(t('School logo saved'), 'success')
+    } catch {
+      showToast(t('Failed to save logo'), 'error')
+    } finally {
+      setLogoSaving(false)
+    }
+  }
 
   // ── Finance: save threshold ────────────────────────────────────────────────
 
@@ -497,6 +538,55 @@ export default function AdminSettingsPage() {
               )}
             </Card>
           </div>
+        </section>
+
+        {/* ──────────────────────────────────────────────────────── */}
+        {/* School Branding                                           */}
+        {/* ──────────────────────────────────────────────────────── */}
+        <section>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider ui-text-secondary">{t('School Branding')}</h2>
+          <Card title={t('School Logo')} className="p-5">
+            <p className="text-sm ui-text-secondary mb-4">
+              {t('Upload your school logo. It appears on generated report cards. PNG or SVG recommended, max 300 KB.')}
+            </p>
+            <div className="flex items-start gap-5 flex-wrap">
+              {/* Preview */}
+              <div className="w-20 h-20 rounded-full border-2 border-dashed flex items-center justify-center overflow-hidden shrink-0"
+                style={{ borderColor: 'var(--border-subtle)' }}>
+                {logoUrl
+                  ? <img src={logoUrl} alt="School logo" className="w-full h-full object-cover rounded-full" />
+                  : <span className="text-xs ui-text-secondary text-center px-1">{t('No logo')}</span>}
+              </div>
+              <div className="flex-1 min-w-50 space-y-3">
+                <div>
+                  <label className="block text-sm font-medium ui-text-secondary mb-2">{t('Upload image')}</label>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif,image/svg+xml,image/webp"
+                    onChange={handleLogoFileChange}
+                    className="block w-full text-sm ui-text-secondary file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                  />
+                </div>
+                <Input
+                  label={t('Or paste an image URL')}
+                  type="url"
+                  value={logoUrl.startsWith('data:') ? '' : logoUrl}
+                  onChange={e => setLogoUrl(e.target.value)}
+                  placeholder="https://..."
+                />
+                <div className="flex gap-2">
+                  <Button type="button" isLoading={logoSaving} onClick={handleSaveLogo}>
+                    {t('Save Logo')}
+                  </Button>
+                  {logoUrl && (
+                    <Button type="button" variant="secondary" onClick={() => setLogoUrl('')}>
+                      {t('Clear')}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </Card>
         </section>
       </div>
     </DashboardLayout>

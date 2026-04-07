@@ -568,7 +568,7 @@ export default function SubjectsPage() {
       {/* ── Quick Add Presets modal ── */}
       {showPresetsModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-2xl p-6 max-h-[90vh] flex flex-col">
+          <Card className="w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold ui-text-primary mb-1 shrink-0">
               {tAdmin('quickAddTitle', 'Quick Add Subjects from Presets')}
             </h2>
@@ -609,7 +609,7 @@ export default function SubjectsPage() {
             </div>
 
             {/* Presets list */}
-            <div className="overflow-y-auto flex-1 space-y-2 pr-1">
+            <div className="overflow-y-auto max-h-96 space-y-2 pr-1 border border-(--border-subtle) rounded-lg p-2">
               {currentPresets.map((preset, idx) => (
                 <div
                   key={preset.name}
@@ -644,7 +644,7 @@ export default function SubjectsPage() {
             </div>
 
             {/* Footer */}
-            <div className="flex gap-2 justify-end pt-4 shrink-0 border-t border-(--border-subtle) mt-4">
+            <div className="flex gap-2 justify-end pt-4 border-t border-(--border-subtle) mt-4">
               <Button
                 type="button"
                 variant="secondary"

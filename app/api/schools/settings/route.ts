@@ -33,6 +33,8 @@ export async function GET() {
     return NextResponse.json({
       expenseApprovalThreshold: settings?.expenseApprovalThreshold ?? 0,
       currency: settings?.currency ?? 'ZAR',
+      logoUrl: settings?.logoUrl ?? null,
+      reportTemplate: settings?.reportTemplate ?? 1,
     })
   } catch (error) {
     console.error('Error fetching school settings:', error)
@@ -52,7 +54,12 @@ export async function PATCH(request: NextRequest) {
     if (!schoolId) return NextResponse.json({ error: 'School not found' }, { status: 400 })
 
     const body = await request.json()
-    const updateData: { expenseApprovalThreshold?: number; currency?: string } = {}
+    const updateData: {
+      expenseApprovalThreshold?: number
+      currency?: string
+      logoUrl?: string | null
+      reportTemplate?: number
+    } = {}
 
     if (body.expenseApprovalThreshold !== undefined) {
       const threshold = Number(body.expenseApprovalThreshold)
@@ -69,6 +76,23 @@ export async function PATCH(request: NextRequest) {
       updateData.currency = body.currency
     }
 
+    if (body.logoUrl !== undefined) {
+      // Accept empty string (clear logo), data URIs, or http(s) URLs
+      const val = body.logoUrl as string
+      if (val !== '' && !val.startsWith('data:image/') && !/^https?:\/\//i.test(val)) {
+        return NextResponse.json({ error: 'logoUrl must be a valid image URL or data URI' }, { status: 400 })
+      }
+      updateData.logoUrl = val === '' ? null : val
+    }
+
+    if (body.reportTemplate !== undefined) {
+      const tpl = Number(body.reportTemplate)
+      if (!Number.isInteger(tpl) || tpl < 1 || tpl > 11) {
+        return NextResponse.json({ error: 'reportTemplate must be an integer 1–11' }, { status: 400 })
+      }
+      updateData.reportTemplate = tpl
+    }
+
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
     }
@@ -82,6 +106,8 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({
       expenseApprovalThreshold: settings.expenseApprovalThreshold,
       currency: settings.currency,
+      logoUrl: settings.logoUrl ?? null,
+      reportTemplate: settings.reportTemplate,
     })
   } catch (error) {
     console.error('Error updating school settings:', error)

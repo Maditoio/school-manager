@@ -52,6 +52,8 @@ model SchoolSettings {
   schoolId                  String   @unique @map("school_id")
   expenseApprovalThreshold  Float    @default(0) @map("expense_approval_threshold")
   currency                  String   @default("ZAR") @map("currency")
+  logoUrl                   String?  @map("logo_url")
+  reportTemplate            Int      @default(1) @map("report_template")
   createdAt                 DateTime @default(now()) @map("created_at")
   updatedAt                 DateTime @updatedAt @map("updated_at")
   school                    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
