@@ -46,7 +46,7 @@ function mapRow(raw: Record<string, unknown>): RowData {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'SUPER_ADMIN'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'SUPER_ADMIN'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

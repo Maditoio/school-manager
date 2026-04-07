@@ -65,7 +65,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/unauthorized', request.url))
   }
 
-  if (pathname.startsWith('/admin') && role !== 'SCHOOL_ADMIN' && role !== 'DEPUTY_ADMIN') {
+  // FINANCE, FINANCE_MANAGER and TEACHER can access the meeting agenda (under /admin)
+  if (
+    pathname.startsWith('/admin') &&
+    role !== 'SCHOOL_ADMIN' &&
+    role !== 'DEPUTY_ADMIN' &&
+    !(pathname === '/admin/meeting-agenda' && ['FINANCE', 'FINANCE_MANAGER', 'TEACHER'].includes(role))
+  ) {
     return NextResponse.redirect(new URL('/unauthorized', request.url))
   }
 

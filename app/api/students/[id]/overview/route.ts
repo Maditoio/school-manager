@@ -242,7 +242,7 @@ export async function GET(
   try {
     const session = await auth()
 
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'SUPER_ADMIN', 'TEACHER'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'SUPER_ADMIN', 'TEACHER'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

@@ -66,5 +66,4 @@ export const TEACHER_NAV_ITEMS: NavItem[] = [
   { label: 'Results',      href: '/teacher/results',      icon: '📝' },
   { label: 'Announcements',href: '/teacher/announcements',icon: '📢' },
   { label: 'Messages',     href: '/teacher/messages',     icon: '💬' },
-  { label: 'Fund Requests',href: '/teacher/fund-requests',icon: '📦' },
-]
+  { label: 'Fund Requests',href: '/teacher/fund-requests',icon: '📦' },  { label: 'Meeting Agenda', href: '/admin/meeting-agenda', icon: '📋' },]
