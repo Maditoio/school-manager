@@ -31,6 +31,7 @@ export default function TeachersPage() {
   const [bulkUploadLoading, setBulkUploadLoading] = useState(false)
   const [bulkUploadErrors, setBulkUploadErrors] = useState<Array<{ row: number; error: string }>>([])
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null)
+  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null)
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'Available' | 'Away'>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [formData, setFormData] = useState({
@@ -56,6 +57,16 @@ export default function TeachersPage() {
       fetchTeachers()
     }
   }, [session])
+
+  useEffect(() => {
+    const close = () => { setOpenActionMenuId(null); setMenuPosition(null) }
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
+  }, [])
 
   const fetchTeachers = async () => {
     try {
@@ -387,7 +398,7 @@ export default function TeachersPage() {
             </div>
           </div>
         ) : filteredTeachers.length > 0 ? (
-          <div className="rounded-xl border border-(--border-subtle) bg-(--surface) teachers-no-hover overflow-visible" onClick={() => setOpenActionMenuId(null)}>
+          <div className="rounded-xl border border-(--border-subtle) bg-(--surface) teachers-no-hover" onClick={() => { setOpenActionMenuId(null); setMenuPosition(null) }}>
             <div className="overflow-x-auto">
             <table className="ui-table min-w-full">
               <thead>
@@ -422,40 +433,25 @@ export default function TeachersPage() {
                       </span>
                     </td>
                     <td>{new Date(teacher.createdAt).toLocaleDateString()}</td>
-                    <td className="relative" onClick={(e) => e.stopPropagation()}>
+                    <td onClick={(e) => e.stopPropagation()}>
                       <button
                         type="button"
                         aria-label="Teacher actions"
                         className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-(--border-subtle) bg-(--surface-soft) text-base leading-none ui-text-secondary hover:ui-text-primary"
-                        onClick={() => setOpenActionMenuId((current) => (current === teacher.id ? null : teacher.id))}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (openActionMenuId === teacher.id) {
+                            setOpenActionMenuId(null)
+                            setMenuPosition(null)
+                          } else {
+                            const rect = e.currentTarget.getBoundingClientRect()
+                            setMenuPosition({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
+                            setOpenActionMenuId(teacher.id)
+                          }
+                        }}
                       >
                         ⋯
                       </button>
-
-                      {openActionMenuId === teacher.id ? (
-                        <div className="absolute right-0 top-9 z-60 min-w-44 rounded-[10px] border border-(--border-subtle) bg-(--surface) p-1.5 shadow-(--shadow-soft)">
-                          <button
-                            type="button"
-                            className="flex w-full items-center rounded-md px-3 py-2 text-left text-sm ui-text-secondary hover:bg-(--surface-soft) hover:ui-text-primary"
-                            onClick={() => {
-                              setOpenActionMenuId(null)
-                              handleResetPassword(teacher)
-                            }}
-                          >
-                            Reset Password
-                          </button>
-                          <button
-                            type="button"
-                            className="flex w-full items-center rounded-md px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
-                            onClick={() => {
-                              setOpenActionMenuId(null)
-                              handleDelete(teacher.id)
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -483,6 +479,41 @@ export default function TeachersPage() {
             color: inherit !important;
           }
         `}</style>
+
+        {openActionMenuId && menuPosition ? (() => {
+          const activeTeacher = teachers.find((t) => t.id === openActionMenuId)
+          if (!activeTeacher) return null
+          return (
+            <div
+              className="fixed z-200 min-w-44 rounded-[10px] border border-(--border-subtle) bg-(--surface) p-1.5 shadow-(--shadow-soft)"
+              style={{ top: menuPosition.top, right: menuPosition.right }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="flex w-full items-center rounded-md px-3 py-2 text-left text-sm ui-text-secondary hover:bg-(--surface-soft) hover:ui-text-primary"
+                onClick={() => {
+                  setOpenActionMenuId(null)
+                  setMenuPosition(null)
+                  handleResetPassword(activeTeacher)
+                }}
+              >
+                Reset Password
+              </button>
+              <button
+                type="button"
+                className="flex w-full items-center rounded-md px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
+                onClick={() => {
+                  setOpenActionMenuId(null)
+                  setMenuPosition(null)
+                  handleDelete(activeTeacher.id)
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          )
+        })() : null}
 
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
