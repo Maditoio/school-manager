@@ -154,7 +154,7 @@ export default function AdminExpensesPage() {
   }, [locale, categoryFilter, statusFilter, searchQuery, dateFrom, dateTo, auditPage, auditPageSize])
 
   useEffect(() => {
-    if (session?.user?.role === 'SCHOOL_ADMIN') fetchExpenses()
+    if (session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'DEPUTY_ADMIN') fetchExpenses()
   }, [session?.user?.role, fetchExpenses])
 
   useEffect(() => {
@@ -427,38 +427,40 @@ export default function AdminExpensesPage() {
           </div>
         )}
 
-        <Card title={translateText('Finance Manager Approval Limit', locale)} className="p-4">
-          <p className="text-sm ui-text-secondary mb-3">
-            {translateText('Finance managers can approve expenses up to this amount. Set to 0 to disable delegation. Expenses above this limit require administrator approval.', locale)}
-          </p>
-          <div className="flex items-end gap-3 max-w-sm">
-            <Input
-              label={translateText('Approval limit amount', locale)}
-              type="number"
-              min="0"
-              step="0.01"
-              value={thresholdInput}
-              onChange={(e) => setThresholdInput(e.target.value)}
-            />
-            <Button
-              type="button"
-              isLoading={thresholdSaving}
-              onClick={handleSaveThreshold}
-              className="shrink-0"
-            >
-              {translateText('Save Limit', locale)}
-            </Button>
-          </div>
-          {threshold > 0 ? (
-            <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
-              {translateText('Current limit', locale)}: {formatCurrency(threshold)}
+        {session?.user?.role === 'SCHOOL_ADMIN' && (
+          <Card title={translateText('Finance Manager Approval Limit', locale)} className="p-4">
+            <p className="text-sm ui-text-secondary mb-3">
+              {translateText('Finance managers can approve expenses up to this amount. Set to 0 to disable delegation. Expenses above this limit require administrator approval.', locale)}
             </p>
-          ) : (
-            <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-              {translateText('Delegation disabled — only administrators can approve expenses', locale)}
-            </p>
-          )}
-        </Card>
+            <div className="flex items-end gap-3 max-w-sm">
+              <Input
+                label={translateText('Approval limit amount', locale)}
+                type="number"
+                min="0"
+                step="0.01"
+                value={thresholdInput}
+                onChange={(e) => setThresholdInput(e.target.value)}
+              />
+              <Button
+                type="button"
+                isLoading={thresholdSaving}
+                onClick={handleSaveThreshold}
+                className="shrink-0"
+              >
+                {translateText('Save Limit', locale)}
+              </Button>
+            </div>
+            {threshold > 0 ? (
+              <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+                {translateText('Current limit', locale)}: {formatCurrency(threshold)}
+              </p>
+            ) : (
+              <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                {translateText('Delegation disabled — only administrators can approve expenses', locale)}
+              </p>
+            )}
+          </Card>
+        )}
 
         <Card title={translateText('Filters', locale)} className="p-4">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">

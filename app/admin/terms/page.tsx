@@ -75,7 +75,7 @@ export default function TermsPage() {
   }, [selectedAcademicYearId, showToast])
 
   useEffect(() => {
-    if (session?.user?.role === 'SCHOOL_ADMIN') {
+    if (session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'DEPUTY_ADMIN') {
       fetchTerms()
     }
   }, [fetchTerms, session])
