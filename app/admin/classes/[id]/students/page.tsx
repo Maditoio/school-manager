@@ -11,6 +11,9 @@ import { useToast } from '@/components/ui/Toast'
 import { Minus } from 'lucide-react'
 import { useConfirmDialog } from '@/lib/useConfirmDialog'
 import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import enMessages from '@/messages/en.json'
+import frMessages from '@/messages/fr.json'
+import swMessages from '@/messages/sw.json'
 
 interface Student {
   id: string
@@ -102,7 +105,7 @@ export default function ClassStudentsPage() {
       }
     } catch (error) {
       console.error('Failed to fetch class students:', error)
-      showToast('Failed to load class students', 'error')
+      showToast(t('failedLoad', 'Failed to load class students'), 'error')
       setAssigned([])
       setAvailable([])
       setClasses([])
@@ -112,7 +115,7 @@ export default function ClassStudentsPage() {
   }, [classId, showToast])
 
   useEffect(() => {
-    if (classId && session?.user?.role === 'SCHOOL_ADMIN') {
+    if (classId && (session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'DEPUTY_ADMIN')) {
       fetchData()
     }
   }, [classId, session, fetchData])
@@ -139,7 +142,7 @@ export default function ClassStudentsPage() {
 
   const addSelectedStudents = async () => {
     if (selectedAvailableIds.length === 0) {
-      showToast('Select students to add', 'warning')
+      showToast(t('selectStudentsFirst', 'Select students to add'), 'warning')
       return
     }
 
@@ -153,16 +156,16 @@ export default function ClassStudentsPage() {
 
       if (!res.ok) {
         const data = await res.json()
-        showToast(data.error || 'Failed to add students', 'error')
+        showToast(data.error || t('failedEnroll', 'Failed to add students'), 'error')
         return
       }
 
       setSelectedAvailableIds([])
       await fetchData()
-      showToast('Students added to class', 'success')
+      showToast(t('successEnroll', 'Students added to class'), 'success')
     } catch (error) {
       console.error('Failed to add students:', error)
-      showToast('Failed to add students', 'error')
+      showToast(t('failedEnroll', 'Failed to add students'), 'error')
     } finally {
       setAddingStudents(false)
     }
@@ -170,12 +173,12 @@ export default function ClassStudentsPage() {
 
   const transferSelectedStudents = async () => {
     if (!targetClassId) {
-      showToast('Select the target class first', 'warning')
+      showToast(t('selectTargetFirst', 'Select the target class first'), 'warning')
       return
     }
 
     if (selectedAssignedIds.length === 0) {
-      showToast('Select students to move', 'warning')
+      showToast(t('selectStudentsToMove', 'Select students to move'), 'warning')
       return
     }
 
@@ -212,16 +215,16 @@ export default function ClassStudentsPage() {
 
       if (!res.ok) {
         const data = await res.json()
-        showToast(data.error || 'Failed to move students', 'error')
+        showToast(data.error || t('failedMove', 'Failed to move students'), 'error')
         return
       }
 
       setSelectedAssignedIds([])
       await fetchData()
-      showToast('Students moved successfully', 'success')
+      showToast(t('successMove', 'Students moved successfully'), 'success')
     } catch (error) {
       console.error('Failed to move students:', error)
-      showToast('Failed to move students', 'error')
+      showToast(t('failedMove', 'Failed to move students'), 'error')
     } finally {
       setTransferring(false)
     }
@@ -238,7 +241,8 @@ export default function ClassStudentsPage() {
       loadingLabel: 'Removing...',
       entity: {
         name: `${student.firstName} ${student.lastName}`,
-        subtitle: `${student.admissionNumber || 'No admission number'}`,
+        subtitle: `${student.admissionNumber || t('noAdmissionNumber', 'No admission number')}`,
+
       },
       allowBackdropClose: false,
       allowEscapeClose: false,
@@ -257,16 +261,16 @@ export default function ClassStudentsPage() {
       const data = await res.json().catch(() => ({}))
 
       if (!res.ok) {
-        showToast(data.error || 'Failed to remove student from class', 'error')
+        showToast(data.error || t('failedRemove', 'Failed to remove student from class'), 'error')
         return
       }
 
       setSelectedAssignedIds((prev) => prev.filter((id) => id !== student.id))
       await fetchData()
-      showToast('Student removed from class', 'success')
+      showToast(t('successRemove', 'Student removed from class'), 'success')
     } catch (error) {
       console.error('Failed to remove student from class:', error)
-      showToast('Failed to remove student from class', 'error')
+      showToast(t('failedRemove', 'Failed to remove student from class'), 'error')
     } finally {
       setRemovingStudentId(null)
     }
@@ -275,6 +279,16 @@ export default function ClassStudentsPage() {
   const canMoveSelected = !!targetClassId && selectedAssignedIds.length > 0 && !transferring
 
   const navItems = session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS
+
+  const preferredLanguage = session?.user?.preferredLanguage || 'en'
+  const languageMessages = useMemo(() => {
+    return preferredLanguage === 'fr' ? frMessages : preferredLanguage === 'sw' ? swMessages : enMessages
+  }, [preferredLanguage])
+  const classesStudentsMessages = useMemo(
+    () => ((languageMessages as Record<string, unknown>).classes as Record<string, unknown>)?.students as Record<string, string> || {},
+    [languageMessages]
+  )
+  const t = useCallback((key: string, fallback: string) => classesStudentsMessages[key] || fallback, [classesStudentsMessages])
 
   const filteredAssigned = useMemo(() => {
     const query = assignedSearch.trim().toLowerCase()
@@ -314,30 +328,30 @@ export default function ClassStudentsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold ui-text-primary">Class Students</h1>
-            <p className="ui-text-secondary mt-2">Add or move students for this class enrollment</p>
+            <h1 className="text-3xl font-bold ui-text-primary">{t('title', 'Class Students')}</h1>
+            <p className="ui-text-secondary mt-2">{t('subtitle', 'Add or move students for this class enrollment')}</p>
           </div>
           <a
             href="/admin/classes"
             className="px-4 py-2 text-sm rounded border border-(--border-subtle) bg-(--surface-soft) ui-text-secondary hover:ui-text-primary transition-colors"
           >
-            Back to Classes
+            {t('backToClasses', 'Back to Classes')}
           </a>
         </div>
 
         {loading ? (
-          <div>Loading class students...</div>
+          <div>{t('failedLoad', 'Loading class students...')}</div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="p-6">
-              <h2 className="text-lg font-semibold ui-text-primary mb-4">Enrolled Students ({assigned.length})</h2>
+              <h2 className="text-lg font-semibold ui-text-primary mb-4">{t('enrolledStudents', 'Enrolled Students ({count})').replace('{count}', String(assigned.length))}</h2>
               <div className="mb-3 space-y-2">
                 <div className="flex gap-2">
                   <Button onClick={selectAllAssigned} className="text-sm">
-                    Select All Visible
+                    {t('selectAllVisible', 'Select All Visible')}
                   </Button>
                   <Button variant="secondary" onClick={clearAssignedSelection} className="text-sm">
-                    Clear Selection
+                    {t('clearSelection', 'Clear Selection')}
                   </Button>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -346,7 +360,7 @@ export default function ClassStudentsPage() {
                     onChange={(e) => setTargetClassId(e.target.value)}
                     className="w-full px-3 py-2 border border-(--border-subtle) rounded-lg bg-(--surface) ui-text-primary"
                   >
-                    <option value="">Select target class</option>
+                    <option value="">{t('selectTargetClass', 'Select target class')}</option>
                     {classes.map((classItem) => (
                       <option key={classItem.id} value={classItem.id}>
                         {classItem.name}
@@ -357,8 +371,8 @@ export default function ClassStudentsPage() {
                   </select>
                   <Button onClick={transferSelectedStudents} disabled={!canMoveSelected} className="whitespace-nowrap">
                     {transferring
-                      ? 'Moving...'
-                      : `Move Selected (${selectedAssignedIds.length})`}
+                      ? t('moving', 'Moving...')
+                      : t('moveSelected', 'Move Selected ({count})').replace('{count}', String(selectedAssignedIds.length))}
                   </Button>
                 </div>
               </div>
@@ -366,7 +380,7 @@ export default function ClassStudentsPage() {
                 type="text"
                 value={assignedSearch}
                 onChange={(e) => setAssignedSearch(e.target.value)}
-                placeholder="Search by student name or admission number"
+                placeholder={t('searchByName', 'Search by student name or admission number')}
                 className="w-full mb-3 px-3 py-2 border border-(--border-subtle) rounded-lg bg-(--surface) ui-text-primary"
               />
               <div className="space-y-3 max-h-112 overflow-auto">
@@ -383,7 +397,7 @@ export default function ClassStudentsPage() {
                           <p className="font-medium ui-text-primary">
                             {student.firstName} {student.lastName}
                           </p>
-                          <p className="text-xs ui-text-secondary">{student.admissionNumber || 'No admission number'}</p>
+                          <p className="text-xs ui-text-secondary">{student.admissionNumber || t('noAdmissionNumber', 'No admission number')}</p>
                         </div>
                       </label>
 
@@ -400,18 +414,18 @@ export default function ClassStudentsPage() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm ui-text-secondary">No students enrolled in this class yet.</p>
+                  <p className="text-sm ui-text-secondary">{t('noStudentsEnrolled', 'No students enrolled in this class yet.')}</p>
                 )}
               </div>
             </Card>
 
             <Card className="p-6">
-              <h2 className="text-lg font-semibold ui-text-primary mb-4">Available Students ({available.length})</h2>
+              <h2 className="text-lg font-semibold ui-text-primary mb-4">{t('availableStudents', 'Available Students ({count})').replace('{count}', String(available.length))}</h2>
               <input
                 type="text"
                 value={availableSearch}
                 onChange={(e) => setAvailableSearch(e.target.value)}
-                placeholder="Search by student name or admission number"
+                placeholder={t('searchByName', 'Search by student name or admission number')}
                 className="w-full mb-3 px-3 py-2 border border-(--border-subtle) rounded-lg bg-(--surface) ui-text-primary"
               />
               <div className="space-y-3 max-h-88 overflow-auto">
@@ -429,7 +443,7 @@ export default function ClassStudentsPage() {
                             {student.firstName} {student.lastName}
                           </p>
                           <p className="text-xs ui-text-secondary">
-                            {student.admissionNumber || 'No admission number'}
+                            {student.admissionNumber || t('noAdmissionNumber', 'No admission number')}
                             {student.class?.name ? ` • Primary: ${student.class.name}` : ''}
                           </p>
                         </div>
@@ -437,13 +451,13 @@ export default function ClassStudentsPage() {
                     </label>
                   ))
                 ) : (
-                  <p className="text-sm ui-text-secondary">No available students to add.</p>
+                  <p className="text-sm ui-text-secondary">{t('noAvailableStudents', 'No available students to add.')}</p>
                 )}
               </div>
 
               <div className="mt-4">
                 <Button onClick={addSelectedStudents} isLoading={addingStudents} disabled={selectedAvailableIds.length === 0}>
-                  Add Selected Students ({selectedAvailableIds.length})
+                  {t('addSelectedStudents', 'Add Selected Students ({count})').replace('{count}', String(selectedAvailableIds.length))}
                 </Button>
               </div>
             </Card>

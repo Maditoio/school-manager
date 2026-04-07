@@ -284,7 +284,23 @@
       "successEnroll": "Étudiants inscrits avec succès",
       "failedEnroll": "Échec de l'inscription des étudiants",
       "successRemove": "Étudiant retiré avec succès",
-      "failedRemove": "Échec du retrait de l'étudiant"
+      "failedRemove": "Échec du retrait de l'étudiant",
+      "subtitle": "Ajouter ou déplacer des étudiants pour cette inscription",
+      "backToClasses": "Retour aux classes",
+      "selectAllVisible": "Tout sélectionner",
+      "clearSelection": "Effacer la sélection",
+      "selectTargetClass": "Sélectionner la classe cible",
+      "moveSelected": "Déplacer la sélection ({count})",
+      "moving": "Déplacement...",
+      "noAdmissionNumber": "Pas de numéro d'admission",
+      "noAvailableStudents": "Aucun étudiant disponible à ajouter.",
+      "addSelectedStudents": "Ajouter les sélectionnés ({count})",
+      "successMove": "Étudiants déplacés avec succès",
+      "failedMove": "Échec du déplacement des étudiants",
+      "selectStudentsFirst": "Sélectionner des étudiants à ajouter",
+      "selectTargetFirst": "Sélectionner d'abord la classe cible",
+      "selectStudentsToMove": "Sélectionner des étudiants à déplacer",
+      "failedLoad": "Échec du chargement des étudiants"
     }
   },
   "subjects": {

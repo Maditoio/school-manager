@@ -255,7 +255,23 @@
       "successEnroll": "Students enrolled successfully",
       "failedEnroll": "Failed to enroll students",
       "successRemove": "Student removed successfully",
-      "failedRemove": "Failed to remove student"
+      "failedRemove": "Failed to remove student",
+      "subtitle": "Add or move students for this class enrollment",
+      "backToClasses": "Back to Classes",
+      "selectAllVisible": "Select All Visible",
+      "clearSelection": "Clear Selection",
+      "selectTargetClass": "Select target class",
+      "moveSelected": "Move Selected ({count})",
+      "moving": "Moving...",
+      "noAdmissionNumber": "No admission number",
+      "noAvailableStudents": "No available students to add.",
+      "addSelectedStudents": "Add Selected Students ({count})",
+      "successMove": "Students moved successfully",
+      "failedMove": "Failed to move students",
+      "selectStudentsFirst": "Select students to add",
+      "selectTargetFirst": "Select the target class first",
+      "selectStudentsToMove": "Select students to move",
+      "failedLoad": "Failed to load class students"
     }
   },
   "subjects": {
