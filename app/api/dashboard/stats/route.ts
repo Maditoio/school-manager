@@ -207,7 +207,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    if (session.user.role === 'SCHOOL_ADMIN') {
+    if (session.user.role === 'SCHOOL_ADMIN' || session.user.role === 'DEPUTY_ADMIN') {
       if (!schoolId) {
         return NextResponse.json({ error: 'School ID required' }, { status: 400 })
       }
