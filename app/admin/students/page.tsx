@@ -70,7 +70,7 @@ export default function StudentsPage() {
   const [uploadSkipped, setUploadSkipped] = useState<string[]>([])
   const [uploadErrors, setUploadErrors] = useState<string[]>([])
   const [showBulkUpload, setShowBulkUpload] = useState(false)
-
+  const [formSaving, setFormSaving] = useState(false)
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -221,6 +221,7 @@ export default function StudentsPage() {
     e.preventDefault()
 
     try {
+      setFormSaving(true)
       const url = editingStudent ? `/api/students/${editingStudent.id}` : '/api/students'
       const method = editingStudent ? 'PUT' : 'POST'
 
@@ -266,6 +267,8 @@ export default function StudentsPage() {
     } catch (error) {
       console.error('Failed to save student:', error)
       showToast(t('toastFailedSaveStudent', 'Failed to save student'), 'error')
+    } finally {
+      setFormSaving(false)
     }
   }
 
@@ -859,7 +862,7 @@ export default function StudentsPage() {
                   >
                     {t('cancel', 'Cancel')}
                   </Button>
-                  <Button type="submit">{editingStudent ? t('update', 'Update') : t('create', 'Create')}</Button>
+                  <Button type="submit" isLoading={formSaving} disabled={formSaving}>{editingStudent ? t('update', 'Update') : t('create', 'Create')}</Button>
                 </div>
               </form>
             </Card>
