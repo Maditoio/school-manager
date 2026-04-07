@@ -77,10 +77,10 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (body.logoUrl !== undefined) {
-      // Accept empty string (clear logo), data URIs, or http(s) URLs
+      // Only accept empty string (clear) or https:// URLs (Vercel Blob URLs)
       const val = body.logoUrl as string
-      if (val !== '' && !val.startsWith('data:image/') && !/^https?:\/\//i.test(val)) {
-        return NextResponse.json({ error: 'logoUrl must be a valid image URL or data URI' }, { status: 400 })
+      if (val !== '' && !/^https?:\/\//i.test(val)) {
+        return NextResponse.json({ error: 'logoUrl must be a valid https URL' }, { status: 400 })
       }
       updateData.logoUrl = val === '' ? null : val
     }

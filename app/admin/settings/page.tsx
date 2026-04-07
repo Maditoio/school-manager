@@ -54,6 +54,8 @@ export default function AdminSettingsPage() {
 
   // Branding
   const [logoUrl, setLogoUrl] = useState<string>('')
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string>('')
   const [logoSaving, setLogoSaving] = useState(false)
 
   // Keep local dropdown in sync with the context value (loaded asynchronously)
@@ -129,32 +131,69 @@ export default function AdminSettingsPage() {
   const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 300 * 1024) {
-      showToast(t('Image must be smaller than 300 KB'), 'warning')
+    if (file.size > 2 * 1024 * 1024) {
+      showToast(t('Image must be smaller than 2 MB'), 'warning')
       return
     }
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const result = ev.target?.result as string
-      setLogoUrl(result)
-    }
-    reader.readAsDataURL(file)
+    setLogoFile(file)
+    // Show local preview immediately without uploading yet
+    const objectUrl = URL.createObjectURL(file)
+    setLogoPreview(objectUrl)
   }
 
   const handleSaveLogo = async () => {
     try {
       setLogoSaving(true)
+      let urlToSave = logoUrl
+
+      if (logoFile) {
+        // Upload file to Vercel Blob via the dedicated endpoint
+        const form = new FormData()
+        form.append('file', logoFile)
+        const uploadRes = await fetch('/api/schools/logo', { method: 'POST', body: form })
+        const uploadData = await uploadRes.json()
+        if (!uploadRes.ok) throw new Error(uploadData.error ?? t('Upload failed'))
+        urlToSave = uploadData.url
+        // Release the object URL now that upload succeeded
+        URL.revokeObjectURL(logoPreview)
+        setLogoPreview('')
+        setLogoFile(null)
+      }
+
+      // Save the blob URL (or typed URL) to school settings
       const res = await fetch('/api/schools/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ logoUrl }),
+        body: JSON.stringify({ logoUrl: urlToSave }),
       })
       const data = await res.json()
-      if (!res.ok) { showToast(data.error || t('Failed to save logo'), 'error'); return }
+      if (!res.ok) throw new Error(data.error ?? t('Failed to save logo'))
       setLogoUrl(data.logoUrl ?? '')
       showToast(t('School logo saved'), 'success')
-    } catch {
-      showToast(t('Failed to save logo'), 'error')
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : t('Failed to save logo'), 'error')
+    } finally {
+      setLogoSaving(false)
+    }
+  }
+
+  const handleClearLogo = async () => {
+    try {
+      setLogoSaving(true)
+      if (logoPreview) { URL.revokeObjectURL(logoPreview); setLogoPreview('') }
+      setLogoFile(null)
+      // If there's a saved blob URL, delete it from Vercel Blob + settings
+      if (logoUrl) {
+        const res = await fetch('/api/schools/logo', { method: 'DELETE' })
+        if (!res.ok) {
+          const d = await res.json()
+          throw new Error(d.error ?? t('Failed to clear logo'))
+        }
+        setLogoUrl('')
+      }
+      showToast(t('Logo removed'), 'success')
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : t('Failed to clear logo'), 'error')
     } finally {
       setLogoSaving(false)
     }
@@ -547,14 +586,15 @@ export default function AdminSettingsPage() {
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider ui-text-secondary">{t('School Branding')}</h2>
           <Card title={t('School Logo')} className="p-5">
             <p className="text-sm ui-text-secondary mb-4">
-              {t('Upload your school logo. It appears on generated report cards. PNG or SVG recommended, max 300 KB.')}
+              {t('Upload your school logo. It appears on generated report cards. PNG or SVG recommended, max 2 MB.')}
             </p>
             <div className="flex items-start gap-5 flex-wrap">
               {/* Preview */}
               <div className="w-20 h-20 rounded-full border-2 border-dashed flex items-center justify-center overflow-hidden shrink-0"
                 style={{ borderColor: 'var(--border-subtle)' }}>
-                {logoUrl
-                  ? <img src={logoUrl} alt="School logo" className="w-full h-full object-cover rounded-full" />
+                {(logoPreview || logoUrl)
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={logoPreview || logoUrl} alt="School logo" className="w-full h-full object-cover rounded-full" />
                   : <span className="text-xs ui-text-secondary text-center px-1">{t('No logo')}</span>}
               </div>
               <div className="flex-1 min-w-50 space-y-3">
@@ -566,21 +606,25 @@ export default function AdminSettingsPage() {
                     onChange={handleLogoFileChange}
                     className="block w-full text-sm ui-text-secondary file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
                   />
+                  {logoFile && (
+                    <p className="mt-1 text-xs text-emerald-600">{logoFile.name} — ready to upload</p>
+                  )}
                 </div>
                 <Input
                   label={t('Or paste an image URL')}
                   type="url"
-                  value={logoUrl.startsWith('data:') ? '' : logoUrl}
-                  onChange={e => setLogoUrl(e.target.value)}
+                  value={logoPreview ? '' : logoUrl}
+                  onChange={e => { setLogoUrl(e.target.value); setLogoFile(null); setLogoPreview('') }}
                   placeholder="https://..."
                 />
                 <div className="flex gap-2">
-                  <Button type="button" isLoading={logoSaving} onClick={handleSaveLogo}>
+                  <Button type="button" isLoading={logoSaving} onClick={handleSaveLogo}
+                    disabled={!logoFile && !logoUrl}>
                     {t('Save Logo')}
                   </Button>
-                  {logoUrl && (
-                    <Button type="button" variant="secondary" onClick={() => setLogoUrl('')}>
-                      {t('Clear')}
+                  {(logoUrl || logoPreview) && (
+                    <Button type="button" variant="secondary" disabled={logoSaving} onClick={handleClearLogo}>
+                      {t('Remove')}
                     </Button>
                   )}
                 </div>
