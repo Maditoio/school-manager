@@ -20,6 +20,7 @@ interface Student {
   firstName: string
   lastName: string
   admissionNumber: string | null
+  enrollmentType?: 'primary' | 'additional'
   class?: {
     id: string
     name: string
@@ -209,7 +210,7 @@ export default function ClassStudentsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           targetClassId,
-          studentIds: selectedAssignedIds,
+          studentIds: primarySelectedIds,
         }),
       })
 
@@ -231,18 +232,19 @@ export default function ClassStudentsPage() {
   }
 
   const removeStudentFromClass = async (student: Student) => {
+    const isAdditional = student.enrollmentType === 'additional'
     const isConfirmed = await confirm({
-      title: 'Remove from Class',
-      description:
-        `This will remove ${student.firstName} ${student.lastName} from this class and place the student in the Unassigned class for this academic year. This action cannot be undone directly.`,
+      title: isAdditional ? 'Unenroll from Class' : 'Remove from Class',
+      description: isAdditional
+        ? `This will unenroll ${student.firstName} ${student.lastName} from this class. Their primary class assignment will not change.`
+        : `This will remove ${student.firstName} ${student.lastName} from this class and place the student in the Unassigned class for this academic year. This action cannot be undone directly.`,
       variant: 'danger',
-      confirmLabel: 'Yes, Remove',
+      confirmLabel: isAdditional ? 'Yes, Unenroll' : 'Yes, Remove',
       cancelLabel: 'Cancel',
-      loadingLabel: 'Removing...',
+      loadingLabel: isAdditional ? 'Unenrolling...' : 'Removing...',
       entity: {
         name: `${student.firstName} ${student.lastName}`,
         subtitle: `${student.admissionNumber || t('noAdmissionNumber', 'No admission number')}`,
-
       },
       allowBackdropClose: false,
       allowEscapeClose: false,
@@ -255,7 +257,7 @@ export default function ClassStudentsPage() {
       const res = await fetch(`/api/classes/${classId}/students`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentId: student.id }),
+        body: JSON.stringify({ studentId: student.id, enrollmentType: student.enrollmentType ?? 'primary' }),
       })
 
       const data = await res.json().catch(() => ({}))
@@ -276,7 +278,11 @@ export default function ClassStudentsPage() {
     }
   }
 
-  const canMoveSelected = !!targetClassId && selectedAssignedIds.length > 0 && !transferring
+  // Transfer only applies to primary-enrolled students
+  const primarySelectedIds = selectedAssignedIds.filter(
+    (id) => assigned.find((s) => s.id === id)?.enrollmentType !== 'additional'
+  )
+  const canMoveSelected = !!targetClassId && primarySelectedIds.length > 0 && !transferring
 
   const navItems = session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS
 
@@ -329,7 +335,7 @@ export default function ClassStudentsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold ui-text-primary">{t('title', 'Class Students')}</h1>
-            <p className="ui-text-secondary mt-2">{t('subtitle', 'Add or move students for this class enrollment')}</p>
+            <p className="ui-text-secondary mt-2">{t('subtitle', 'Enroll students in this class. Students can be in multiple classes simultaneously.')}</p>
           </div>
           <a
             href="/admin/classes"
@@ -372,7 +378,7 @@ export default function ClassStudentsPage() {
                   <Button onClick={transferSelectedStudents} disabled={!canMoveSelected} className="whitespace-nowrap">
                     {transferring
                       ? t('moving', 'Moving...')
-                      : t('moveSelected', 'Move Selected ({count})').replace('{count}', String(selectedAssignedIds.length))}
+                      : t('moveSelected', 'Move Selected ({count})').replace('{count}', String(primarySelectedIds.length))}
                   </Button>
                 </div>
               </div>
@@ -394,10 +400,20 @@ export default function ClassStudentsPage() {
                           onChange={() => toggleAssignedSelect(student.id)}
                         />
                         <div>
-                          <p className="font-medium ui-text-primary">
+                          <p className="font-medium ui-text-primary flex items-center gap-2">
                             {student.firstName} {student.lastName}
+                            {student.enrollmentType === 'additional' && (
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-normal">
+                                {t('additionalBadge', 'Additional')}
+                              </span>
+                            )}
                           </p>
-                          <p className="text-xs ui-text-secondary">{student.admissionNumber || t('noAdmissionNumber', 'No admission number')}</p>
+                          <p className="text-xs ui-text-secondary">
+                            {student.admissionNumber || t('noAdmissionNumber', 'No admission number')}
+                            {student.enrollmentType === 'additional' && student.class?.name
+                              ? ` • Primary: ${student.class.name}`
+                              : ''}
+                          </p>
                         </div>
                       </label>
 

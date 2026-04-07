@@ -138,6 +138,7 @@ model Class {
   classHistoryTo     StudentClassHistory[] @relation("ClassHistoryTo")
   feeSchedules       FeeSchedule[]       @relation("FeeScheduleClass")
   students           Student[]
+  additionalEnrollments StudentAdditionalClass[]
 
   @@unique([schoolId, name, academicYear])
   @@index([schoolId])
@@ -220,6 +221,7 @@ model Student {
   complaints            ParentComplaint[]
   results               Result[]
   classHistory          StudentClassHistory[]
+  additionalClasses     StudentAdditionalClass[]
   expenses              Expense[]
   statusHistory         StudentStatusHistory[]
   class                 Class                   @relation(fields: [classId], references: [id])
@@ -276,6 +278,21 @@ model StudentClassHistory {
   @@index([changedById])
   @@index([effectiveAt])
   @@map("student_class_history")
+}
+
+model StudentAdditionalClass {
+  id        String   @id @default(uuid())
+  studentId String   @map("student_id")
+  classId   String   @map("class_id")
+  schoolId  String   @map("school_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, classId])
+  @@index([classId])
+  @@index([schoolId])
+  @@map("student_additional_classes")
 }
 
 model Subject {
