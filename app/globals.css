@@ -279,12 +279,12 @@ table tbody tr:hover {
   padding: 8px 12px;
   font-size: 13px;
   color: var(--text-primary);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid var(--border-subtle);
   font-variant-numeric: tabular-nums;
 }
 
 .ui-table tbody tr:nth-child(even) {
-  background: #f9fafb;
+  background: color-mix(in srgb, var(--surface-soft) 60%, var(--surface));
 }
 
 .ui-table.no-table-stripes tbody tr:nth-child(even),

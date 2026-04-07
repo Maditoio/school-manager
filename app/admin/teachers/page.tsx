@@ -387,7 +387,8 @@ export default function TeachersPage() {
             </div>
           </div>
         ) : filteredTeachers.length > 0 ? (
-          <div className="overflow-x-auto rounded-xl border border-(--border-subtle) bg-(--surface) teachers-no-hover" onClick={() => setOpenActionMenuId(null)}>
+          <div className="rounded-xl border border-(--border-subtle) bg-(--surface) teachers-no-hover overflow-visible" onClick={() => setOpenActionMenuId(null)}>
+            <div className="overflow-x-auto">
             <table className="ui-table min-w-full">
               <thead>
                 <tr>
@@ -432,7 +433,7 @@ export default function TeachersPage() {
                       </button>
 
                       {openActionMenuId === teacher.id ? (
-                        <div className="absolute right-0 top-9 z-30 min-w-44 rounded-[10px] border border-(--border-subtle) bg-(--surface) p-1.5 shadow-(--shadow-soft)">
+                        <div className="absolute right-0 top-9 z-60 min-w-44 rounded-[10px] border border-(--border-subtle) bg-(--surface) p-1.5 shadow-(--shadow-soft)">
                           <button
                             type="button"
                             className="flex w-full items-center rounded-md px-3 py-2 text-left text-sm ui-text-secondary hover:bg-(--surface-soft) hover:ui-text-primary"
@@ -460,6 +461,7 @@ export default function TeachersPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         ) : (
           <Card className="p-6">
