@@ -115,6 +115,11 @@ export const ROLE_PERMISSIONS = {
     'view:announcements',
     'message:teacher',
   ],
+  STUDENT: [
+    'view:own-results',
+    'view:own-attendance',
+    'view:announcements',
+  ],
 }
 
 export function hasPermission(role: UserRole, permission: string): boolean {
