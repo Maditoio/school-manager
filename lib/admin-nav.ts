@@ -18,11 +18,12 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/admin/dashboard' },
 
   // ── Academic roster (collapsible group) ──────────────────────────
-  { label: 'Students',  href: '/admin/students',  group: 'Academic' },
-  { label: 'Teachers',  href: '/admin/teachers',  group: 'Academic' },
-  { label: 'Classes',   href: '/admin/classes',   group: 'Academic' },
-  { label: 'Subjects',  href: '/admin/subjects',  group: 'Academic' },
-  { label: 'Reports',   href: '/admin/reports',   group: 'Academic' },
+  { label: 'Students',          href: '/admin/students',          group: 'Academic' },
+  { label: 'Teachers',          href: '/admin/teachers',          group: 'Academic' },
+  { label: 'Classes',           href: '/admin/classes',           group: 'Academic' },
+  { label: 'Subjects',          href: '/admin/subjects',          group: 'Academic' },
+  { label: 'Reports',           href: '/admin/reports',           group: 'Academic' },
+  { label: 'Report Templates',  href: '/admin/report-templates',  group: 'Academic' },
 
   // ── Academic activity ─────────────────────────────────────────────
   { label: 'Attendance',  href: '/admin/attendance' },
@@ -67,4 +68,11 @@ export const TEACHER_NAV_ITEMS: NavItem[] = [
   { label: 'Results',      href: '/teacher/results',      icon: '📝' },
   { label: 'Announcements',href: '/teacher/announcements',icon: '📢' },
   { label: 'Messages',     href: '/teacher/messages',     icon: '💬' },
-  { label: 'Fund Requests',href: '/teacher/fund-requests',icon: '📦' },  { label: 'Meeting Agenda', href: '/admin/meeting-agenda', icon: '📋' },]
+  { label: 'Meeting Agenda', href: '/admin/meeting-agenda', icon: '📋' },
+]
+
+/** Student navigation */
+export const STUDENT_NAV_ITEMS: NavItem[] = [
+  { label: 'My Profile', href: '/student/dashboard', icon: '👤' },
+  { label: 'School Fees', href: '/student/fees', icon: '💰' },
+]

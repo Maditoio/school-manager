@@ -156,7 +156,7 @@ function buildReportCSS(tpl: TemplateDef): string {
 
 /* ─── ReportCard ─────────────────────────────────────────────────────── */
 function ReportCard({ data, isFinal, logoUrl }: {
-  data: ReportData; isFinal: boolean; template: TemplateDef; logoUrl: string
+  data: ReportData; isFinal: boolean; template?: TemplateDef; logoUrl: string
 }) {
   const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
   const { student, term, subjects, overallAverage, attendance, position, allTermResults } = data
@@ -409,6 +409,8 @@ export default function ReportsPage() {
 
   const [templateId, setTemplateId] = useState(1)
   const [logoUrl, setLogoUrl] = useState('')
+  const [activeDbTemplateId, setActiveDbTemplateId] = useState<string | null>(null)
+  const [activeDbTemplateName, setActiveDbTemplateName] = useState('')
 
   const [reportData, setReportData] = useState<ReportData | null>(null)
   const [allReports, setAllReports] = useState<ReportData[]>([])
@@ -422,6 +424,9 @@ export default function ReportsPage() {
   // Used for batch-printing (hidden render)
   const batchPrintRef = useRef<HTMLDivElement>(null)
   const [printingReport, setPrintingReport] = useState<ReportData | null>(null)
+  // Used for Download All (color-theme path renders all cards off-screen)
+  const downloadAllRef = useRef<HTMLDivElement>(null)
+  const [downloadingAll, setDownloadingAll] = useState(false)
 
   if (status === 'loading') return null
   if (!session) redirect('/login')
@@ -447,6 +452,13 @@ export default function ReportsPage() {
         if (d.reportTemplate) setTemplateId(d.reportTemplate)
       })
       .catch(() => {})
+    fetch('/api/report-templates')
+      .then(r => r.json())
+      .then(d => {
+        const active = (d.templates ?? []).find((t: { isActive: boolean; id: string; name: string }) => t.isActive)
+        if (active) { setActiveDbTemplateId(active.id); setActiveDbTemplateName(active.name) }
+      })
+      .catch(() => {})
   }, [])
 
   // ── Load students when class changes ────────────────────────────────
@@ -462,7 +474,23 @@ export default function ReportsPage() {
   // ── Fire batch print after hidden div is rendered ───────────────────
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
-    if (!printingReport || !batchPrintRef.current) return
+    if (!printingReport) return
+
+    // ── DB template path ──────────────────────────────────────────────
+    if (activeDbTemplateId) {
+      const params = new URLSearchParams({ templateId: activeDbTemplateId, studentId: printingReport.student.id })
+      if (printingReport.term?.id && !isFinal) params.set('termId', printingReport.term.id)
+      const w = window.open('', '_blank', 'width=900,height=1200')
+      if (!w) { setPrintingReport(null); return }
+      fetch(`/api/report-templates/preview?${params}`)
+        .then(r => r.text())
+        .then(html => { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => { w.print(); setPrintingReport(null) }, 700) })
+        .catch(() => { w.close(); setPrintingReport(null) })
+      return
+    }
+
+    // ── Color-theme path ──────────────────────────────────────────────
+    if (!batchPrintRef.current) return
     const tpl = REPORT_TEMPLATES.find(t => t.id === templateId) ?? REPORT_TEMPLATES[0]
     const name = `${printingReport.student.firstName}_${printingReport.student.lastName}`
     const termStr = printingReport.term?.name ?? (isFinal ? 'Final_Year' : 'All_Terms')
@@ -537,13 +565,28 @@ export default function ReportsPage() {
 
   // ── Print single (visible preview) ──────────────────────────────────
   // eslint-disable-next-line react-hooks/rules-of-hooks
-  const handlePrint = useCallback(() => {
-    if (!printRef.current || !reportData) return
-    const tpl = REPORT_TEMPLATES.find(t => t.id === templateId) ?? REPORT_TEMPLATES[0]
+  const handlePrint = useCallback(async () => {
+    if (!reportData) return
     const name = `${reportData.student.firstName}_${reportData.student.lastName}`
     const termStr = reportData.term?.name ?? (isFinal ? 'Final_Year' : 'All_Terms')
     const w = window.open('', '_blank', 'width=900,height=1200')
     if (!w) return
+
+    if (activeDbTemplateId) {
+      // Use DB template via preview API with real student data
+      const params = new URLSearchParams({ templateId: activeDbTemplateId, studentId: reportData.student.id })
+      if (reportData.term?.id && !isFinal) params.set('termId', reportData.term.id)
+      try {
+        const res = await fetch(`/api/report-templates/preview?${params}`)
+        const html = await res.text()
+        w.document.write(html); w.document.close(); w.focus()
+        setTimeout(() => { w.print() }, 700)
+      } catch { w.close() }
+      return
+    }
+
+    if (!printRef.current) { w.close(); return }
+    const tpl = REPORT_TEMPLATES.find(t => t.id === templateId) ?? REPORT_TEMPLATES[0]
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <title>Report_${name}_${termStr}</title>
@@ -551,7 +594,99 @@ export default function ReportsPage() {
 </head><body>${printRef.current.innerHTML}</body></html>`)
     w.document.close(); w.focus()
     setTimeout(() => { w.print() }, 700)
-  }, [reportData, templateId, isFinal])
+  }, [reportData, templateId, isFinal, activeDbTemplateId])
+
+  // ── Executive summary download ──────────────────────────────────────
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const handleDownloadExecutiveSummary = useCallback(() => {
+    if (allReports.length === 0) return
+    const sorted = [...allReports].sort((a, b) => {
+      if (a.position.rank == null) return 1
+      if (b.position.rank == null) return -1
+      return a.position.rank - b.position.rank
+    })
+    const first = allReports[0]
+    const className = first.student.class.name
+    const termLabel = first.term?.name ?? (isFinal ? 'Final Year' : 'All Terms')
+    const schoolName = first.student.school.name
+    const academicYear = first.term?.academicYearName ?? String(first.student.academicYear)
+    const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
+    const validAvgs = allReports.filter(r => r.overallAverage != null).map(r => r.overallAverage as number)
+    const classAvg = validAvgs.length > 0 ? validAvgs.reduce((a, b) => a + b, 0) / validAvgs.length : null
+    const passCount = allReports.filter(r => (r.overallAverage ?? 0) >= 50).length
+    const passRate = allReports.length > 0 ? Math.round((passCount / allReports.length) * 100) : 0
+    const topPerformer = sorted[0] ? `${sorted[0].student.firstName} ${sorted[0].student.lastName}` : '—'
+    const gbg: Record<string, string> = { A: '#d1fae5', B: '#dbeafe', C: '#fef3c7', D: '#ffedd5', F: '#fee2e2' }
+    const gfg: Record<string, string> = { A: '#065f46', B: '#1e40af', C: '#92400e', D: '#c2410c', F: '#991b1b' }
+    const rows = sorted.map(r => {
+      const avg = r.overallAverage
+      const grade = avg != null ? gradeLabel(avg) : null
+      const attPct = r.attendance.totalDays > 0 ? Math.round((r.attendance.presentDays / r.attendance.totalDays) * 100) : 0
+      return `<tr>
+        <td style="text-align:center;font-weight:600;color:#475569">${r.position.rank != null ? ordinal(r.position.rank) : '—'}</td>
+        <td style="font-weight:500">${r.student.firstName} ${r.student.lastName}</td>
+        <td style="color:#94a3b8">${r.student.admissionNumber ?? '—'}</td>
+        <td style="text-align:center;color:#64748b">${r.subjects.length}</td>
+        <td style="text-align:center;font-weight:600">${avg != null ? `${avg.toFixed(1)}%` : '—'}</td>
+        <td style="text-align:center">${grade ? `<span style="display:inline-flex;padding:2px 10px;border-radius:4px;font-weight:700;font-size:11px;background:${gbg[grade]};color:${gfg[grade]}">${grade}</span>` : '—'}</td>
+        <td style="text-align:center;color:#64748b">${attPct}%</td>
+        <td style="text-align:center">${(avg ?? 0) >= 50 ? '<span style="color:#16a34a;font-weight:600">✓ Pass</span>' : '<span style="color:#dc2626;font-weight:600">✗ Review</span>'}</td>
+      </tr>`
+    }).join('')
+    const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Executive Summary — ${className} — ${termLabel}</title><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;color:#1e293b;background:#fff;padding:32px 40px;}.hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #1a2744;}.school{font-size:20px;font-weight:700;color:#1a2744;}.sub{font-size:12px;color:#64748b;margin-top:4px;}.rpt-label{text-align:right;}.rpt-label h2{font-size:15px;font-weight:700;color:#1a2744;}.rpt-label p{font-size:11px;color:#94a3b8;margin-top:3px;}.stats{display:flex;gap:14px;margin-bottom:20px;}.stat{flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:13px 16px;}.sv{font-size:20px;font-weight:700;color:#1a2744;line-height:1.2;}.sl{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-top:3px;}table{width:100%;border-collapse:collapse;}thead tr{background:#1a2744;}th{color:rgba(255,255,255,.75);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;padding:9px 12px;text-align:left;border-right:1px solid rgba(255,255,255,.08);}th:last-child{border-right:none;}td{padding:8px 12px;border-bottom:1px solid #f1f5f9;}tr:nth-child(even) td{background:#f8fafc;}.footer{margin-top:20px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;display:flex;justify-content:space-between;}@media print{body{padding:16px 20px;}@page{size:A4 landscape;margin:12mm;}}</style></head><body><div class="hdr"><div><div class="school">${schoolName}</div><div class="sub">Class: <b>${className}${first.student.class.grade ? ` · Grade ${first.student.class.grade}` : ''}</b> · Academic Year: ${academicYear}</div></div><div class="rpt-label"><h2>Executive Class Summary</h2><p>${termLabel} · Generated ${today}</p></div></div><div class="stats"><div class="stat"><div class="sv">${allReports.length}</div><div class="sl">Total Students</div></div><div class="stat"><div class="sv">${classAvg != null ? classAvg.toFixed(1) + '%' : '—'}</div><div class="sl">Class Average</div></div><div class="stat"><div class="sv">${passCount} / ${allReports.length}</div><div class="sl">Passed (≥50%)</div></div><div class="stat"><div class="sv">${passRate}%</div><div class="sl">Pass Rate</div></div><div class="stat"><div class="sv" style="font-size:14px">${topPerformer}</div><div class="sl">Top Performer</div></div></div><table><thead><tr><th>Rank</th><th>Student Name</th><th>Admission No.</th><th>Subjects</th><th>Average</th><th>Grade</th><th>Attendance</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table><div class="footer"><span>Generated by School Management System · ${today}</span><span>Confidential — For administrative use only</span></div></body></html>`
+    const w = window.open('', '_blank', 'width=1100,height=800')
+    if (!w) return
+    w.document.write(html)
+    w.document.close()
+    w.focus()
+    setTimeout(() => { w.print() }, 500)
+  }, [allReports, isFinal]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Download all reports as one merged document ──────────────────────
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const handleDownloadAll = useCallback(async () => {
+    if (allReports.length === 0) return
+    const termLabel = allReports[0]?.term?.name ?? (isFinal ? 'Final Year' : 'All Terms')
+    const w = window.open('', '_blank', 'width=900,height=1200')
+    if (!w) return
+
+    if (activeDbTemplateId) {
+      setDownloadingAll(true)
+      try {
+        const pages: Array<{ head: string; body: string }> = []
+        for (const report of allReports) {
+          const params = new URLSearchParams({ templateId: activeDbTemplateId, studentId: report.student.id })
+          if (report.term?.id && !isFinal) params.set('termId', report.term.id)
+          const res = await fetch(`/api/report-templates/preview?${params}`)
+          const html = await res.text()
+          const headMatch = html.match(/<head[^>]*>([\s\S]*?)<\/head>/i)
+          const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)
+          pages.push({ head: headMatch?.[1] ?? '', body: bodyMatch?.[1] ?? html })
+        }
+        const sharedHead = pages[0]?.head ?? ''
+        const body = pages.map((p, i) =>
+          `<div style="page-break-after:${i < pages.length - 1 ? 'always' : 'auto'};break-after:${i < pages.length - 1 ? 'page' : 'auto'}">${p.body}</div>`
+        ).join('\n')
+        w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">${sharedHead}</head><body style="margin:0;padding:0">${body}</body></html>`)
+        w.document.close()
+        w.focus()
+        setTimeout(() => { w.print() }, 800)
+      } catch {
+        w.close()
+      } finally {
+        setDownloadingAll(false)
+      }
+      return
+    }
+
+    // Color-theme path: collect innerHTML from hidden downloadAllRef container
+    if (!downloadAllRef.current) { w.close(); return }
+    const tpl = REPORT_TEMPLATES.find(t => t.id === templateId) ?? REPORT_TEMPLATES[0]
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"><title>All_Reports_${termLabel.replace(/\s+/g, '_')}</title><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Inter',sans-serif;font-size:13px;background:white;}@page{size:A4;margin:0;}.rpt-page-wrap{page-break-after:always;break-after:page;}.rpt-page-wrap:last-child{page-break-after:auto;break-after:auto;}${buildReportCSS(tpl)}</style></head><body>${downloadAllRef.current.innerHTML}</body></html>`)
+    w.document.close()
+    w.focus()
+    setTimeout(() => { w.print() }, 700)
+  }, [allReports, activeDbTemplateId, isFinal, templateId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <DashboardLayout
@@ -568,6 +703,16 @@ export default function ReportsPage() {
           <ReportCard data={printingReport} isFinal={isFinal} logoUrl={logoUrl} />
         </div>
       )}
+      {/* Hidden div for Download All (color-theme): renders all allReports off-screen */}
+      {allReports.length > 0 && !activeDbTemplateId && (
+        <div ref={downloadAllRef} style={{ position: 'fixed', top: 0, left: '-9999px', width: '794px', pointerEvents: 'none' }}>
+          {allReports.map((r, i) => (
+            <div key={r.student.id} className={i < allReports.length - 1 ? 'rpt-page-wrap' : ''}>
+              <ReportCard data={r} isFinal={isFinal} logoUrl={logoUrl} />
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white border-b border-gray-200 px-6 py-4">
@@ -576,31 +721,6 @@ export default function ReportsPage() {
         </div>
 
         <div className="p-6 space-y-5">
-
-          {/* ── Template picker ───────────────────────────────────── */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Report Design</p>
-            <div className="flex flex-wrap gap-2">
-              {REPORT_TEMPLATES.map(tpl => (
-                <button
-                  key={tpl.id}
-                  onClick={() => handleTemplateSelect(tpl.id)}
-                  title={tpl.name}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium border transition-all ${
-                    templateId === tpl.id
-                      ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50 text-blue-800'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-700 bg-white'
-                  }`}
-                >
-                  <span
-                    className="inline-block w-4 h-4 rounded-full border border-white shadow-sm shrink-0"
-                    style={{ background: `linear-gradient(135deg, ${tpl.headerBg} 55%, ${tpl.accent} 55%)` }}
-                  />
-                  {tpl.name}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* ── Filter panel ──────────────────────────────────────── */}
           <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
@@ -704,12 +824,32 @@ export default function ReportsPage() {
           {/* ── Batch results list ────────────────────────────────── */}
           {allReports.length > 0 && (
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-wrap gap-2">
                 <h2 className="text-sm font-semibold text-gray-700">
                   {allReports.length} reports generated
                   {' · '}<span className="text-gray-400 font-normal">{allReports[0].term?.name ?? (isFinal ? 'Final Year' : 'All Terms')}</span>
                 </h2>
-                <span className="text-xs text-gray-400">Click Download to save each as PDF</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleDownloadExecutiveSummary}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-medium text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
+                    </svg>
+                    Executive Summary
+                  </button>
+                  <button
+                    onClick={handleDownloadAll}
+                    disabled={downloadingAll}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1a2744] text-white text-xs font-medium rounded-md hover:bg-[#243258] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    {downloadingAll ? 'Preparing…' : `Download All (${allReports.length})`}
+                  </button>
+                </div>
               </div>
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
@@ -769,6 +909,7 @@ export default function ReportsPage() {
                 <h2 className="text-sm font-semibold text-gray-700">
                   {reportData.student.firstName} {reportData.student.lastName}
                   {' · '}{reportData.term?.name ?? (isFinal ? 'Final Year' : 'All Terms')}
+                  {activeDbTemplateName && <span className="ml-2 text-xs font-normal text-blue-600">via {activeDbTemplateName}</span>}
                 </h2>
                 <button
                   onClick={handlePrint}
@@ -781,9 +922,18 @@ export default function ReportsPage() {
                 </button>
               </div>
               <div className="overflow-auto bg-gray-200 rounded-lg p-4 border border-gray-300">
-                <div ref={printRef} style={{ maxWidth: '794px', margin: '0 auto' }}>
-                  <ReportCard data={reportData} isFinal={isFinal} logoUrl={logoUrl} />
-                </div>
+                {activeDbTemplateId ? (
+                  <iframe
+                    src={`/api/report-templates/preview?templateId=${activeDbTemplateId}&studentId=${reportData.student.id}${reportData.term?.id && !isFinal ? `&termId=${reportData.term.id}` : ''}`}
+                    style={{ width: '794px', height: '1100px', margin: '0 auto', display: 'block', border: 'none', background: 'white' }}
+                    title="Report Preview"
+                    sandbox="allow-same-origin"
+                  />
+                ) : (
+                  <div ref={printRef} style={{ maxWidth: '794px', margin: '0 auto' }}>
+                    <ReportCard data={reportData} isFinal={isFinal} logoUrl={logoUrl} />
+                  </div>
+                )}
               </div>
             </div>
           )}

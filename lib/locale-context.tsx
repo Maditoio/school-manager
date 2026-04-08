@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import type { ClientLocale } from '@/lib/client-i18n'
 
 const SUPPORTED_LOCALES: ClientLocale[] = ['en', 'fr', 'sw']
+const LS_LOCALE_KEY = 'app-locale'
 
 function isSupportedLocale(value: string | null | undefined): value is ClientLocale {
   return !!value && SUPPORTED_LOCALES.includes(value as ClientLocale)
@@ -17,8 +18,18 @@ function getLocaleFromCookie(): ClientLocale | null {
   return isSupportedLocale(cookieLocale) ? cookieLocale : null
 }
 
+function getLocaleFromStorage(): ClientLocale | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const stored = localStorage.getItem(LS_LOCALE_KEY)
+    return isSupportedLocale(stored) ? stored : null
+  } catch {
+    return null
+  }
+}
+
 function getInitialLocale(): ClientLocale {
-  return getLocaleFromCookie() || 'en'
+  return getLocaleFromStorage() || getLocaleFromCookie() || 'en'
 }
 
 interface LocaleContextValue {
@@ -33,8 +44,8 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<ClientLocale>(getInitialLocale)
 
   useEffect(() => {
-    const cookieLocale = getLocaleFromCookie()
-    if (!cookieLocale) {
+    const storedLocale = getLocaleFromStorage()
+    if (!storedLocale) {
       const sessionLocale = session?.user?.preferredLanguage
       if (isSupportedLocale(sessionLocale) && sessionLocale !== locale) {
         setLocaleState(sessionLocale)
@@ -44,6 +55,11 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof document === 'undefined') return
+    try {
+      localStorage.setItem(LS_LOCALE_KEY, locale)
+    } catch {
+      // ignore storage errors
+    }
     document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=${60 * 60 * 24 * 365}`
     document.documentElement.lang = locale
   }, [locale])

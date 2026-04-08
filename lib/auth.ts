@@ -33,6 +33,7 @@ declare module "next-auth" {
       mustResetPassword: boolean
       firstName: string | null
       lastName: string | null
+      studentId: string | null
     } & DefaultSession["user"]
   }
 
@@ -45,6 +46,7 @@ declare module "next-auth" {
     mustResetPassword: boolean
     firstName: string | null
     lastName: string | null
+    studentId: string | null
   }
 }
 
@@ -65,10 +67,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const user = await prisma.user.findFirst({
           where: {
-            email: {
-              equals: normalizedEmail,
-              mode: 'insensitive',
-            },
+            OR: [
+              { email: { equals: normalizedEmail, mode: 'insensitive' } },
+              { username: { equals: normalizedEmail, mode: 'insensitive' } },
+            ],
           },
           include: { school: true },
         })
@@ -120,12 +122,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           mustResetPassword: Boolean(flags.must_reset_password),
           firstName: user.firstName,
           lastName: user.lastName,
+          studentId: user.studentId ?? null,
         }
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session: updateData }) {
       if (user) {
         token.id = user.id
         token.email = user.email
@@ -135,6 +138,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.mustResetPassword = user.mustResetPassword
         token.firstName = user.firstName
         token.lastName = user.lastName
+        token.studentId = user.studentId ?? null
+      }
+      if (trigger === 'update' && updateData?.preferredLanguage) {
+        token.preferredLanguage = updateData.preferredLanguage
       }
       return token
     },
@@ -148,6 +155,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.mustResetPassword = Boolean(token.mustResetPassword)
         session.user.firstName = token.firstName as string | null
         session.user.lastName = token.lastName as string | null
+        session.user.studentId = token.studentId as string | null
       }
       return session
     },

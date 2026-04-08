@@ -725,12 +725,15 @@
       "typeTEST": "TEST",
       "typeEXAM": "EXAM",
       "typeASSIGNMENT": "ASSIGNMENT",
-      "noAssessmentsFull": "No assessments created yet. Click \"Create Assessment\" to get started.",
+      "noAssessmentsFull": "No assessments yet. Click \"+ Create Assessment\" to get started.",
       "deleteConfirm": "Are you sure you want to delete this assessment? This will also delete all student grades.",
       "failedCreateAssessment": "Failed to create assessment",
       "failedDeleteAssessment": "Failed to delete assessment",
       "gradeStudentsBtn": "Grade Students",
-      "deleteBtn": "Delete"
+      "deleteBtn": "Delete",
+      "marksCol": "Marks",
+      "studentsGradedCol": "Students Graded",
+      "draftStatus": "Draft"
     },
     "grading": {
       "title": "Grade Students",

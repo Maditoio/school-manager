@@ -91,10 +91,10 @@ export default function TeacherClassesPage() {
               <Card key={cls.id} className="p-6">
                 <div className="space-y-3">
                   <h3 className="text-xl font-semibold text-gray-900">{cls.name}</h3>
-                  <p className="text-gray-600">👨‍🎓 Students: {cls._count?.students || 0}</p>
+                  <p className="text-gray-600">👨‍🎓 <span>Students</span>: {cls._count?.students || 0}</p>
                   {cls.subjects && cls.subjects.length > 0 ? (
                     <div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">📚 Subjects:</p>
+                      <p className="text-sm font-medium text-gray-700 mb-1">📚 <span>Subjects:</span></p>
                       <div className="flex flex-wrap gap-1.5">
                         {cls.subjects.map((s) => (
                           <span
@@ -115,7 +115,7 @@ export default function TeacherClassesPage() {
           </div>
         ) : (
           <Card className="p-6">
-            <p className="text-center text-gray-500">No classes assigned yet</p>
+            <p className="text-center text-gray-500">No classes assigned yet.</p>
           </Card>
         )}
       </div>

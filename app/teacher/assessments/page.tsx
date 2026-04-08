@@ -456,65 +456,78 @@ export default function TeacherAssessmentsPage() {
           </div>
         </Card>
 
-        {loading ? (
-          <div>Loading assessments...</div>
-        ) : assessments.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4">
-            {assessments.map((assessment) => (
-              <Card key={assessment.id} className="p-6">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-xl font-semibold text-gray-900">{assessment.title}</h3>
-                      <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
-                        {assessment.type}
-                      </span>
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      <p className="text-gray-600">
-                        <span className="font-medium">Subject:</span> {assessment.subject.name}
-                      </p>
-                      <p className="text-gray-600">
-                        <span className="font-medium">Total Marks:</span> {assessment.totalMarks}
-                      </p>
-                      <p className="text-gray-600">
-                        <span className="font-medium">Due Date:</span> {formatDate(assessment.dueDate)}
-                      </p>
-                      {assessment.description && (
-                        <p className="text-gray-600">
-                          <span className="font-medium">Description:</span> {assessment.description}
-                        </p>
-                      )}
-                      <p className="text-gray-600">
-                        <span className="font-medium">Students:</span> {assessment._count?.studentAssessments || 0}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => router.push(`/teacher/assessments/${assessment.id}/grade`)}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      Grade Students
-                    </Button>
-                    <Button
-                      onClick={() => handleDelete(assessment.id)}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card className="p-6">
-            <p className="text-center text-gray-500">
-              No assessments created yet. Click &quot;Create Assessment&quot; to get started.
-            </p>
-          </Card>
-        )}
+        <Card className="overflow-hidden p-0">
+          {loading ? (
+            <div className="px-6 py-12 text-center text-gray-500 text-sm">Loading assessments...</div>
+          ) : assessments.length === 0 ? (
+            <div className="px-6 py-12 text-center text-gray-500 text-sm">
+              No assessments yet. Click &quot;+ Create Assessment&quot; to get started.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200 text-xs text-gray-500 uppercase tracking-wide">
+                    <th className="px-4 py-3 text-left font-medium">Title</th>
+                    <th className="px-4 py-3 text-left font-medium">Subject</th>
+                    <th className="px-4 py-3 text-center font-medium">Type</th>
+                    <th className="px-4 py-3 text-center font-medium">Marks</th>
+                    <th className="px-4 py-3 text-center font-medium">Due Date</th>
+                    <th className="px-4 py-3 text-center font-medium">Students Graded</th>
+                    <th className="px-4 py-3 text-center font-medium">Status</th>
+                    <th className="px-4 py-3 text-right font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {assessments.map((assessment) => (
+                    <tr key={assessment.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-gray-900">{assessment.title}</div>
+                        {assessment.description && (
+                          <div className="text-xs text-gray-400 mt-0.5 max-w-xs truncate" title={assessment.description}>
+                            {assessment.description}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">{assessment.subject.name}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                          {assessment.type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center font-medium text-gray-800">{assessment.totalMarks}</td>
+                      <td className="px-4 py-3 text-center text-gray-500">{formatDate(assessment.dueDate)}</td>
+                      <td className="px-4 py-3 text-center text-gray-600">{assessment._count?.studentAssessments ?? 0}</td>
+                      <td className="px-4 py-3 text-center">
+                        {assessment.published ? (
+                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Published</span>
+                        ) : (
+                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Draft</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => router.push(`/teacher/assessments/${assessment.id}/grade`)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700 transition-colors"
+                          >
+                            Grade
+                          </button>
+                          <button
+                            onClick={() => handleDelete(assessment.id)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-red-500 rounded hover:bg-red-600 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
       </div>
     </DashboardLayout>
   )

@@ -37,6 +37,7 @@ model School {
   parentInteractions           ParentInteraction[]
   results                      Result[]
   schoolSettings               SchoolSettings?
+  reportTemplates              ReportTemplate[]
   students                     Student[]
   subjects                     Subject[]
   teacherContracts             TeacherContract[]
@@ -48,15 +49,17 @@ model School {
 }
 
 model SchoolSettings {
-  id                        String   @id @default(uuid())
-  schoolId                  String   @unique @map("school_id")
-  expenseApprovalThreshold  Float    @default(0) @map("expense_approval_threshold")
-  currency                  String   @default("ZAR") @map("currency")
-  logoUrl                   String?  @map("logo_url")
-  reportTemplate            Int      @default(1) @map("report_template")
-  createdAt                 DateTime @default(now()) @map("created_at")
-  updatedAt                 DateTime @updatedAt @map("updated_at")
-  school                    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  id                        String          @id @default(uuid())
+  schoolId                  String          @unique @map("school_id")
+  expenseApprovalThreshold  Float           @default(0) @map("expense_approval_threshold")
+  currency                  String          @default("ZAR") @map("currency")
+  logoUrl                   String?         @map("logo_url")
+  reportTemplate            Int             @default(1) @map("report_template")
+  activeTemplateId          String?         @map("active_template_id")
+  createdAt                 DateTime        @default(now()) @map("created_at")
+  updatedAt                 DateTime        @updatedAt @map("updated_at")
+  school                    School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  activeTemplate            ReportTemplate? @relation("ActiveTemplate", fields: [activeTemplateId], references: [id])
 
   @@map("school_settings")
 }
@@ -65,6 +68,7 @@ model User {
   id                       String                 @id @default(uuid())
   schoolId                 String?                @map("school_id")
   email                    String                 @unique
+  username                 String?                @unique
   password                 String
   mustResetPassword        Boolean                @default(false) @map("must_reset_password")
   role                     UserRole
@@ -76,6 +80,7 @@ model User {
   suspended                Boolean                @default(false)
   suspendedAt              DateTime?              @map("suspended_at")
   suspensionReason         String?                @map("suspension_reason")
+  studentId                String?                @unique @map("student_id")
   createdAt                DateTime               @default(now()) @map("created_at")
   updatedAt                DateTime               @updatedAt @map("updated_at")
   announcements            Announcement[]         @relation("AnnouncementCreator")
@@ -102,7 +107,9 @@ model User {
   students                 Student[]              @relation("ParentStudents")
   teacherContracts         TeacherContract[]      @relation("TeacherContracts")
   teacher_off_days         teacher_off_days[]
+  reportTemplatesCreated   ReportTemplate[]       @relation("ReportTemplateCreator")
   settings                 UserSettings?
+  linkedStudent            Student?               @relation("StudentUser")
   school                   School?                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([schoolId])
@@ -215,6 +222,7 @@ model Student {
   statusDate            DateTime?               @map("status_date")
   statusNotes           String?                 @map("status_notes")
   academicYear          Int                     @map("academic_year")
+  userId                String?                 @unique @map("user_id")
   createdAt             DateTime                @default(now()) @map("created_at")
   updatedAt             DateTime                @updatedAt @map("updated_at")
   studentAssessments    StudentAssessment[]
@@ -228,6 +236,7 @@ model Student {
   statusHistory         StudentStatusHistory[]
   class                 Class                   @relation(fields: [classId], references: [id])
   parent                User?                   @relation("ParentStudents", fields: [parentId], references: [id])
+  user                  User?                   @relation("StudentUser", fields: [userId], references: [id])
   school                School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, admissionNumber, academicYear])
@@ -838,6 +847,7 @@ enum UserRole {
   FINANCE_MANAGER
   TEACHER
   PARENT
+  STUDENT
 }
 
 enum ExpenseCategory {
@@ -943,4 +953,25 @@ enum PaymentMethod {
   M_PESA
   ORANGE_MONEY
   OTHER
+}
+
+model ReportTemplate {
+  id           String          @id @default(uuid())
+  schoolId     String?         @map("school_id")
+  name         String
+  description  String?
+  htmlContent  String          @map("html_content") @db.Text
+  cssContent   String?         @map("css_content") @db.Text
+  isSystem     Boolean         @default(false) @map("is_system")
+  sortOrder    Int             @default(0) @map("sort_order")
+  createdById  String?         @map("created_by_id")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  school       School?         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  createdBy    User?           @relation("ReportTemplateCreator", fields: [createdById], references: [id])
+  activeForSchools SchoolSettings[] @relation("ActiveTemplate")
+
+  @@index([schoolId])
+  @@index([isSystem])
+  @@map("report_templates")
 }

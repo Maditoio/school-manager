@@ -55,6 +55,8 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/teacher/dashboard', request.url))
       case 'PARENT':
         return NextResponse.redirect(new URL('/parent/dashboard', request.url))
+      case 'STUDENT':
+        return NextResponse.redirect(new URL('/student/dashboard', request.url))
       default:
         return NextResponse.redirect(new URL('/login', request.url))
     }
@@ -92,6 +94,10 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith('/parent') && role !== 'PARENT') {
+    return NextResponse.redirect(new URL('/unauthorized', request.url))
+  }
+
+  if (pathname.startsWith('/student') && role !== 'STUDENT') {
     return NextResponse.redirect(new URL('/unauthorized', request.url))
   }
 

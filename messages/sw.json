@@ -904,12 +904,15 @@
       "typeTEST": "MTIHANI MDOGO",
       "typeEXAM": "MTIHANI",
       "typeASSIGNMENT": "KAZI",
-      "noAssessmentsFull": "Hakuna tathmini zilizoundwa bado. Bonyeza \"Unda Tathmini\" kuanza.",
+      "noAssessmentsFull": "Hakuna tathmini bado. Bonyeza \"+ Unda Tathmini\" kuanza.",
       "deleteConfirm": "Je, una uhakika unataka kufuta tathmini hii? Hii pia itafuta alama zote za wanafunzi.",
       "failedCreateAssessment": "Imeshindwa kuunda tathmini",
       "failedDeleteAssessment": "Imeshindwa kufuta tathmini",
       "gradeStudentsBtn": "Weka Alama za Wanafunzi",
-      "deleteBtn": "Futa"
+      "deleteBtn": "Futa",
+      "marksCol": "Alama",
+      "studentsGradedCol": "Wanafunzi Waliokaguliwa",
+      "draftStatus": "Rasimu"
     },
     "grading": {
       "title": "Weka Alama kwa Wanafunzi",

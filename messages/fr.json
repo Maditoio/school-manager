@@ -754,12 +754,15 @@
       "typeTEST": "TEST",
       "typeEXAM": "EXAMEN",
       "typeASSIGNMENT": "DEVOIR",
-      "noAssessmentsFull": "Aucune évaluation créée pour le moment. Cliquez sur \"Créer une évaluation\" pour commencer.",
+      "noAssessmentsFull": "Aucune évaluation pour le moment. Cliquez sur \"+ Créer une évaluation\" pour commencer.",
       "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette évaluation ? Cela supprimera également toutes les notes des étudiants.",
       "failedCreateAssessment": "Échec de la création de l'évaluation",
       "failedDeleteAssessment": "Échec de la suppression de l'évaluation",
       "gradeStudentsBtn": "Noter les étudiants",
-      "deleteBtn": "Supprimer"
+      "deleteBtn": "Supprimer",
+      "marksCol": "Notes",
+      "studentsGradedCol": "Étudiants notés",
+      "draftStatus": "Brouillon"
     },
     "grading": {
       "title": "Noter les étudiants",

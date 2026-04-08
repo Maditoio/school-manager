@@ -21,6 +21,7 @@ interface Student {
   lastName: string
   dateOfBirth: string | null
   admissionNumber: string | null
+  userId: string | null
   status: 'ACTIVE' | 'LEFT'
   statusReason?: 'SUSPENSION' | 'GRADUATION' | 'TRANSFERRED_SCHOOL' | 'OTHER' | null
   statusDate?: string | null
@@ -63,6 +64,8 @@ export default function StudentsPage() {
   const [statusTargetStudent, setStatusTargetStudent] = useState<Student | null>(null)
   const [showEmergencyModal, setShowEmergencyModal] = useState(false)
   const [emergencyTargetStudent, setEmergencyTargetStudent] = useState<Student | null>(null)
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [loginCredentials, setLoginCredentials] = useState<{ username: string; temporaryPassword: string } | null>(null)
 
   const [uploading, setUploading] = useState(false)
   const [uploadFile, setUploadFile] = useState<File | null>(null)
@@ -386,6 +389,41 @@ export default function StudentsPage() {
     setShowModal(true)
   }
 
+  const handleCreateStudentLogin = async (student: Student) => {
+    try {
+      const res = await fetch(`/api/students/${student.id}/create-login`, {
+        method: 'POST',
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        showToast(data.error || 'Failed to create student login', 'error')
+        return
+      }
+      // Update local state
+      setStudents(prev => prev.map(s => s.id === student.id ? { ...s, userId: data.username } : s))
+      setLoginCredentials({ username: data.username, temporaryPassword: data.temporaryPassword })
+      setShowLoginModal(true)
+    } catch {
+      showToast('Failed to create student login', 'error')
+    }
+  }
+
+  const handleRemoveStudentLogin = async (student: Student) => {
+    if (!confirm(`Remove login for ${student.firstName} ${student.lastName}? They will no longer be able to log in.`)) return
+    try {
+      const res = await fetch(`/api/students/${student.id}/create-login`, { method: 'DELETE' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        showToast(data.error || 'Failed to remove student login', 'error')
+        return
+      }
+      setStudents(prev => prev.map(s => s.id === student.id ? { ...s, userId: null } : s))
+      showToast('Student login removed', 'success')
+    } catch {
+      showToast('Failed to remove student login', 'error')
+    }
+  }
+
   const handleResetParentPassword = async (student: Student) => {
     if (!student.parentId) {
       showToast(t('toastNoParentLinked', 'No linked parent account for this student'), 'warning')
@@ -692,6 +730,15 @@ export default function StudentsPage() {
         handleResetParentPassword(student)
       },
     },
+    student.userId
+      ? {
+          label: 'Remove Student Login',
+          onClick: () => handleRemoveStudentLogin(student),
+        }
+      : {
+          label: 'Create Student Login',
+          onClick: () => handleCreateStudentLogin(student),
+        },
   ]
 
   const navItems = session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS
@@ -1052,6 +1099,28 @@ export default function StudentsPage() {
                   <Button type="submit">{t('saveEmergencyContact', 'Save Emergency Contact')}</Button>
                 </div>
               </form>
+            </Card>
+          </div>
+        ) : null}
+
+        {showLoginModal && loginCredentials ? (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+            <Card className="w-[min(92vw,26rem)] max-w-none p-6">
+              <h2 className="text-xl font-bold mb-1">Student Login Created</h2>
+              <p className="text-sm text-gray-600 mb-4">Share these credentials with the student. They must change their password on first login.</p>
+              <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Username (Admission No.)</p>
+                  <p className="text-base font-bold text-gray-900 mt-0.5">{loginCredentials.username}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Temporary Password</p>
+                  <p className="text-base font-bold text-gray-900 mt-0.5">{loginCredentials.temporaryPassword}</p>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button onClick={() => { setShowLoginModal(false); setLoginCredentials(null) }}>Done</Button>
+              </div>
             </Card>
           </div>
         ) : null}

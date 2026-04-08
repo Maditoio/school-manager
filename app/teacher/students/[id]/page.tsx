@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, redirect } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { Card } from '@/components/ui/Card'
+import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
 
 interface StudentOverviewResponse {
   student: {
@@ -42,40 +42,71 @@ interface StudentOverviewResponse {
   }>
 }
 
+interface StudentAssessmentResult {
+  id: string
+  score: number | null
+  graded: boolean
+  feedback: string | null
+  assessment: {
+    id: string
+    title: string
+    type: string
+    totalMarks: number
+    dueDate: string | null
+    createdAt: string
+    subject: {
+      id: string
+      name: string
+      code: string | null
+    }
+  }
+}
+
 const leaveReasonLabels: Record<'SUSPENSION' | 'GRADUATION' | 'TRANSFERRED_SCHOOL' | 'OTHER', string> = {
   SUSPENSION: 'Suspension',
   GRADUATION: 'Graduation',
-  TRANSFERRED_SCHOOL: 'Transferred school',
+  TRANSFERRED_SCHOOL: 'Transferred',
   OTHER: 'Other',
+}
+
+const typeColors: Record<string, string> = {
+  QUIZ: 'bg-purple-100 text-purple-700',
+  TEST: 'bg-blue-100 text-blue-700',
+  EXAM: 'bg-red-100 text-red-700',
+  ASSIGNMENT: 'bg-amber-100 text-amber-700',
+}
+
+function Field({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-[11px] font-medium uppercase tracking-wider ui-text-secondary mb-0.5">{label}</p>
+      <p className="text-sm font-medium ui-text-primary">{value || 'N/A'}</p>
+    </div>
+  )
 }
 
 export default function TeacherStudentDetailsPage() {
   const params = useParams<{ id: string }>()
   const studentId = params?.id
-
   const { data: session, status } = useSession()
-
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [data, setData] = useState<StudentOverviewResponse | null>(null)
+  const [results, setResults] = useState<StudentAssessmentResult[]>([])
+  const [resultsLoading, setResultsLoading] = useState(true)
+  const [typeFilter, setTypeFilter] = useState<string>('ALL')
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      redirect('/login')
-    }
-    if (session?.user?.role !== 'TEACHER') {
-      redirect('/login')
-    }
+    if (status === 'unauthenticated') redirect('/login')
+    if (session?.user?.role !== 'TEACHER') redirect('/login')
   }, [session, status])
 
   useEffect(() => {
     const load = async () => {
       if (!studentId || !session?.user) return
-
       try {
         setLoading(true)
         setError('')
-
         const res = await fetch(`/api/students/${studentId}/overview`)
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
@@ -83,38 +114,48 @@ export default function TeacherStudentDetailsPage() {
           setData(null)
           return
         }
-
-        const responseData = (await res.json()) as StudentOverviewResponse
-        setData(responseData)
-      } catch (loadError) {
-        console.error('Failed to load student details:', loadError)
+        setData((await res.json()) as StudentOverviewResponse)
+      } catch {
         setError('Failed to load student details')
         setData(null)
       } finally {
         setLoading(false)
       }
     }
-
     load()
   }, [studentId, session])
 
-  const navItems = useMemo(
-    () => [
-      { label: 'Dashboard', href: '/teacher/dashboard', icon: '📊' },
-      { label: 'My Classes', href: '/teacher/classes', icon: '🏫' },
-      { label: 'Students', href: '/teacher/students', icon: '👨‍🎓' },
-      { label: 'Assessments', href: '/teacher/assessments', icon: '📋' },
-      { label: 'Attendance', href: '/teacher/attendance', icon: '📅' },
-      { label: 'Results', href: '/teacher/results', icon: '📝' },
-      { label: 'Announcements', href: '/teacher/announcements', icon: '📢' },
-      { label: 'Messages', href: '/teacher/messages', icon: '💬' },
-    ],
-    []
-  )
+  useEffect(() => {
+    const loadResults = async () => {
+      if (!studentId || !session?.user) return
+      try {
+        setResultsLoading(true)
+        const res = await fetch(`/api/students/assessments?studentId=${studentId}`)
+        if (res.ok) {
+          const body = await res.json()
+          setResults(Array.isArray(body.assessments) ? (body.assessments as StudentAssessmentResult[]) : [])
+        }
+      } catch {
+        // Results are supplementary — fail silently
+      } finally {
+        setResultsLoading(false)
+      }
+    }
+    loadResults()
+  }, [studentId, session])
 
-  if (status === 'loading' || !session) {
-    return <div>Loading...</div>
-  }
+  if (status === 'loading' || !session) return null
+
+  const s = data?.student
+  const initials = s ? `${s.firstName[0]}${s.lastName[0]}`.toUpperCase() : '??'
+  const total = (data?.attendanceSummary.present ?? 0) + (data?.attendanceSummary.absent ?? 0) + (data?.attendanceSummary.late ?? 0)
+  const attendanceRate = total > 0 ? Math.round(((data?.attendanceSummary.present ?? 0) / total) * 100) : null
+
+  const filteredResults = typeFilter === 'ALL' ? results : results.filter(r => r.assessment.type === typeFilter)
+  const gradedResults = results.filter(r => r.graded && r.score !== null)
+  const avgScore = gradedResults.length > 0
+    ? Math.round(gradedResults.reduce((sum, r) => sum + (r.score! / r.assessment.totalMarks) * 100, 0) / gradedResults.length)
+    : null
 
   return (
     <DashboardLayout
@@ -123,125 +164,227 @@ export default function TeacherStudentDetailsPage() {
         role: 'Teacher',
         email: session.user.email,
       }}
-      navItems={navItems}
+      navItems={TEACHER_NAV_ITEMS}
     >
-      <div className="space-y-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Student Details</h1>
-            <p className="text-gray-700 mt-2">View student profile and attendance summary</p>
-          </div>
-          <Link
-            href="/teacher/students"
-            className="inline-flex h-8 items-center justify-center rounded-lg border border-gray-300 bg-white px-3.5 text-[13px] font-medium text-gray-800 transition-colors hover:bg-gray-50"
-          >
-            Back to Students
-          </Link>
-        </div>
+      <div className="space-y-4">
+        {/* Breadcrumb */}
+        <Link
+          href="/teacher/students"
+          className="inline-flex items-center gap-1 text-[13px] ui-text-secondary hover:ui-text-primary transition-colors"
+        >
+          ← Students
+        </Link>
 
         {loading ? (
-          <Card className="p-6">
-            <div>Loading student details...</div>
-          </Card>
+          <div className="ui-surface p-6 flex items-center gap-3">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-(--border-subtle) border-t-(--accent)" />
+            <p className="text-sm ui-text-secondary">Loading student details…</p>
+          </div>
         ) : error ? (
-          <Card className="p-6">
-            <p className="text-red-600">{error}</p>
-          </Card>
-        ) : data ? (
-          <>
-            <Card className="p-6">
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Full Name</p>
-                  <p className="text-base font-semibold text-gray-900">
-                    {data.student.firstName} {data.student.lastName}
-                  </p>
+          <div className="ui-surface p-5">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        ) : data && s ? (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+
+            {/* ── LEFT COLUMN ── */}
+            <div className="space-y-4">
+
+              {/* Profile */}
+              <div className="ui-surface p-5">
+                <div className="flex items-start gap-3">
+                  <div
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+                    style={{ background: 'var(--accent)' }}
+                  >
+                    {initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h1 className="text-base font-semibold ui-text-primary leading-snug">
+                        {s.firstName} {s.lastName}
+                      </h1>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                        {s.status === 'ACTIVE' ? 'Active' : `Left${s.statusReason ? ` · ${leaveReasonLabels[s.statusReason]}` : ''}`}
+                      </span>
+                    </div>
+                    <p className="text-[12px] ui-text-secondary mt-0.5">
+                      {s.class.name}{s.class.grade ? ` · ${s.class.grade}` : ''}
+                      {s.admissionNumber ? ` · ${s.admissionNumber}` : ''}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Admission Number</p>
-                  <p className="text-base font-semibold text-gray-900">{data.student.admissionNumber || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Class</p>
-                  <p className="text-base font-semibold text-gray-900">
-                    {data.student.class.name}
-                    {data.student.class.grade ? ` (${data.student.class.grade})` : ''}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Gender</p>
-                  <p className="text-base font-semibold text-gray-900">{data.student.gender || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Date of Birth</p>
-                  <p className="text-base font-semibold text-gray-900">
-                    {data.student.dateOfBirth ? new Date(data.student.dateOfBirth).toLocaleDateString() : 'N/A'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Status</p>
-                  <p className="text-base font-semibold text-gray-900">
-                    {data.student.status === 'ACTIVE' ? 'Active' : 'Left'}
-                    {data.student.statusReason ? ` (${leaveReasonLabels[data.student.statusReason]})` : ''}
-                  </p>
+                <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-(--border-subtle) pt-4">
+                  <Field label="Date of Birth" value={s.dateOfBirth ? new Date(s.dateOfBirth).toLocaleDateString() : null} />
+                  <Field label="Gender" value={s.gender} />
+                  <Field label="Academic Year" value={String(s.academicYear)} />
+                  <Field label="Status" value={s.status === 'ACTIVE' ? 'Active' : 'Left'} />
                 </div>
               </div>
-            </Card>
 
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Parent/Guardian Contact</h2>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Name</p>
-                  <p className="text-base font-medium text-gray-900">{data.student.parentName || 'N/A'}</p>
+              {/* Attendance */}
+              <div className="ui-surface p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-semibold ui-text-primary">Attendance</h2>
+                  {attendanceRate !== null && (
+                    <span className="text-[12px] font-semibold ui-text-secondary">{attendanceRate}% rate</span>
+                  )}
                 </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Email</p>
-                  <p className="text-base font-medium text-gray-900">{data.student.parentEmail || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Phone</p>
-                  <p className="text-base font-medium text-gray-900">{data.student.parentPhone || 'N/A'}</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-lg bg-emerald-50 border border-emerald-100 py-2.5 text-center">
+                    <p className="text-xl font-bold text-emerald-700">{data.attendanceSummary.present}</p>
+                    <p className="text-[10px] font-medium text-emerald-600 uppercase tracking-wide">Present</p>
+                  </div>
+                  <div className="rounded-lg bg-red-50 border border-red-100 py-2.5 text-center">
+                    <p className="text-xl font-bold text-red-600">{data.attendanceSummary.absent}</p>
+                    <p className="text-[10px] font-medium text-red-500 uppercase tracking-wide">Absent</p>
+                  </div>
+                  <div className="rounded-lg bg-amber-50 border border-amber-100 py-2.5 text-center">
+                    <p className="text-xl font-bold text-amber-600">{data.attendanceSummary.late}</p>
+                    <p className="text-[10px] font-medium text-amber-500 uppercase tracking-wide">Late</p>
+                  </div>
                 </div>
               </div>
-            </Card>
 
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card className="p-6">
-                <p className="text-xs uppercase tracking-wide text-gray-500">Present</p>
-                <p className="text-2xl font-bold text-green-700">{data.attendanceSummary.present}</p>
-              </Card>
-              <Card className="p-6">
-                <p className="text-xs uppercase tracking-wide text-gray-500">Absent</p>
-                <p className="text-2xl font-bold text-red-700">{data.attendanceSummary.absent}</p>
-              </Card>
-              <Card className="p-6">
-                <p className="text-xs uppercase tracking-wide text-gray-500">Late</p>
-                <p className="text-2xl font-bold text-amber-700">{data.attendanceSummary.late}</p>
-              </Card>
+              {/* Parent */}
+              <div className="ui-surface p-5">
+                <h2 className="text-sm font-semibold ui-text-primary mb-3">Parent / Guardian</h2>
+                <div className="space-y-2.5">
+                  <Field label="Name" value={s.parentName} />
+                  <Field label="Email" value={s.parentEmail} />
+                  <Field label="Phone" value={s.parentPhone} />
+                </div>
+              </div>
+
+              {/* Subjects */}
+              <div className="ui-surface p-5">
+                <h2 className="text-sm font-semibold ui-text-primary mb-3">Subjects</h2>
+                {data.subjects.length === 0 ? (
+                  <p className="text-sm ui-text-secondary">No subjects assigned.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {data.subjects.map((subject) => (
+                      <span
+                        key={subject.id}
+                        className="rounded-md border border-(--border-subtle) bg-(--surface-soft) px-2.5 py-1 text-[12px] font-medium ui-text-primary"
+                      >
+                        {subject.name}{subject.code ? ` (${subject.code})` : ''}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Subjects</h2>
-              {data.subjects.length === 0 ? (
-                <p className="text-gray-600">No subjects assigned.</p>
-              ) : (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {data.subjects.map((subject) => (
-                    <div key={subject.id} className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-                      <p className="font-semibold text-gray-900">{subject.name}</p>
-                      <p className="text-sm text-gray-700">Code: {subject.code || 'N/A'}</p>
-                      <p className="text-sm text-gray-700">Teacher: {subject.teacherName}</p>
-                    </div>
+            {/* ── RIGHT COLUMN — Assessment Results ── */}
+            <div className="ui-surface flex flex-col overflow-hidden p-0">
+              {/* Header */}
+              <div className="flex items-center justify-between gap-3 border-b border-(--border-subtle) px-5 py-4">
+                <div>
+                  <h2 className="text-sm font-semibold ui-text-primary">Assessment Results</h2>
+                  {avgScore !== null && (
+                    <p className="text-[12px] ui-text-secondary mt-0.5">
+                      Average: <span className="font-semibold ui-text-primary">{avgScore}%</span>
+                      {' · '}{gradedResults.length} graded
+                    </p>
+                  )}
+                </div>
+                {/* Type filter pills */}
+                <div className="flex items-center gap-1 shrink-0">
+                  {(['ALL', 'EXAM', 'TEST', 'QUIZ', 'ASSIGNMENT'] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setTypeFilter(t)}
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                        typeFilter === t
+                          ? 'bg-(--accent) text-white'
+                          : 'border border-(--border-subtle) ui-text-secondary hover:ui-text-primary'
+                      }`}
+                    >
+                      {t === 'ALL' ? 'All' : t.charAt(0) + t.slice(1).toLowerCase()}
+                    </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Table */}
+              {resultsLoading ? (
+                <div className="flex flex-1 items-center justify-center gap-2 py-12">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-(--border-subtle) border-t-(--accent)" />
+                  <p className="text-sm ui-text-secondary">Loading assessment results...</p>
+                </div>
+              ) : filteredResults.length === 0 ? (
+                <div className="flex flex-1 items-center justify-center py-12">
+                  <p className="text-sm ui-text-secondary">No assessment results found for the selected filters.</p>
+                </div>
+              ) : (
+                <div className="overflow-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-(--border-subtle) text-[11px] font-medium uppercase tracking-wide ui-text-secondary">
+                        <th className="px-5 py-2.5 text-left">Assessment</th>
+                        <th className="px-4 py-2.5 text-left">Subject</th>
+                        <th className="px-4 py-2.5 text-center">Type</th>
+                        <th className="px-4 py-2.5 text-center">Score</th>
+                        <th className="px-4 py-2.5 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-(--border-subtle)">
+                      {filteredResults.map((r) => {
+                        const pct = r.graded && r.score !== null
+                          ? Math.round((r.score / r.assessment.totalMarks) * 100)
+                          : null
+                        const scoreColor = pct === null ? '' : pct >= 70 ? 'text-emerald-600' : pct >= 50 ? 'text-amber-600' : 'text-red-600'
+
+                        return (
+                          <tr key={r.id} className="hover:bg-(--surface-soft) transition-colors">
+                            <td className="px-5 py-3">
+                              <p className="font-medium ui-text-primary leading-snug">{r.assessment.title}</p>
+                              {r.feedback && (
+                                <p className="text-[11px] ui-text-secondary mt-0.5 max-w-50 truncate" title={r.feedback}>
+                                  {r.feedback}
+                                </p>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-[13px] ui-text-secondary">
+                              {r.assessment.subject.name}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${typeColors[r.assessment.type] ?? 'bg-gray-100 text-gray-600'}`}>
+                                {r.assessment.type.charAt(0) + r.assessment.type.slice(1).toLowerCase()}
+                              </span>
+                            </td>
+                            <td className={`px-4 py-3 text-center font-semibold text-[13px] ${scoreColor}`}>
+                              {r.graded && r.score !== null
+                                ? `${r.score}/${r.assessment.totalMarks}`
+                                : <span className="ui-text-secondary font-normal">—</span>
+                              }
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {r.graded ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                  Graded
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">
+                                  Not Graded
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               )}
-            </Card>
-          </>
+            </div>
+
+          </div>
         ) : (
-          <Card className="p-6">
-            <p className="text-gray-700">No student data found.</p>
-          </Card>
+          <div className="ui-surface p-5">
+            <p className="text-sm ui-text-secondary">No student data found.</p>
+          </div>
         )}
       </div>
     </DashboardLayout>
