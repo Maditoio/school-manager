@@ -714,23 +714,23 @@ export default function ReportsPage() {
         </div>
       )}
 
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <h1 className="text-xl font-semibold text-gray-900">Report Cards</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Generate and print official student academic report cards</p>
+      <div className="min-h-screen ui-bg-base">
+        <div className="ui-bg-base border-b ui-border px-6 py-4">
+          <h1 className="text-xl font-semibold ui-text-primary">Report Cards</h1>
+          <p className="text-sm ui-text-secondary mt-0.5">Generate and print official student academic report cards</p>
         </div>
 
         <div className="p-6 space-y-5">
 
           {/* ── Filter panel ──────────────────────────────────────── */}
-          <div className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Select Report</h2>
+          <div className="ui-bg-base rounded-lg border ui-border p-5 shadow-sm">
+            <h2 className="text-xs font-semibold ui-text-secondary uppercase tracking-wide mb-4">Select Report</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Academic Year</label>
+                <label className="block text-xs font-medium ui-text-secondary mb-1">Academic Year</label>
                 <select
-                  className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full border ui-border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ui-bg-base ui-text-primary"
                   value={selectedYear}
                   onChange={e => { setSelectedYear(e.target.value); setSelectedTerm(''); setReportData(null); setAllReports([]) }}
                 >
@@ -742,9 +742,9 @@ export default function ReportsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Term</label>
+                <label className="block text-xs font-medium ui-text-secondary mb-1">Term</label>
                 <select
-                  className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-50 disabled:text-gray-400"
+                  className="w-full border ui-border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ui-bg-base ui-text-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   value={selectedTerm}
                   onChange={e => { setSelectedTerm(e.target.value); setIsFinal(false); setReportData(null); setAllReports([]) }}
                   disabled={!selectedYear || isFinal || filteredTerms.length === 0}
@@ -757,9 +757,9 @@ export default function ReportsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Class</label>
+                <label className="block text-xs font-medium ui-text-secondary mb-1">Class</label>
                 <select
-                  className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full border ui-border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ui-bg-base ui-text-primary"
                   value={selectedClass}
                   onChange={e => { setSelectedClass(e.target.value); setSelectedStudent(''); setReportData(null); setAllReports([]) }}
                 >
@@ -771,9 +771,9 @@ export default function ReportsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Student</label>
+                <label className="block text-xs font-medium ui-text-secondary mb-1">Student</label>
                 <select
-                  className="w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-50 disabled:text-gray-400"
+                  className="w-full border ui-border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ui-bg-base ui-text-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   value={selectedStudent}
                   onChange={e => { setSelectedStudent(e.target.value); setReportData(null); setAllReports([]) }}
                   disabled={!selectedClass}
@@ -786,7 +786,7 @@ export default function ReportsPage() {
               </div>
 
               <div className="flex flex-col justify-end gap-2">
-                <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none">
+                <label className="flex items-center gap-2 text-xs ui-text-secondary cursor-pointer select-none">
                   <input
                     type="checkbox" checked={isFinal}
                     onChange={e => { setIsFinal(e.target.checked); if (e.target.checked) setSelectedTerm(''); setReportData(null); setAllReports([]) }}
@@ -797,7 +797,7 @@ export default function ReportsPage() {
                 <button
                   onClick={handleGenerate}
                   disabled={!selectedStudent || loading}
-                  className="w-full px-3 py-1.5 bg-[#1a2744] text-white text-xs font-medium rounded-md hover:bg-[#243258] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="w-full px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   {loading ? 'Loading…' : 'Generate'}
                 </button>
@@ -807,7 +807,7 @@ export default function ReportsPage() {
                 <button
                   onClick={handleGenerateAll}
                   disabled={!selectedClass || students.length === 0 || batchLoading}
-                  className="w-full px-3 py-1.5 border border-[#1a2744] text-[#1a2744] text-xs font-medium rounded-md hover:bg-[#1a2744] hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="w-full px-3 py-1.5 border border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 text-xs font-medium rounded-md hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 dark:hover:border-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   {batchLoading
                     ? `${batchProgress.done}/${batchProgress.total}…`
@@ -823,16 +823,16 @@ export default function ReportsPage() {
 
           {/* ── Batch results list ────────────────────────────────── */}
           {allReports.length > 0 && (
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-wrap gap-2">
-                <h2 className="text-sm font-semibold text-gray-700">
+            <div className="ui-bg-base rounded-lg border ui-border shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3 border-b ui-border flex-wrap gap-2">
+                <h2 className="text-sm font-semibold ui-text-primary">
                   {allReports.length} reports generated
                   {' · '}<span className="text-gray-400 font-normal">{allReports[0].term?.name ?? (isFinal ? 'Final Year' : 'All Terms')}</span>
                 </h2>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleDownloadExecutiveSummary}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-medium text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 border ui-border text-xs font-medium ui-text-secondary rounded-md hover:ui-bg-hover transition-colors"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
@@ -842,7 +842,7 @@ export default function ReportsPage() {
                   <button
                     onClick={handleDownloadAll}
                     disabled={downloadingAll}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1a2744] text-white text-xs font-medium rounded-md hover:bg-[#243258] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
@@ -852,7 +852,7 @@ export default function ReportsPage() {
                 </div>
               </div>
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                <thead className="ui-bg-base text-xs ui-text-secondary uppercase tracking-wide border-b ui-border">
                   <tr>
                     <th className="px-4 py-2 text-left font-medium">Student</th>
                     <th className="px-4 py-2 text-left font-medium">Admission No.</th>
@@ -870,23 +870,23 @@ export default function ReportsPage() {
                     const bgColors: Record<string, string> = { A: '#d1fae5', B: '#dbeafe', C: '#fef3c7', D: '#ffedd5', F: '#fee2e2' }
                     const fgColors: Record<string, string> = { A: '#065f46', B: '#1e40af', C: '#92400e', D: '#c2410c', F: '#991b1b' }
                     return (
-                      <tr key={idx} className="hover:bg-gray-50">
-                        <td className="px-4 py-2.5 font-medium text-gray-900">{r.student.firstName} {r.student.lastName}</td>
-                        <td className="px-4 py-2.5 text-gray-500">{r.student.admissionNumber ?? '—'}</td>
-                        <td className="px-4 py-2.5 text-center text-gray-600">{r.subjects.length}</td>
-                        <td className="px-4 py-2.5 text-center font-semibold text-gray-800">{avg != null ? `${avg.toFixed(1)}%` : '—'}</td>
+                      <tr key={idx} className="hover:ui-bg-hover divide-y ui-border">
+                        <td className="px-4 py-2.5 font-medium ui-text-primary">{r.student.firstName} {r.student.lastName}</td>
+                        <td className="px-4 py-2.5 ui-text-secondary">{r.student.admissionNumber ?? '—'}</td>
+                        <td className="px-4 py-2.5 text-center ui-text-secondary">{r.subjects.length}</td>
+                        <td className="px-4 py-2.5 text-center font-semibold ui-text-primary">{avg != null ? `${avg.toFixed(1)}%` : '—'}</td>
                         <td className="px-4 py-2.5 text-center">
                           {grade ? (
                             <span className="inline-block px-2 py-0.5 rounded text-xs font-bold" style={{ background: bgColors[grade], color: fgColors[grade] }}>{grade}</span>
                           ) : '—'}
                         </td>
-                        <td className="px-4 py-2.5 text-center text-gray-500">
+                        <td className="px-4 py-2.5 text-center ui-text-secondary">
                           {r.position.rank != null ? `${ordinal(r.position.rank)} / ${r.position.classSize}` : '—'}
                         </td>
                         <td className="px-4 py-2.5 text-right">
                           <button
                             onClick={() => setPrintingReport(r)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#1a2744] text-white text-xs font-medium rounded hover:bg-[#243258] transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 transition-colors"
                           >
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" /><rect x="6" y="14" width="12" height="8" />
