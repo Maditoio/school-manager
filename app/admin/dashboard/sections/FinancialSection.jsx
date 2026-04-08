@@ -114,7 +114,7 @@ export default function FinancialSection({ data, loading }) {
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value, name, props) => [translateDashboardDynamic(`${formatCurrency(props.payload.amount)} (${props.payload.count} payments)`, locale), translateText(String(name), locale)]}}
+                formatter={(value, name, props) => [translateDashboardDynamic(`${formatCurrency(props.payload.amount)} (${props.payload.count} payments)`, locale), translateText(String(name), locale)]}
                 contentStyle={{ background: '#161924', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#e2e8f0' }}
               />
             </PieChart>
