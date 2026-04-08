@@ -147,23 +147,40 @@ export async function POST(
       )
     }
 
-    // Students whose primary class IS this class — nothing to do for them
+    // Students whose primary class IS already this class — nothing to do for them
     const alreadyPrimary = validStudents.filter((s) => s.classId === classId).map((s) => s.id)
-    // The rest get an additional enrollment row (skipDuplicates handles already-enrolled)
+    // The rest need their primary classId updated to this class
     const toEnroll = validStudents.filter((s) => s.classId !== classId)
 
     if (toEnroll.length > 0) {
-      await prisma.studentAdditionalClass.createMany({
+      // Update primary class assignment (fixes count display and Unassigned counter)
+      await prisma.student.updateMany({
+        where: { id: { in: toEnroll.map((s) => s.id) } },
+        data: { classId },
+      })
+
+      // Log the class change history
+      await prisma.studentClassHistory.createMany({
         data: toEnroll.map((s) => ({
           studentId: s.id,
-          classId,
-          schoolId: classData.schoolId,
+          fromClassId: s.classId as string,
+          toClassId: classId,
+          changedById: session.user.id,
+          reason: 'Assigned to class',
         })),
         skipDuplicates: true,
       })
+
+      // Remove any stale additional-enrollment rows for these students in this class
+      await prisma.studentAdditionalClass.deleteMany({
+        where: {
+          studentId: { in: toEnroll.map((s) => s.id) },
+          classId,
+        },
+      })
     }
 
-    // Wire additional students into existing assessments for this class
+    // Wire all enrolled students into existing assessments for this class
     const assessments = await prisma.assessment.findMany({
       where: { schoolId: classData.schoolId, classId },
       select: { id: true },
