@@ -81,7 +81,8 @@ export default function AdminUsersPage() {
         return
       }
       const filtered = (Array.isArray(data.users) ? data.users : []).filter(
-        (u: { role: string }) => u.role !== 'SCHOOL_ADMIN' && u.role !== 'SUPER_ADMIN'
+        (u: { role: string }) =>
+          u.role !== 'SCHOOL_ADMIN' && u.role !== 'SUPER_ADMIN' && u.role !== 'STUDENT'
       ) as UserItem[]
       setUsers(filtered)
     } catch {

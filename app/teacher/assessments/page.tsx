@@ -22,6 +22,7 @@ interface Assessment {
     id: string
     name: string
   }
+  gradedCount?: number
   _count?: {
     studentAssessments: number
   }
@@ -497,7 +498,9 @@ export default function TeacherAssessmentsPage() {
                       </td>
                       <td className="px-4 py-3 text-center font-medium text-gray-800">{assessment.totalMarks}</td>
                       <td className="px-4 py-3 text-center text-gray-500">{formatDate(assessment.dueDate)}</td>
-                      <td className="px-4 py-3 text-center text-gray-600">{assessment._count?.studentAssessments ?? 0}</td>
+                      <td className="px-4 py-3 text-center text-gray-600">
+                        {assessment.gradedCount ?? 0}/{assessment._count?.studentAssessments ?? 0}
+                      </td>
                       <td className="px-4 py-3 text-center">
                         {assessment.published ? (
                           <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Published</span>

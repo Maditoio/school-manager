@@ -57,16 +57,25 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const assessments = await db.assessment.findMany({
+    const rawAssessments = await (db.assessment as NonNullable<typeof db.assessment>).findMany({
       where,
       include: {
         subject: true,
         _count: {
           select: { studentAssessments: true }
-        }
+        },
+        studentAssessments: {
+          where: { graded: true },
+          select: { id: true },
+        },
       },
-      orderBy: { createdAt: 'desc' }
-    })
+      orderBy: { createdAt: 'desc' },
+    }) as Array<Record<string, unknown> & { studentAssessments: { id: string }[] }>
+
+    const assessments = rawAssessments.map(({ studentAssessments: gradedRows, ...a }) => ({
+      ...a,
+      gradedCount: gradedRows.length,
+    }))
 
     return NextResponse.json({ assessments })
   } catch (error) {
@@ -141,7 +150,7 @@ export async function POST(request: NextRequest) {
         dueDate: dueDate ? new Date(dueDate) : null,
         schoolId: session.user.schoolId,
         teacherId: session.user.id,
-        published: true
+        published: false
       },
       include: {
         subject: true
