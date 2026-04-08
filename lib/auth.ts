@@ -140,8 +140,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.lastName = user.lastName
         token.studentId = user.studentId ?? null
       }
-      if (trigger === 'update' && updateData?.preferredLanguage) {
-        token.preferredLanguage = updateData.preferredLanguage
+      if (trigger === 'update') {
+        if (updateData?.preferredLanguage) {
+          token.preferredLanguage = updateData.preferredLanguage
+        }
+        if (updateData?.mustResetPassword === false) {
+          token.mustResetPassword = false
+        }
       }
       return token
     },

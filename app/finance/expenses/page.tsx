@@ -13,7 +13,7 @@ import { BadgeDollarSign, FileText, Plus, ReceiptText, ShieldCheck, Wallet } fro
 import { translateText } from '@/lib/client-i18n'
 import { useLocale } from '@/lib/locale-context'
 import { useCurrency } from '@/lib/currency-context'
-import { FINANCE_NAV_ITEMS } from '@/lib/admin-nav'
+import { FINANCE_NAV_ITEMS, FINANCE_MANAGER_NAV_ITEMS } from '@/lib/admin-nav'
 type ExpenseCategory =
   | 'MAINTENANCE'
   | 'SALARIES'
@@ -519,7 +519,7 @@ export default function FinanceExpensesPage() {
     },
   ], [selectedExpenseId, locale, session?.user?.id, session?.user?.role, expenseApprovalThreshold, approvingSaving])
 
-  const navItems = FINANCE_NAV_ITEMS
+  const navItems = session?.user?.role === 'FINANCE_MANAGER' ? FINANCE_MANAGER_NAV_ITEMS : FINANCE_NAV_ITEMS
 
   if (status === 'loading' || !session) {
     return <div>Loading...</div>

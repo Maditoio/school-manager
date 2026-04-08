@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, Select, TextArea } from '@/components/ui/Form'
 import Table from '@/components/ui/Table'
 import { useToast } from '@/components/ui/Toast'
-import { FINANCE_NAV_ITEMS } from '@/lib/admin-nav'
+import { FINANCE_NAV_ITEMS, FINANCE_MANAGER_NAV_ITEMS } from '@/lib/admin-nav'
 import { getClientLocale, translateText } from '@/lib/client-i18n'
 import { useCurrency } from '@/lib/currency-context'
 
@@ -274,7 +274,7 @@ export default function FinanceFundRequestsPage() {
 
   if (status === 'loading' || !session) return <div>Loading...</div>
 
-  const navItems = FINANCE_NAV_ITEMS
+  const navItems = session?.user?.role === 'FINANCE_MANAGER' ? FINANCE_MANAGER_NAV_ITEMS : FINANCE_NAV_ITEMS
   const locale = getClientLocale()
   const t = (s: string) => translateText(s, locale)
 

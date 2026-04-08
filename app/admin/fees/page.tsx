@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button'
 import Table from '@/components/ui/Table'
 import { useToast } from '@/components/ui/Toast'
 import { AlertTriangle, CircleCheck, Plus, Receipt, Users, Wallet } from 'lucide-react'
-import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS, FINANCE_NAV_ITEMS } from '@/lib/admin-nav'
+import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS, FINANCE_NAV_ITEMS, FINANCE_MANAGER_NAV_ITEMS } from '@/lib/admin-nav'
 import { useCurrency } from '@/lib/currency-context'
 
 type FeePeriodType = 'MONTHLY' | 'SEMESTER' | 'YEARLY'
@@ -646,7 +646,9 @@ export default function AdminFeesPage({
     }
   }
 
-  const navItems = navMode === 'finance' ? FINANCE_NAV_ITEMS : (session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS)
+  const navItems = navMode === 'finance'
+    ? (session?.user?.role === 'FINANCE_MANAGER' ? FINANCE_MANAGER_NAV_ITEMS : FINANCE_NAV_ITEMS)
+    : (session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS)
 
   if (status === 'loading' || !session) {
     return <div>Loading...</div>

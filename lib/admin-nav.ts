@@ -57,6 +57,15 @@ export const FINANCE_NAV_ITEMS: NavItem[] = [
   { label: 'Meeting Agenda', href: '/admin/meeting-agenda' },
 ]
 
+/** Finance Manager navigation (superset of FINANCE_NAV_ITEMS with salary management) */
+export const FINANCE_MANAGER_NAV_ITEMS: NavItem[] = [
+  { label: 'Fees',             href: '/finance/fees' },
+  { label: 'Expenses',         href: '/finance/expenses' },
+  { label: 'Fund Requests',    href: '/finance/fund-requests' },
+  { label: 'Teacher Salaries', href: '/finance/salaries' },
+  { label: 'Meeting Agenda',   href: '/admin/meeting-agenda' },
+]
+
 /** Teacher navigation */
 export const TEACHER_NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard',    href: '/teacher/dashboard',    icon: '📊' },

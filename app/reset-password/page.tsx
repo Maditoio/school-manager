@@ -1,13 +1,28 @@
 'use client'
 
 import { useState } from 'react'
-import { signOut, useSession } from 'next-auth/react'
-import { redirect } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { redirect, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Form'
 
+function getDashboardForRole(role: string): string {
+  switch (role) {
+    case 'SUPER_ADMIN': return '/super-admin/dashboard'
+    case 'SCHOOL_ADMIN': return '/admin/dashboard'
+    case 'DEPUTY_ADMIN': return '/admin/dashboard'
+    case 'FINANCE': return '/finance/fees'
+    case 'FINANCE_MANAGER': return '/finance/expenses'
+    case 'TEACHER': return '/teacher/dashboard'
+    case 'PARENT': return '/parent/dashboard'
+    case 'STUDENT': return '/student/dashboard'
+    default: return '/login'
+  }
+}
+
 export default function ResetPasswordPage() {
-  const { data: session, status } = useSession()
+  const { data: session, status, update } = useSession()
+  const router = useRouter()
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -59,12 +74,11 @@ export default function ResetPasswordPage() {
         return
       }
 
-      setSuccess('Password updated successfully. Please sign in again.')
-      
-      // Sign out and redirect to login
-      setTimeout(async () => {
-        await signOut({ callbackUrl: '/login' })
-      }, 1000)
+      setSuccess('Password updated successfully. Redirecting…')
+
+      // Update the session token so mustResetPassword is cleared, then go to dashboard
+      await update({ mustResetPassword: false })
+      router.replace(getDashboardForRole(session!.user.role))
     } catch {
       setError('Failed to update password')
     } finally {
