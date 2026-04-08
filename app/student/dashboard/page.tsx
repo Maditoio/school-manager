@@ -68,6 +68,33 @@ const typeColors: Record<string, string> = {
   ASSIGNMENT: 'bg-amber-100 text-amber-700',
 }
 
+const typeLabels: Record<string, string> = {
+  QUIZ: 'Quiz',
+  TEST: 'Test',
+  EXAM: 'Examen',
+  ASSIGNMENT: 'Devoir',
+}
+
+const filterButtonLabels: Record<string, string> = {
+  ALL: 'Tout',
+  EXAM: 'Examen',
+  TEST: 'Test',
+  QUIZ: 'Quiz',
+  ASSIGNMENT: 'Devoir',
+}
+
+const genderLabels: Record<string, string> = {
+  MALE: 'Masculin',
+  FEMALE: 'Féminin',
+  OTHER: 'Autre',
+}
+
+const statusBadgeLabels: Record<string, string> = {
+  ACTIVE: 'ACTIF',
+  INACTIVE: 'INACTIF',
+  SUSPENDED: 'SUSPENDU',
+}
+
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
@@ -98,12 +125,12 @@ export default function StudentDashboardPage() {
         const res = await fetch('/api/student/me')
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
-          setError(body.error || 'Failed to load profile')
+          setError(body.error || 'Échec du chargement du profil')
           return
         }
         setData(await res.json())
       } catch {
-        setError('Failed to load profile')
+        setError('Échec du chargement du profil')
       } finally {
         setLoading(false)
       }
@@ -125,19 +152,19 @@ export default function StudentDashboardPage() {
   return (
     <DashboardLayout
       user={{
-        name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Student',
-        role: 'Student',
+        name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Étudiant',
+        role: 'Étudiant',
         email: session.user.email,
       }}
       navItems={STUDENT_NAV_ITEMS}
     >
       <div className="space-y-4">
-        <h1 className="text-lg font-semibold ui-text-primary">My Profile</h1>
+        <h1 className="text-lg font-semibold ui-text-primary">Mon Profil</h1>
 
         {loading ? (
           <div className="ui-surface p-6 flex items-center gap-3">
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-(--border-subtle) border-t-(--accent)" />
-            <p className="text-sm ui-text-secondary">Loading profile...</p>
+            <p className="text-sm ui-text-secondary">Chargement du profil...</p>
           </div>
         ) : error ? (
           <div className="ui-surface p-5">
@@ -163,37 +190,37 @@ export default function StudentDashboardPage() {
                       {s.firstName} {s.lastName}
                     </p>
                     <p className="text-xs ui-text-secondary mt-0.5">
-                      {s.class?.name ?? 'No class'} · {s.academicYear}
+                      {s.class?.name ?? 'Sans classe'} · {s.academicYear}
                     </p>
                     <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${
                       s.status === 'ACTIVE'
                         ? 'bg-green-100 text-green-700'
                         : 'bg-red-100 text-red-700'
                     }`}>
-                      {s.status}
+                      {statusBadgeLabels[s.status] ?? s.status}
                     </span>
                   </div>
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
-                  <Field label="Admission No." value={s.admissionNumber} />
-                  <Field label="Class" value={s.class?.name} />
-                  <Field label="Grade" value={s.class?.grade} />
-                  <Field label="Year" value={String(s.academicYear)} />
-                  {s.dateOfBirth && <Field label="Date of Birth" value={new Date(s.dateOfBirth).toLocaleDateString()} />}
-                  {s.gender && <Field label="Gender" value={s.gender} />}
+                  <Field label="N° d'admission" value={s.admissionNumber} />
+                  <Field label="Classe" value={s.class?.name} />
+                  <Field label="Niveau" value={s.class?.grade} />
+                  <Field label="Année" value={String(s.academicYear)} />
+                  {s.dateOfBirth && <Field label="Date de naissance" value={new Date(s.dateOfBirth).toLocaleDateString('fr-FR')} />}
+                  {s.gender && <Field label="Genre" value={genderLabels[s.gender] ?? s.gender} />}
                 </div>
               </div>
 
               {/* Attendance */}
               <div className="ui-surface p-5">
                 <p className="text-xs font-semibold uppercase tracking-wider ui-text-secondary mb-3">
-                  Attendance
+                  Assiduité
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <span className="rounded-lg border border-(--border-subtle) bg-green-50 px-3 py-1.5 text-center">
                     <span className="block text-base font-bold text-green-700">{s.attendanceSummary.present}</span>
-                    <span className="text-[10px] text-green-600">Present</span>
+                    <span className="text-[10px] text-green-600">Présent</span>
                   </span>
                   <span className="rounded-lg border border-(--border-subtle) bg-red-50 px-3 py-1.5 text-center">
                     <span className="block text-base font-bold text-red-700">{s.attendanceSummary.absent}</span>
@@ -201,7 +228,7 @@ export default function StudentDashboardPage() {
                   </span>
                   <span className="rounded-lg border border-(--border-subtle) px-3 py-1.5 text-center" style={{ background: 'var(--surface-soft)' }}>
                     <span className="block text-base font-bold" style={{ color: 'var(--accent)' }}>{s.attendanceSummary.rate}%</span>
-                    <span className="text-[10px] ui-text-secondary">Rate</span>
+                    <span className="text-[10px] ui-text-secondary">Taux</span>
                   </span>
                 </div>
               </div>
@@ -210,11 +237,11 @@ export default function StudentDashboardPage() {
               {s.parent && (
                 <div className="ui-surface p-5">
                   <p className="text-xs font-semibold uppercase tracking-wider ui-text-secondary mb-3">
-                    Parent / Guardian
+                    Parent / Tuteur
                   </p>
                   <div className="space-y-2">
-                    <Field label="Name" value={`${s.parent.firstName} ${s.parent.lastName}`} />
-                    <Field label="Email" value={s.parent.email} />
+                    <Field label="Nom" value={`${s.parent.firstName} ${s.parent.lastName}`} />
+                    <Field label="E-mail" value={s.parent.email} />
                   </div>
                 </div>
               )}
@@ -223,7 +250,7 @@ export default function StudentDashboardPage() {
               {s.class?.subjectAssignments && s.class.subjectAssignments.length > 0 && (
                 <div className="ui-surface p-5">
                   <p className="text-xs font-semibold uppercase tracking-wider ui-text-secondary mb-3">
-                    Subjects
+                    Matières
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {s.class.subjectAssignments.map(cs => (
@@ -244,11 +271,11 @@ export default function StudentDashboardPage() {
             <div className="ui-surface p-5 flex flex-col gap-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm font-semibold ui-text-primary">Assessment Results</p>
+                  <p className="text-sm font-semibold ui-text-primary">Résultats des évaluations</p>
                   {avgScore !== null && (
                     <p className="text-xs ui-text-secondary mt-0.5">
-                      Average: <span className="font-semibold" style={{ color: 'var(--accent)' }}>{avgScore}%</span>
-                      {' '}across {gradedResults.length} graded
+                      Moyenne : <span className="font-semibold" style={{ color: 'var(--accent)' }}>{avgScore}%</span>
+                      {' '}sur {gradedResults.length} notée{gradedResults.length > 1 ? 's' : ''}
                     </p>
                   )}
                 </div>
@@ -264,25 +291,25 @@ export default function StudentDashboardPage() {
                       }`}
                       style={typeFilter === t ? { background: 'var(--accent)' } : undefined}
                     >
-                      {t === 'ALL' ? 'All' : t.charAt(0) + t.slice(1).toLowerCase()}
+                      {filterButtonLabels[t] ?? t}
                     </button>
                   ))}
                 </div>
               </div>
 
               {results.length === 0 ? (
-                <p className="py-8 text-center text-sm ui-text-secondary">No assessments yet.</p>
+                <p className="py-8 text-center text-sm ui-text-secondary">Aucune évaluation pour l&apos;instant.</p>
               ) : filteredResults.length === 0 ? (
-                <p className="py-8 text-center text-sm ui-text-secondary">No {typeFilter.toLowerCase()} assessments.</p>
+                <p className="py-8 text-center text-sm ui-text-secondary">Aucune évaluation de type {(filterButtonLabels[typeFilter] ?? typeFilter).toLowerCase()}.</p>
               ) : (
                 <div className="overflow-auto rounded-lg border border-(--border-subtle)">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-(--border-subtle)" style={{ background: 'var(--surface-soft)' }}>
-                        <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Assessment</th>
-                        <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Subject</th>
+                        <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Évaluation</th>
+                        <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Matière</th>
                         <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Type</th>
-                        <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Score</th>
+                        <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Note</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -299,7 +326,7 @@ export default function StudentDashboardPage() {
                             <td className="px-3 py-2.5 ui-text-secondary text-xs">{r.assessment.subject.name}</td>
                             <td className="px-3 py-2.5">
                               <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${typeColors[r.assessment.type] ?? 'bg-gray-100 text-gray-700'}`}>
-                                {r.assessment.type.charAt(0) + r.assessment.type.slice(1).toLowerCase()}
+                                {typeLabels[r.assessment.type] ?? r.assessment.type}
                               </span>
                             </td>
                             <td className="px-3 py-2.5 text-right">
@@ -311,7 +338,7 @@ export default function StudentDashboardPage() {
                                   <span className="ml-1 text-[11px] font-normal ui-text-secondary">({pct}%)</span>
                                 </span>
                               ) : (
-                                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500">Pending</span>
+                                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500">En attente</span>
                               )}
                             </td>
                           </tr>

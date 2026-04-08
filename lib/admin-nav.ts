@@ -82,6 +82,8 @@ export const TEACHER_NAV_ITEMS: NavItem[] = [
 
 /** Student navigation */
 export const STUDENT_NAV_ITEMS: NavItem[] = [
-  { label: 'My Profile', href: '/student/dashboard', icon: '👤' },
-  { label: 'School Fees', href: '/student/fees', icon: '💰' },
+  { label: 'Mon Profil',        href: '/student/dashboard', icon: '👤' },
+  { label: 'Frais Scolaires',   href: '/student/fees',      icon: '💰' },
+  { label: 'Espace Étudiant',   href: '/student/hub',       icon: '🚀' },
+  { label: 'Bibliothèque',      href: '/student/library',   icon: '📚' },
 ]

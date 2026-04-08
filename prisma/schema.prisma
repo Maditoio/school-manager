@@ -42,6 +42,7 @@ model School {
   subjects                     Subject[]
   teacherContracts             TeacherContract[]
   teacherSalaries              TeacherSalary[]
+  teacherSalaryConfigs         TeacherSalaryConfig[]
   teacher_off_days             teacher_off_days[]
   terms                        terms[]
   users                        User[]
@@ -109,6 +110,8 @@ model User {
   teacherContracts         TeacherContract[]      @relation("TeacherContracts")
   teacherSalaries          TeacherSalary[]        @relation("TeacherSalaries")
   salariesRecorded         TeacherSalary[]        @relation("SalaryRecordedBy")
+  teacherSalaryConfig      TeacherSalaryConfig?   @relation("TeacherSalaryConfig")
+  salaryConfigsUpdated     TeacherSalaryConfig[]  @relation("SalaryConfigUpdatedBy")
   teacher_off_days         teacher_off_days[]
   reportTemplatesCreated   ReportTemplate[]       @relation("ReportTemplateCreator")
   settings                 UserSettings?
@@ -189,6 +192,7 @@ model TeacherSalary {
   amount      Float
   month       Int
   year        Int
+  paymentDate DateTime?           @map("payment_date") @db.Date
   status      TeacherSalaryStatus @default(PENDING)
   paidAt      DateTime?           @map("paid_at")
   notes       String?
@@ -205,6 +209,23 @@ model TeacherSalary {
   @@index([status])
   @@index([schoolId, year, month])
   @@map("teacher_salaries")
+}
+
+model TeacherSalaryConfig {
+  id           String   @id @default(uuid())
+  schoolId     String   @map("school_id")
+  teacherId    String   @unique @map("teacher_id")
+  baseAmount   Float    @map("base_amount")
+  notes        String?
+  updatedBy    String   @map("updated_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teacher      User     @relation("TeacherSalaryConfig", fields: [teacherId], references: [id], onDelete: Cascade)
+  updatedByUser User    @relation("SalaryConfigUpdatedBy", fields: [updatedBy], references: [id])
+
+  @@index([schoolId])
+  @@map("teacher_salary_configs")
 }
 
 model ParentComplaint {

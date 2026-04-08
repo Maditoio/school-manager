@@ -14,22 +14,51 @@ export async function PATCH(
 
     const { id } = await context.params
     const body = await request.json()
-    const status = body.status === 'PAID' ? 'PAID' : 'PENDING'
 
     const existing = await prisma.teacherSalary.findFirst({
       where: { id, schoolId: session.user.schoolId! },
-      select: { id: true },
+      select: { id: true, status: true },
     })
     if (!existing) {
       return NextResponse.json({ error: 'Salary record not found' }, { status: 404 })
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {}
+
+    if (body.status !== undefined) {
+      const status = body.status === 'PAID' ? 'PAID' : 'PENDING'
+      updateData.status = status
+      updateData.paidAt = status === 'PAID' ? new Date() : null
+    }
+
+    if (body.amount !== undefined) {
+      const amount = Number(body.amount)
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return NextResponse.json({ error: 'amount must be a positive number' }, { status: 400 })
+      }
+      updateData.amount = amount
+    }
+
+    if (body.notes !== undefined) {
+      updateData.notes = typeof body.notes === 'string' ? body.notes.trim() || null : null
+    }
+
+    if (body.paymentDate !== undefined) {
+      if (body.paymentDate === null) {
+        updateData.paymentDate = null
+      } else {
+        const pd = new Date(body.paymentDate)
+        if (isNaN(pd.getTime())) {
+          return NextResponse.json({ error: 'Invalid payment date' }, { status: 400 })
+        }
+        updateData.paymentDate = pd
+      }
+    }
+
     const updated = await prisma.teacherSalary.update({
       where: { id },
-      data: {
-        status,
-        paidAt: status === 'PAID' ? new Date() : null,
-      },
+      data: updateData,
       include: {
         teacher: { select: { id: true, firstName: true, lastName: true } },
       },

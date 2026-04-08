@@ -40,6 +40,20 @@ const statusStyle: Record<string, string> = {
   UNPAID: 'bg-red-100 text-red-700',
 }
 
+const statusLabels: Record<string, string> = {
+  PAID: 'PAYÉ',
+  PARTIAL: 'PARTIEL',
+  UNPAID: 'IMPAYÉ',
+}
+
+const periodTypeLabels: Record<string, string> = {
+  MONTHLY: 'Mensuel',
+  SEMESTER: 'Semestriel',
+  ANNUAL: 'Annuel',
+  TERM: 'Trimestre',
+  WEEKLY: 'Hebdomadaire',
+}
+
 export default function StudentFeesPage() {
   const { data: session, status } = useSession()
   const [loading, setLoading] = useState(true)
@@ -61,12 +75,12 @@ export default function StudentFeesPage() {
         const res = await fetch('/api/student/fees')
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
-          setError(body.error || 'Failed to load fees')
+          setError(body.error || 'Échec du chargement des frais')
           return
         }
         setData(await res.json())
       } catch {
-        setError('Failed to load fees')
+        setError('Échec du chargement des frais')
       } finally {
         setLoading(false)
       }
@@ -77,24 +91,24 @@ export default function StudentFeesPage() {
   if (status === 'loading' || !session) return null
 
   const fmt = (n: number) =>
-    new Intl.NumberFormat(undefined, { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+    new Intl.NumberFormat('fr-FR', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
 
   return (
     <DashboardLayout
       user={{
-        name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Student',
-        role: 'Student',
+        name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Étudiant',
+        role: 'Étudiant',
         email: session.user.email,
       }}
       navItems={STUDENT_NAV_ITEMS}
     >
       <div className="space-y-4">
-        <h1 className="text-lg font-semibold ui-text-primary">School Fees</h1>
+        <h1 className="text-lg font-semibold ui-text-primary">Frais Scolaires</h1>
 
         {loading ? (
           <div className="ui-surface p-6 flex items-center gap-3">
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-(--border-subtle) border-t-(--accent)" />
-            <p className="text-sm ui-text-secondary">Loading fees...</p>
+            <p className="text-sm ui-text-secondary">Chargement des frais...</p>
           </div>
         ) : error ? (
           <div className="ui-surface p-5">
@@ -105,34 +119,34 @@ export default function StudentFeesPage() {
             {/* Summary banner */}
             <div className="ui-surface p-4 flex items-center justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider ui-text-secondary">Total Outstanding</p>
+                <p className="text-xs font-semibold uppercase tracking-wider ui-text-secondary">Total Dû</p>
                 <p className={`text-xl font-bold mt-0.5 ${data.totalOutstanding > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                  {data.totalOutstanding > 0 ? `${fmt(data.totalOutstanding)}` : 'All fees paid'}
+                  {data.totalOutstanding > 0 ? `${fmt(data.totalOutstanding)}` : 'Tous les frais sont réglés'}
                 </p>
               </div>
               <div className="flex gap-3 text-center">
                 <div>
                   <p className="text-lg font-bold ui-text-primary">{data.schedules.length}</p>
-                  <p className="text-[11px] ui-text-secondary">Schedules</p>
+                  <p className="text-[11px] ui-text-secondary">Échéanciers</p>
                 </div>
                 <div>
                   <p className="text-lg font-bold text-green-600">
                     {data.schedules.filter(s => s.feeStatus === 'PAID').length}
                   </p>
-                  <p className="text-[11px] ui-text-secondary">Paid</p>
+                  <p className="text-[11px] ui-text-secondary">Payé</p>
                 </div>
                 <div>
                   <p className="text-lg font-bold text-red-600">
                     {data.schedules.filter(s => s.feeStatus !== 'PAID').length}
                   </p>
-                  <p className="text-[11px] ui-text-secondary">Unpaid</p>
+                  <p className="text-[11px] ui-text-secondary">Impayé</p>
                 </div>
               </div>
             </div>
 
             {data.schedules.length === 0 ? (
               <div className="ui-surface p-8 text-center">
-                <p className="text-sm ui-text-secondary">No fee schedules found.</p>
+                <p className="text-sm ui-text-secondary">Aucun échéancier trouvé.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -145,21 +159,21 @@ export default function StudentFeesPage() {
                     >
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold ui-text-primary">
-                          {schedule.periodType} · {schedule.year}
-                          {schedule.month != null ? ` · Month ${schedule.month}` : ''}
-                          {schedule.semester != null ? ` · Semester ${schedule.semester}` : ''}
+                          {periodTypeLabels[schedule.periodType] ?? schedule.periodType} · {schedule.year}
+                          {schedule.month != null ? ` · Mois ${schedule.month}` : ''}
+                          {schedule.semester != null ? ` · Semestre ${schedule.semester}` : ''}
                         </p>
                         <p className="text-xs ui-text-secondary mt-0.5">
-                          Created {new Date(schedule.createdAt).toLocaleDateString()}
+                          Créé le {new Date(schedule.createdAt).toLocaleDateString('fr-FR')}
                         </p>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
                         <div className="text-right">
                           <p className="text-sm font-semibold ui-text-primary">{fmt(schedule.amountDue)}</p>
-                          <p className="text-[11px] ui-text-secondary">Balance: {fmt(schedule.balance)}</p>
+                          <p className="text-[11px] ui-text-secondary">Solde : {fmt(schedule.balance)}</p>
                         </div>
                         <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${statusStyle[schedule.feeStatus]}`}>
-                          {schedule.feeStatus}
+                          {statusLabels[schedule.feeStatus] ?? schedule.feeStatus}
                         </span>
                         <span className="text-xs ui-text-secondary">{expandedId === schedule.id ? '▲' : '▼'}</span>
                       </div>
@@ -169,25 +183,25 @@ export default function StudentFeesPage() {
                     {expandedId === schedule.id && (
                       <div className="border-t border-(--border-subtle) px-4 pb-4 pt-3">
                         <p className="text-xs font-semibold uppercase tracking-wider ui-text-secondary mb-2">
-                          Payment History
+                          Historique des paiements
                         </p>
                         {schedule.payments.length === 0 ? (
-                          <p className="text-sm ui-text-secondary py-2">No payments recorded.</p>
+                          <p className="text-sm ui-text-secondary py-2">Aucun paiement enregistré.</p>
                         ) : (
                           <div className="overflow-auto rounded-lg border border-(--border-subtle)">
                             <table className="w-full text-sm">
                               <thead>
                                 <tr className="border-b border-(--border-subtle)" style={{ background: 'var(--surface-soft)' }}>
                                   <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Date</th>
-                                  <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Method</th>
-                                  <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Ref #</th>
-                                  <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Amount</th>
+                                  <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Mode</th>
+                                  <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Réf. #</th>
+                                  <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Montant</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {schedule.payments.map(p => (
                                   <tr key={p.id} className="border-b border-(--border-subtle) last:border-0">
-                                    <td className="px-3 py-2.5 text-xs ui-text-primary">{new Date(p.paymentDate).toLocaleDateString()}</td>
+                                    <td className="px-3 py-2.5 text-xs ui-text-primary">{new Date(p.paymentDate).toLocaleDateString('fr-FR')}</td>
                                     <td className="px-3 py-2.5 text-xs ui-text-secondary">{p.paymentMethod ?? 'N/A'}</td>
                                     <td className="px-3 py-2.5 text-xs ui-text-secondary">{p.paymentNumber ?? '-'}</td>
                                     <td className="px-3 py-2.5 text-right text-sm font-semibold text-green-600">{fmt(p.amountPaid)}</td>
@@ -198,8 +212,8 @@ export default function StudentFeesPage() {
                           </div>
                         )}
                         <div className="mt-3 flex justify-end gap-6 text-sm">
-                          <span className="ui-text-secondary">Total paid: <strong className="text-green-600">{fmt(schedule.totalPaid)}</strong></span>
-                          <span className="ui-text-secondary">Balance: <strong className={schedule.balance > 0 ? 'text-red-600' : 'text-green-600'}>{fmt(schedule.balance)}</strong></span>
+                          <span className="ui-text-secondary">Total payé : <strong className="text-green-600">{fmt(schedule.totalPaid)}</strong></span>
+                          <span className="ui-text-secondary">Solde : <strong className={schedule.balance > 0 ? 'text-red-600' : 'text-green-600'}>{fmt(schedule.balance)}</strong></span>
                         </div>
                       </div>
                     )}
