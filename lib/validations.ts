@@ -92,7 +92,16 @@ export const resultSchema = z.object({
 export const announcementSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   message: z.string().min(1, 'Message is required'),
+  startDate: z.string().min(1, 'Start date is required'),
+  endDate: z.string().optional().nullable(),
+  imageUrl: z.string().url('Invalid image URL').optional().nullable().or(z.literal('')),
   priority: z.enum(['low', 'normal', 'high']).default('normal'),
+}).refine((data) => {
+  if (!data.endDate) return true
+  return new Date(data.endDate).getTime() >= new Date(data.startDate).getTime()
+}, {
+  message: 'End date cannot be before start date',
+  path: ['endDate'],
 })
 
 export const messageSchema = z.object({

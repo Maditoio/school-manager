@@ -21,6 +21,24 @@ function sectionLabel(text) {
   )
 }
 
+function toDateISO(value) {
+  return new Date(value).toISOString().slice(0, 10)
+}
+
+function differenceInDays(fromISO, toISO) {
+  const from = new Date(fromISO)
+  const to = new Date(toISO)
+  from.setHours(0, 0, 0, 0)
+  to.setHours(0, 0, 0, 0)
+  return Math.round((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000))
+}
+
+function announcementColor(priority) {
+  if (priority === 'high') return '#ef4444'
+  if (priority === 'low') return '#34d399'
+  return '#6366f1'
+}
+
 export default function DashboardPage({ user }) {
   const { locale } = useLocale()
   const [dashboardState, setDashboardState] = useState({
@@ -32,6 +50,8 @@ export default function DashboardPage({ user }) {
   const [headerTermLabel, setHeaderTermLabel] = useState(dashboardData.header.termLabel)
   const [academicLoaded, setAcademicLoaded] = useState(false)
   const [statsLoaded, setStatsLoaded] = useState(false)
+  const [calendarEvents, setCalendarEvents] = useState([])
+  const [calendarEventsLoading, setCalendarEventsLoading] = useState(true)
   const [loaded, setLoaded] = useState({
     pulse: false,
     financial: false,
@@ -176,6 +196,67 @@ export default function DashboardPage({ user }) {
   useEffect(() => {
     let active = true
 
+    const loadAnnouncements = async () => {
+      try {
+        setCalendarEventsLoading(true)
+        const response = await fetch('/api/announcements', { cache: 'no-store' })
+        if (!response.ok) {
+          if (active) setCalendarEvents([])
+          return
+        }
+
+        const payload = await response.json()
+        const todayISO = new Date().toISOString().slice(0, 10)
+        const events = (Array.isArray(payload.announcements) ? payload.announcements : [])
+          .map((announcement) => {
+            const startDateISO = toDateISO(announcement.startDate || announcement.createdAt)
+            const endDateISO = announcement.endDate ? toDateISO(announcement.endDate) : startDateISO
+            const isActiveOrUpcoming = endDateISO >= todayISO
+
+            if (!isActiveOrUpcoming) return null
+
+            const daysUntil = startDateISO <= todayISO && endDateISO >= todayISO
+              ? 0
+              : Math.max(0, differenceInDays(todayISO, startDateISO))
+
+            return {
+              id: announcement.id,
+              title: announcement.title,
+              description: announcement.message,
+              daysUntil,
+              dateISO: startDateISO,
+              startDateISO,
+              endDateISO,
+              category: 'Announcement',
+              color: announcementColor(announcement.priority),
+              imageUrl: announcement.imageUrl || null,
+            }
+          })
+          .filter(Boolean)
+          .sort((first, second) => first.startDateISO.localeCompare(second.startDateISO))
+          .slice(0, 12)
+
+        if (active) {
+          setCalendarEvents(events)
+        }
+      } catch (error) {
+        console.error('Failed to load announcement events:', error)
+        if (active) setCalendarEvents([])
+      } finally {
+        if (active) setCalendarEventsLoading(false)
+      }
+    }
+
+    loadAnnouncements()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
     const loadCurrentTermLabel = async () => {
       try {
         const response = await fetch('/api/terms', { cache: 'no-store' })
@@ -294,7 +375,7 @@ export default function DashboardPage({ user }) {
           <section className="space-y-2">
             {sectionLabel(translateText('Upcoming Events', locale))}
             <div className="transition-opacity duration-300" style={{ opacity: loaded.calendar ? 1 : 0.85 }}>
-              <CalendarSection data={dashboardData.events} loading={!loaded.calendar} />
+              <CalendarSection data={calendarEvents} loading={!loaded.calendar || calendarEventsLoading} />
             </div>
           </section>
         </div>

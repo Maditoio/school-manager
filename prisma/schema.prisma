@@ -546,6 +546,9 @@ model Announcement {
   schoolId  String   @map("school_id")
   title     String
   message   String
+  startDate DateTime @map("start_date")
+  endDate   DateTime? @map("end_date")
+  imageUrl  String?  @map("image_url")
   createdBy String   @map("created_by")
   priority  String   @default("normal")
   createdAt DateTime @default(now()) @map("created_at")
@@ -555,6 +558,8 @@ model Announcement {
 
   @@index([schoolId])
   @@index([createdAt])
+  @@index([startDate])
+  @@index([endDate])
   @@map("announcements")
 }
 

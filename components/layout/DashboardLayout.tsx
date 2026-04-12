@@ -3,7 +3,7 @@
 import { BottomSidebarNav, Sidebar } from '@/components/layout/Navigation'
 import Toolbar from '@/components/layout/Toolbar'
 import { signOut } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useToast } from '@/components/ui/Toast'
@@ -27,6 +27,7 @@ interface LayoutProps {
 
 export function DashboardLayout({ children, user, navItems }: LayoutProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const { data: session, update } = useSession()
   const { showToast } = useToast()
   const { locale, setLocale } = useLocale()
@@ -43,6 +44,7 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
   const [isSchoolSuspended, setIsSchoolSuspended] = useState(false)
   const isSidebarOpen = desktopSidebarWidth > 120
   const isParentView = session?.user?.role === 'PARENT' || user.role.toLowerCase() === 'parent'
+  const isAdminDashboardRoute = pathname === '/admin/dashboard'
 
   useEffect(() => {
     // Only check suspension status for non-super-admins
@@ -223,7 +225,10 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
       : schoolName
 
   return (
-    <div className="min-h-screen bg-background ui-text-primary">
+    <div
+      className="min-h-screen ui-text-primary"
+      style={{ background: isAdminDashboardRoute ? '#0b0d14' : 'var(--background)' }}
+    >
       {!isParentView ? (
         <div className="print:hidden">
           <Sidebar
@@ -238,6 +243,7 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
       <div
         className="flex min-h-screen flex-col overflow-hidden print:ml-0"
         style={{
+          background: isAdminDashboardRoute ? '#0b0d14' : 'transparent',
           marginLeft: isParentView ? 0 : desktopSidebarWidth,
           transition: 'margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)',
         }}
@@ -254,7 +260,10 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
           />
           </div>
         ) : null}
-        <main className={`flex-1 overflow-auto p-4 ${isParentView ? 'pt-4 pb-24 md:pt-6 md:pb-24' : 'pt-20 pb-20 md:p-6 md:pt-22 md:pb-6'}`}>
+        <main
+          className={`flex-1 overflow-auto p-4 ${isParentView ? 'pt-4 pb-24 md:pt-6 md:pb-24' : 'pt-20 pb-20 md:p-6 md:pt-22 md:pb-6'}`}
+          style={{ background: isAdminDashboardRoute ? '#0b0d14' : 'transparent' }}
+        >
           {translatedChildren}
         </main>
         {isParentView ? (

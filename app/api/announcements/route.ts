@@ -4,6 +4,20 @@ import { prisma } from "@/lib/prisma"
 import { announcementSchema } from "@/lib/validations"
 import { hasRole } from "@/lib/auth-utils"
 
+function normalizeAnnouncementDates(startDate: string, endDate?: string | null) {
+  const normalizedStartDate = new Date(startDate)
+  normalizedStartDate.setHours(0, 0, 0, 0)
+
+  if (!endDate) {
+    return { startDate: normalizedStartDate, endDate: null as Date | null }
+  }
+
+  const normalizedEndDate = new Date(endDate)
+  normalizedEndDate.setHours(23, 59, 59, 999)
+
+  return { startDate: normalizedStartDate, endDate: normalizedEndDate }
+}
+
 // GET /api/announcements - Get school and class announcements
 export async function GET(request: NextRequest) {
   try {
@@ -35,7 +49,7 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ startDate: 'asc' }, { createdAt: 'desc' }],
       take: 50,
     })
 
@@ -113,7 +127,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { title, message, priority } = validation.data
+    const { title, message, priority, startDate, endDate, imageUrl } = validation.data
 
     if (!session.user.schoolId) {
       return NextResponse.json(
@@ -122,11 +136,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const normalizedDates = normalizeAnnouncementDates(startDate, endDate)
+
     const announcement = await prisma.announcement.create({
       data: {
         schoolId: session.user.schoolId,
         title,
         message,
+        startDate: normalizedDates.startDate,
+        endDate: normalizedDates.endDate,
+        imageUrl: imageUrl || null,
         priority,
         createdBy: session.user.id,
       },
