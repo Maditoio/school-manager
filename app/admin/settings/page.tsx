@@ -272,6 +272,7 @@ export default function AdminSettingsPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || t('Failed to create academic year'))
       showToast(t('Academic year saved'), 'success')
+      setYearInput(String(new Date().getFullYear()))
       await fetchTerms()
       if (data?.academicYear?.id) setSelectedAcademicYearId(data.academicYear.id)
     } catch (error) {
@@ -455,102 +456,128 @@ export default function AdminSettingsPage() {
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider ui-text-secondary">{t('Academic Calendar')}</h2>
 
-          <div className="space-y-4">
-            {/* Create Academic Year */}
-            <Card title={t('Create Academic Year')} className="p-5">
-              <form className="flex flex-col gap-3 md:flex-row md:items-end" onSubmit={createAcademicYear}>
-                <Input
-                  label={t('Year')}
-                  type="number"
-                  min={2000}
-                  max={2100}
-                  value={yearInput}
-                  onChange={(e) => setYearInput(e.target.value)}
-                />
-                <Button type="submit" isLoading={termsSaving}>{t('Save')}</Button>
-              </form>
-            </Card>
-
-            {/* Create Term */}
-            <Card title={t('Add Term to Academic Year')} className="p-5">
-              <form className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5" onSubmit={createTerm}>
-                <Select
-                  label={t('Academic Year')}
-                  value={selectedAcademicYearId}
-                  onChange={(e) => setSelectedAcademicYearId(e.target.value)}
-                >
-                  <option value="">{t('Select year')}</option>
-                  {academicYears.map((year) => (
-                    <option key={year.id} value={year.id}>{year.name}</option>
-                  ))}
-                </Select>
-                <Input
-                  label={t('Term Name')}
-                  value={termName}
-                  onChange={(e) => setTermName(e.target.value)}
-                  placeholder="Term 1"
-                />
-                <Input
-                  label={t('Start Date')}
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-                <Input
-                  label={t('End Date')}
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-                <div className="flex items-end">
-                  <Button type="submit" isLoading={termsSaving} className="w-full">{t('Add Term')}</Button>
+          {/* Create Academic Year & Add Term - Combined Form */}
+          <Card title={t('Manage Academic Year & Terms')} className="p-5">
+            <div className="space-y-5">
+              {/* Step 1: Select or Create Academic Year */}
+              <div>
+                <label className="block text-sm font-semibold ui-text-primary mb-3">{t('Academic Year')}</label>
+                <div className="flex gap-3 items-end flex-wrap">
+                  <div className="flex-1 min-w-48">
+                    <Select
+                      label={t('Select or create')}
+                      value={selectedAcademicYearId}
+                      onChange={(e) => setSelectedAcademicYearId(e.target.value)}
+                    >
+                      <option value="">{t('Select year')}</option>
+                      {academicYears.map((year) => (
+                        <option key={year.id} value={year.id}>{year.name}</option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      min={2000}
+                      max={2100}
+                      value={yearInput}
+                      onChange={(e) => setYearInput(e.target.value)}
+                      placeholder={t('Year')}
+                      className="w-32"
+                    />
+                    <Button
+                      type="button"
+                      isLoading={termsSaving}
+                      onClick={createAcademicYear}
+                      size="md"
+                    >
+                      {t('Create Year')}
+                    </Button>
+                  </div>
                 </div>
-              </form>
-            </Card>
+              </div>
 
-            {/* Terms list */}
-            <Card title={t('Academic Terms')} className="p-5">
+              {/* Step 2: Add Term to Selected Academic Year */}
+              {selectedAcademicYearId && (
+                <div className="pt-4 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                  <label className="block text-sm font-semibold ui-text-primary mb-3">{t('Add Term to this year')}</label>
+                  <form className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5" onSubmit={createTerm}>
+                    <Input
+                      label={t('Term Name')}
+                      value={termName}
+                      onChange={(e) => setTermName(e.target.value)}
+                      placeholder="Term 1"
+                    />
+                    <Input
+                      label={t('Start Date')}
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                    />
+                    <Input
+                      label={t('End Date')}
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                    />
+                    <div className="flex items-end">
+                      <Button
+                        type="submit"
+                        isLoading={termsSaving}
+                        className="w-full"
+                      >
+                        {t('Add Term')}
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
+          </Card>
+
+            {/* Terms list table */}
+            <Card title={t('Academic Terms')} className="p-0 overflow-hidden">
               {termsLoading ? (
-                <p className="ui-text-secondary">{t('Loading terms...')}</p>
+                <p className="ui-text-secondary p-5">{t('Loading terms...')}</p>
               ) : allTerms.length === 0 ? (
-                <p className="ui-text-secondary">{t('No terms yet. Create an academic year above, then add terms to it.')}</p>
+                <p className="ui-text-secondary p-5">{t('No terms yet. Create an academic year above, then add terms to it.')}</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="min-w-full border-collapse text-sm">
                     <thead>
-                      <tr className="border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">{t('Year')}</th>
-                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">{t('Term')}</th>
-                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">{t('Start')}</th>
-                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">{t('End')}</th>
-                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">{t('Current')}</th>
-                        <th className="px-3 py-2 text-left ui-text-secondary font-medium">{t('Locked')}</th>
-                        <th className="px-3 py-2 text-right ui-text-secondary font-medium">{t('Actions')}</th>
+                      <tr className="border-b" style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-soft)' }}>
+                        <th className="px-4 py-3 text-left ui-text-secondary font-semibold">{t('Year')}</th>
+                        <th className="px-4 py-3 text-left ui-text-secondary font-semibold">{t('Term')}</th>
+                        <th className="px-4 py-3 text-left ui-text-secondary font-semibold">{t('Start')}</th>
+                        <th className="px-4 py-3 text-left ui-text-secondary font-semibold">{t('End')}</th>
+                        <th className="px-4 py-3 text-left ui-text-secondary font-semibold">{t('Current')}</th>
+                        <th className="px-4 py-3 text-left ui-text-secondary font-semibold">{t('Locked')}</th>
+                        <th className="px-4 py-3 text-right ui-text-secondary font-semibold">{t('Actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {allTerms.map((term) => (
                         <tr key={term.id} className="border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-                          <td className="px-3 py-2 ui-text-secondary">{term.academicYearLabel}</td>
-                          <td className="px-3 py-2 font-medium ui-text-primary">{term.name}</td>
-                          <td className="px-3 py-2 ui-text-secondary">{new Date(term.startDate).toLocaleDateString()}</td>
-                          <td className="px-3 py-2 ui-text-secondary">{new Date(term.endDate).toLocaleDateString()}</td>
-                          <td className="px-3 py-2">
+                          <td className="px-4 py-3 ui-text-secondary">{term.academicYearLabel}</td>
+                          <td className="px-4 py-3 font-medium ui-text-primary">{term.name}</td>
+                          <td className="px-4 py-3 ui-text-secondary">{new Date(term.startDate).toLocaleDateString()}</td>
+                          <td className="px-4 py-3 ui-text-secondary">{new Date(term.endDate).toLocaleDateString()}</td>
+                          <td className="px-4 py-3">
                             {term.isCurrent ? (
-                              <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-600 dark:text-emerald-400">{t('Current')}</span>
+                              <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">{t('Current')}</span>
                             ) : (
                               <span className="text-xs ui-text-secondary">—</span>
                             )}
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="px-4 py-3">
                             {term.isLocked ? (
-                              <span className="rounded-full bg-slate-500/20 px-2 py-0.5 text-xs ui-text-secondary">{t('Locked')}</span>
+                              <span className="rounded-full bg-slate-500/20 px-2 py-0.5 text-xs ui-text-secondary font-medium">{t('Locked')}</span>
                             ) : (
                               <span className="text-xs ui-text-secondary">—</span>
                             )}
                           </td>
-                          <td className="px-3 py-2">
-                            <div className="flex justify-end gap-2">
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-1">
                               <Button
                                 size="sm"
                                 variant="secondary"
@@ -576,7 +603,6 @@ export default function AdminSettingsPage() {
                 </div>
               )}
             </Card>
-          </div>
         </section>
 
         {/* ──────────────────────────────────────────────────────── */}
@@ -585,45 +611,56 @@ export default function AdminSettingsPage() {
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider ui-text-secondary">{t('School Branding')}</h2>
           <Card title={t('School Logo')} className="p-5">
-            <p className="text-sm ui-text-secondary mb-4">
+            <p className="text-sm ui-text-secondary mb-5">
               {t('Upload your school logo. It appears on generated report cards. PNG or SVG recommended, max 2 MB.')}
             </p>
-            <div className="flex items-start gap-5 flex-wrap">
+            <div className="flex items-start gap-6 flex-wrap">
               {/* Preview */}
-              <div className="w-20 h-20 rounded-full border-2 border-dashed flex items-center justify-center overflow-hidden shrink-0"
+              <div className="w-24 h-24 rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden shrink-0"
                 style={{ borderColor: 'var(--border-subtle)' }}>
                 {(logoPreview || logoUrl)
                   // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={logoPreview || logoUrl} alt="School logo" className="w-full h-full object-cover rounded-full" />
-                  : <span className="text-xs ui-text-secondary text-center px-1">{t('No logo')}</span>}
+                  ? <img src={logoPreview || logoUrl} alt="School logo" className="w-full h-full object-cover rounded-lg" />
+                  : <span className="text-xs ui-text-secondary text-center px-2">{t('noLogo')}</span>}
               </div>
-              <div className="flex-1 min-w-50 space-y-3">
+              <div className="flex-1 min-w-64 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium ui-text-secondary mb-2">{t('Upload image')}</label>
+                  <label className="block text-sm font-medium ui-text-secondary mb-2">{t('uploadImage')}</label>
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/gif,image/svg+xml,image/webp"
                     onChange={handleLogoFileChange}
-                    className="block w-full text-sm ui-text-secondary file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                    className="block w-full text-sm ui-text-secondary file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/20 dark:file:text-blue-400 cursor-pointer"
                   />
                   {logoFile && (
-                    <p className="mt-1 text-xs text-emerald-600">{logoFile.name} — ready to upload</p>
+                    <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">{logoFile.name} — {t('readyToUpload')}</p>
                   )}
                 </div>
-                <Input
-                  label={t('Or paste an image URL')}
-                  type="url"
-                  value={logoPreview ? '' : logoUrl}
-                  onChange={e => { setLogoUrl(e.target.value); setLogoFile(null); setLogoPreview('') }}
-                  placeholder="https://..."
-                />
+                <div>
+                  <Input
+                    label={t('pasteImageUrl')}
+                    type="url"
+                    value={logoPreview ? '' : logoUrl}
+                    onChange={e => { setLogoUrl(e.target.value); setLogoFile(null); setLogoPreview('') }}
+                    placeholder="https://..."
+                  />
+                </div>
                 <div className="flex gap-2">
-                  <Button type="button" isLoading={logoSaving} onClick={handleSaveLogo}
-                    disabled={!logoFile && !logoUrl}>
+                  <Button
+                    type="button"
+                    isLoading={logoSaving}
+                    onClick={handleSaveLogo}
+                    disabled={!logoFile && !logoUrl}
+                  >
                     {t('Save Logo')}
                   </Button>
                   {(logoUrl || logoPreview) && (
-                    <Button type="button" variant="secondary" disabled={logoSaving} onClick={handleClearLogo}>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={logoSaving}
+                      onClick={handleClearLogo}
+                    >
                       {t('Remove')}
                     </Button>
                   )}

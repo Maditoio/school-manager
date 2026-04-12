@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -8,6 +8,8 @@ import { Input, Select } from '@/components/ui/Form'
 import { useSession } from 'next-auth/react'
 import { redirect, useRouter } from 'next/navigation'
 import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
+import { translateText } from '@/lib/client-i18n'
+import { useLocale } from '@/lib/locale-context'
 
 interface Assessment {
   id: string
@@ -61,6 +63,9 @@ export default function TeacherAssessmentsPage() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [formLoading, setFormLoading] = useState(false)
   const [publishLoadingId, setPublishLoadingId] = useState<string | null>(null)
+
+  const { locale } = useLocale()
+  const t = useCallback((s: string) => translateText(s, locale), [locale])
 
   // Form state
   const [formData, setFormData] = useState({
@@ -269,7 +274,7 @@ export default function TeacherAssessmentsPage() {
   }
 
   if (status === 'loading' || !session) {
-    return <div>Loading...</div>
+    return <div>{t('Loading...')}</div>
   }
 
   const navItems = TEACHER_NAV_ITEMS
@@ -286,11 +291,11 @@ export default function TeacherAssessmentsPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Assessments</h1>
-            <p className="text-gray-600 mt-2">Create and manage assessments for your classes</p>
+            <h1 className="text-[24px] font-bold ui-text-primary">Assessments</h1>
+            <p className="ui-text-secondary mt-2">{t('Create and manage assessments for your classes')}</p>
           </div>
-          <Button onClick={() => setShowCreateForm(!showCreateForm)}>
-            {showCreateForm ? 'Cancel' : '+ Create Assessment'}
+          <Button onClick={() => setShowCreateForm(!showCreateForm)} variant="primary">
+            {showCreateForm ? t('Cancel') : '+ ' + t('Create Assessment')}
           </Button>
         </div>
 
@@ -311,10 +316,10 @@ export default function TeacherAssessmentsPage() {
                 ✕
               </button>
 
-              <h2 className="text-xl font-semibold mb-4">Create New Assessment</h2>
+              <h2 className="text-xl font-semibold mb-4">{t('createAssessment')}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
               <Input
-                label="Title"
+                label={t('Title')}
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="e.g., Mid-Term Math Test"
@@ -323,7 +328,7 @@ export default function TeacherAssessmentsPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Select
-                  label="Assessment Type"
+                  label={t('Assessment Type')}
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                   required
@@ -335,7 +340,7 @@ export default function TeacherAssessmentsPage() {
                 </Select>
 
                 <Input
-                  label="Total Marks"
+                  label={t('Total Marks')}
                   type="number"
                   value={formData.totalMarks}
                   onChange={(e) => setFormData({ ...formData, totalMarks: e.target.value })}
@@ -348,7 +353,7 @@ export default function TeacherAssessmentsPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
-                  label="Academic Year"
+                  label={t('Academic Year')}
                   type="number"
                   value={formData.academicYear}
                   onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
@@ -358,7 +363,7 @@ export default function TeacherAssessmentsPage() {
                 />
 
                 <Select
-                  label="Term"
+                  label={t('Term')}
                   value={formData.term}
                   onChange={(e) => setFormData({ ...formData, term: e.target.value })}
                   required
@@ -372,7 +377,7 @@ export default function TeacherAssessmentsPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Select
-                  label="Class"
+                  label={t('Class')}
                   value={formData.classId}
                   onChange={(e) => {
                     const nextClassId = e.target.value
@@ -381,7 +386,7 @@ export default function TeacherAssessmentsPage() {
                   }}
                   required
                 >
-                  <option value="">Select a class</option>
+                  <option value="">{t('Select a class')}</option>
                   {classes.map((cls) => (
                     <option key={cls.id} value={cls.id}>
                       {cls.name}
@@ -390,12 +395,12 @@ export default function TeacherAssessmentsPage() {
                 </Select>
 
                 <Select
-                  label="Subject"
+                  label={t('Subject')}
                   value={formData.subjectId}
                   onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
                   required
                 >
-                  <option value="">Select a subject</option>
+                  <option value="">{t('Select a subject')}</option>
                   {subjects.map((subject) => (
                     <option key={subject.id} value={subject.id}>
                       {subject.name}
@@ -405,30 +410,30 @@ export default function TeacherAssessmentsPage() {
               </div>
 
               <Input
-                label="Due Date (Optional)"
+                label={t('Due Date (Optional)')}
                 type="date"
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
               />
 
               <Input
-                label="Description (Optional)"
+                label={t('Description (Optional)')}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Add any additional details about this assessment"
               />
 
               <div className="flex gap-3">
-                <Button type="submit" isLoading={formLoading}>
-                  Create Assessment
+                <Button type="submit" isLoading={formLoading} variant="primary">
+                  {t('createAssessment')}
                 </Button>
                 <Button
                   type="button"
                   onClick={() => setShowCreateForm(false)}
                   disabled={formLoading}
-                  className="bg-gray-500 hover:bg-gray-600"
+                  variant="secondary"
                 >
-                  Cancel
+                  {t('Cancel')}
                 </Button>
               </div>
               </form>
@@ -439,7 +444,7 @@ export default function TeacherAssessmentsPage() {
         <Card className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <Select
-              label="Filter Class"
+              label={t('filterClass')}
               value={filters.classId}
               onChange={(e) => {
                 const nextClassId = e.target.value
@@ -448,7 +453,7 @@ export default function TeacherAssessmentsPage() {
                 fetchStudents(nextClassId)
               }}
             >
-              <option value="">All classes</option>
+              <option value="">{t('allClasses')}</option>
               {classes.map((cls) => (
                 <option key={cls.id} value={cls.id}>
                   {cls.name}
@@ -457,11 +462,11 @@ export default function TeacherAssessmentsPage() {
             </Select>
 
             <Select
-              label="Filter Subject"
+              label={t('filterSubject')}
               value={filters.subjectId}
               onChange={(e) => setFilters({ ...filters, subjectId: e.target.value })}
             >
-              <option value="">All subjects</option>
+              <option value="">{t('allSubjects')}</option>
               {subjects.map((subject) => (
                 <option key={subject.id} value={subject.id}>
                   {subject.name}
@@ -470,11 +475,11 @@ export default function TeacherAssessmentsPage() {
             </Select>
 
             <Select
-              label="Filter Student"
+              label={t('filterStudent')}
               value={filters.studentId}
               onChange={(e) => setFilters({ ...filters, studentId: e.target.value })}
             >
-              <option value="">All students</option>
+              <option value="">{t('allStudents')}</option>
               {students.map((student) => (
                 <option key={student.id} value={student.id}>
                   {student.firstName} {student.lastName}
@@ -483,92 +488,91 @@ export default function TeacherAssessmentsPage() {
             </Select>
 
             <div className="flex items-end gap-2">
-              <Button onClick={applyFilters}>Apply</Button>
-              <Button onClick={clearFilters} className="bg-gray-500 hover:bg-gray-600">Clear</Button>
+              <Button onClick={applyFilters} variant="primary" size="md">{t('apply')}</Button>
+              <Button onClick={clearFilters} variant="secondary" size="md">{t('clear')}</Button>
             </div>
           </div>
         </Card>
 
         <Card className="overflow-hidden p-0">
           {loading ? (
-            <div className="px-6 py-12 text-center text-gray-500 text-sm">Loading assessments...</div>
+            <div className="px-6 py-12 text-center ui-text-secondary text-sm">{t('Loading...')}</div>
           ) : assessments.length === 0 ? (
-            <div className="px-6 py-12 text-center text-gray-500 text-sm">
-              No assessments yet. Click &quot;+ Create Assessment&quot; to get started.
+            <div className="px-6 py-12 text-center ui-text-secondary text-sm">
+              {t('No assessments yet. Click')} &quot;+ {t('Create Assessment')}&quot; {t('to get started.')}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200 text-xs text-gray-500 uppercase tracking-wide">
-                    <th className="px-4 py-3 text-left font-medium">Title</th>
-                    <th className="px-4 py-3 text-left font-medium">Subject</th>
-                    <th className="px-4 py-3 text-center font-medium">Type</th>
-                    <th className="px-4 py-3 text-center font-medium">Marks</th>
-                    <th className="px-4 py-3 text-center font-medium">Due Date</th>
-                    <th className="px-4 py-3 text-center font-medium">Students Graded</th>
-                    <th className="px-4 py-3 text-center font-medium">Status</th>
-                    <th className="px-4 py-3 text-right font-medium">Actions</th>
+                  <tr className="border-b" style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-soft)' }}>
+                    <th className="px-4 py-3 text-left ui-text-secondary font-semibold">Title</th>
+                    <th className="px-4 py-3 text-left ui-text-secondary font-semibold">Subject</th>
+                    <th className="px-4 py-3 text-center ui-text-secondary font-semibold">Type</th>
+                    <th className="px-4 py-3 text-center ui-text-secondary font-semibold">Marks</th>
+                    <th className="px-4 py-3 text-center ui-text-secondary font-semibold">Due Date</th>
+                    <th className="px-4 py-3 text-center ui-text-secondary font-semibold">{t('studentGraded')}</th>
+                    <th className="px-4 py-3 text-center ui-text-secondary font-semibold">Status</th>
+                    <th className="px-4 py-3 text-right ui-text-secondary font-semibold">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
                   {assessments.map((assessment) => (
-                    <tr key={assessment.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={assessment.id} style={{ borderColor: 'var(--border-subtle)' }}>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900">{assessment.title}</div>
+                        <div className="font-medium ui-text-primary">{assessment.title}</div>
                         {assessment.description && (
-                          <div className="text-xs text-gray-400 mt-0.5 max-w-xs truncate" title={assessment.description}>
+                          <div className="text-xs ui-text-secondary mt-0.5 max-w-xs truncate" title={assessment.description}>
                             {assessment.description}
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{assessment.subject.name}</td>
+                      <td className="px-4 py-3 ui-text-secondary">{assessment.subject.name}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                           {assessment.type}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center font-medium text-gray-800">{assessment.totalMarks}</td>
-                      <td className="px-4 py-3 text-center text-gray-500">{formatDate(assessment.dueDate)}</td>
-                      <td className="px-4 py-3 text-center text-gray-600">
+                      <td className="px-4 py-3 text-center font-medium ui-text-primary">{assessment.totalMarks}</td>
+                      <td className="px-4 py-3 text-center ui-text-secondary">{formatDate(assessment.dueDate)}</td>
+                      <td className="px-4 py-3 text-center ui-text-secondary">
                         {assessment.gradedCount ?? 0}/{assessment._count?.studentAssessments ?? 0}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {assessment.published ? (
-                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Published</span>
+                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">{t('published')}</span>
                         ) : (
-                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Draft</span>
+                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{t('draft')}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="primary"
                             onClick={() => router.push(`/teacher/assessments/${assessment.id}/grade`)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700 transition-colors"
                           >
-                            Grade
-                          </button>
-                          <button
+                            {t('grade')}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={assessment.published ? 'secondary' : 'primary'}
                             onClick={() => handleTogglePublish(assessment)}
                             disabled={publishLoadingId === assessment.id}
-                            className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white rounded transition-colors disabled:opacity-60 ${
-                              assessment.published
-                                ? 'bg-amber-600 hover:bg-amber-700'
-                                : 'bg-indigo-600 hover:bg-indigo-700'
-                            }`}
                           >
                             {publishLoadingId === assessment.id
-                              ? 'Saving...'
+                              ? t('saving')
                               : assessment.published
-                                ? 'Unpublish'
-                                : 'Publish'}
-                          </button>
-                          <button
+                                ? t('unpublish')
+                                : t('publish')}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
                             onClick={() => handleDelete(assessment.id)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-red-500 rounded hover:bg-red-600 transition-colors"
                           >
-                            Delete
-                          </button>
+                            {t('delete')}
+                          </Button>
                         </div>
                       </td>
                     </tr>
