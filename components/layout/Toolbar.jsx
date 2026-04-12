@@ -177,14 +177,22 @@ export default function Toolbar({
                   setIsLanguageOpen((prev) => !prev)
                 }}
                 onKeyDown={handleLanguageButtonKeyDown}
-                className="group inline-flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 text-xs font-medium uppercase tracking-[0.12em] text-slate-200 transition-all duration-200 ease-in-out hover:border-indigo-300/30 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/50"
+                className={`group inline-flex h-9 items-center gap-2 rounded-full border transition-all duration-200 ease-in-out px-3 text-xs font-medium uppercase tracking-[0.12em] ${
+                  isDark
+                    ? 'border-white/10 bg-white/5 text-slate-200 hover:border-indigo-300/30 hover:bg-white/10 focus-visible:ring-indigo-300/50'
+                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-indigo-300 hover:bg-slate-100 focus-visible:ring-indigo-500/30'
+                } focus-visible:outline-none focus-visible:ring-2`}
               >
-                <Globe className="h-3.5 w-3.5 text-indigo-300/85 transition-colors duration-200 ease-in-out group-hover:text-indigo-200" />
+                <Globe className={`h-3.5 w-3.5 transition-colors duration-200 ease-in-out group-hover:text-indigo-600 ${isDark ? 'text-indigo-300/85 group-hover:text-indigo-200' : 'text-indigo-600'}`} />
                 <span>{selectedLanguage.code.toUpperCase()}</span>
               </button>
 
               <div
-                className={`absolute right-0 top-11 w-44 origin-top-right rounded-xl border border-white/15 bg-[#13151F]/80 p-1.5 backdrop-blur-xl transition-all duration-150 ease-in-out ${
+                className={`absolute right-0 top-11 w-44 origin-top-right rounded-xl border p-1.5 backdrop-blur-xl transition-all duration-150 ease-in-out ${
+                  isDark
+                    ? 'border-white/15 bg-[#13151F]/80'
+                    : 'border-slate-200/50 bg-white/95'
+                } ${
                   isLanguageOpen
                     ? 'pointer-events-auto translate-y-0 opacity-100'
                     : 'pointer-events-none -translate-y-1.5 opacity-0'
@@ -216,13 +224,17 @@ export default function Toolbar({
                           }}
                           className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-all duration-200 ease-in-out ${
                             isActive
-                              ? 'bg-white/10 text-white'
-                              : 'text-slate-300 hover:bg-white/8 hover:text-slate-100'
+                              ? isDark
+                                ? 'bg-white/10 text-white'
+                                : 'bg-slate-100 text-slate-900'
+                              : isDark
+                                ? 'text-slate-300 hover:bg-white/8 hover:text-slate-100'
+                                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                           }`}
                         >
                           <span>{option.label}</span>
                           {isSelected ? (
-                            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-indigo-300">
+                            <span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
                               Active
                             </span>
                           ) : null}
@@ -238,19 +250,23 @@ export default function Toolbar({
               type="button"
               aria-label="Toggle theme"
               onClick={onThemeToggle}
-              className="relative inline-flex h-9 w-12 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-100 transition-all duration-200 ease-in-out hover:border-indigo-300/40 hover:bg-white/10 hover:shadow-[0_0_0_2px_rgba(99,102,241,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/50"
+              className={`relative inline-flex h-9 w-12 items-center justify-center rounded-full border transition-all duration-200 ease-in-out ${
+                isDark
+                  ? 'border-white/10 bg-white/5 text-slate-100 hover:border-indigo-300/40 hover:bg-white/10 hover:shadow-[0_0_0_2px_rgba(99,102,241,0.18)]'
+                  : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-indigo-300 hover:bg-slate-100 hover:shadow-[0_0_0_2px_rgba(99,102,241,0.1)]'
+              } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/50`}
             >
               <span className="relative h-5 w-5">
                 <Sun
                   aria-hidden="true"
-                  className={`absolute inset-0 h-5 w-5 text-amber-300 transition-all duration-300 ease-in-out ${
-                    isDark ? 'rotate-360 opacity-0' : 'rotate-0 opacity-100'
+                  className={`absolute inset-0 h-5 w-5 transition-all duration-300 ease-in-out ${
+                    isDark ? 'rotate-360 opacity-0 text-amber-300' : 'rotate-0 opacity-100 text-amber-500'
                   }`}
                 />
                 <Moon
                   aria-hidden="true"
-                  className={`absolute inset-0 h-5 w-5 text-indigo-200 transition-all duration-300 ease-in-out ${
-                    isDark ? 'rotate-0 opacity-100' : '-rotate-360 opacity-0'
+                  className={`absolute inset-0 h-5 w-5 transition-all duration-300 ease-in-out ${
+                    isDark ? 'rotate-0 opacity-100 text-indigo-200' : '-rotate-360 opacity-0 text-indigo-400'
                   }`}
                 />
               </span>
