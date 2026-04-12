@@ -38,8 +38,6 @@ type AcademicRow = {
   gradeLabel: string
 }
 
-const PASS_MARK_PERCENT = 50
-
 function roundOne(value: number) {
   return Number(value.toFixed(1))
 }
@@ -96,6 +94,7 @@ async function getAcademicRowsForTerm(params: {
       score: { not: null },
       assessment: {
         schoolId: params.schoolId,
+        type: 'EXAM',
         OR: [
           { termId: params.termId },
           {
@@ -142,6 +141,7 @@ async function getAcademicRowsForTerm(params: {
   const legacyResults = await prisma.result.findMany({
     where: {
       schoolId: params.schoolId,
+      examScore: { not: null },
       OR: [
         { termId: params.termId },
         {
@@ -152,7 +152,7 @@ async function getAcademicRowsForTerm(params: {
       ],
     },
     select: {
-      totalScore: true,
+      examScore: true,
       maxScore: true,
       createdAt: true,
       updatedAt: true,
@@ -170,7 +170,7 @@ async function getAcademicRowsForTerm(params: {
   })
 
   return legacyResults.map((row) => ({
-    totalScore: row.totalScore,
+    totalScore: row.examScore,
     maxScore: Number(row.maxScore),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -759,12 +759,10 @@ export async function GET(request: NextRequest) {
       const alerts: SchoolAdminDashboardStats['alerts'] = []
 
       if (currentTerm) {
-        const [currentRows, previousTerms] = await Promise.all([
-          getAcademicRowsForTerm({
-            schoolId,
-            termId: currentTerm.id,
-            termName: currentTerm.name,
-            academicYear: currentTerm.academicYear.year,
+        const [settings, historicalTerms] = await Promise.all([
+          prisma.schoolSettings.findUnique({
+            where: { schoolId },
+            select: { minimumPassRatePerSubject: true },
           }),
           (async () => {
             const terms = await prisma.terms.findMany({
@@ -782,7 +780,7 @@ export async function GET(request: NextRequest) {
                 },
               },
               orderBy: [{ academic_years: { year: 'desc' } }, { start_date: 'desc' }],
-              take: 2,
+              take: 3,
             })
 
             return terms.map((term) => ({
@@ -797,119 +795,134 @@ export async function GET(request: NextRequest) {
           })(),
         ])
 
-        const validPercents: number[] = []
-        let passCount = 0
-        const classAcc = new Map<string, { sum: number; count: number }>()
-        const gradeAcc = new Map<string, { sum: number; count: number; passCount: number }>()
+        const passMarkPercent = settings?.minimumPassRatePerSubject ?? 50
+        const previousTerm = historicalTerms[0] ?? null
+        const twoTermsAgo = historicalTerms[1] ?? null
+        const threeTermsAgo = historicalTerms[2] ?? null
 
-        for (const row of currentRows) {
-          const percent = resultPercent(row.totalScore, row.maxScore)
-          if (percent === null) continue
+        if (previousTerm) {
+          const [baseRows, lastRows, previousRows] = await Promise.all([
+            getAcademicRowsForTerm({
+              schoolId,
+              termId: previousTerm.id,
+              termName: previousTerm.name,
+              academicYear: previousTerm.academicYear.year,
+            }),
+            twoTermsAgo
+              ? getAcademicRowsForTerm({
+                  schoolId,
+                  termId: twoTermsAgo.id,
+                  termName: twoTermsAgo.name,
+                  academicYear: twoTermsAgo.academicYear.year,
+                })
+              : Promise.resolve([]),
+            threeTermsAgo
+              ? getAcademicRowsForTerm({
+                  schoolId,
+                  termId: threeTermsAgo.id,
+                  termName: threeTermsAgo.name,
+                  academicYear: threeTermsAgo.academicYear.year,
+                })
+              : Promise.resolve([]),
+          ])
 
-          validPercents.push(percent)
-          if (percent >= PASS_MARK_PERCENT) passCount += 1
+          const validPercents: number[] = []
+          let passCount = 0
+          const classAcc = new Map<string, { sum: number; count: number }>()
+          const gradeAcc = new Map<string, { sum: number; count: number; passCount: number }>()
 
-          const classExisting = classAcc.get(row.className) || { sum: 0, count: 0 }
-          classExisting.sum += percent
-          classExisting.count += 1
-          classAcc.set(row.className, classExisting)
+          for (const row of baseRows) {
+            const percent = resultPercent(row.totalScore, row.maxScore)
+            if (percent === null) continue
 
-          const gradeExisting = gradeAcc.get(row.gradeLabel) || { sum: 0, count: 0, passCount: 0 }
-          gradeExisting.sum += percent
-          gradeExisting.count += 1
-          if (percent >= PASS_MARK_PERCENT) gradeExisting.passCount += 1
-          gradeAcc.set(row.gradeLabel, gradeExisting)
-        }
+            validPercents.push(percent)
+            if (percent >= passMarkPercent) passCount += 1
 
-        const classAverages = Array.from(classAcc.entries()).map(([name, acc]) => ({
-          name,
-          average: acc.count > 0 ? roundOne(acc.sum / acc.count) : 0,
-        }))
+            const classExisting = classAcc.get(row.className) || { sum: 0, count: 0 }
+            classExisting.sum += percent
+            classExisting.count += 1
+            classAcc.set(row.className, classExisting)
 
-        const topClass = classAverages.length > 0
-          ? classAverages.reduce((best, current) => (current.average > best.average ? current : best))
-          : { name: '-', average: 0 }
+            const gradeExisting = gradeAcc.get(row.gradeLabel) || { sum: 0, count: 0, passCount: 0 }
+            gradeExisting.sum += percent
+            gradeExisting.count += 1
+            if (percent >= passMarkPercent) gradeExisting.passCount += 1
+            gradeAcc.set(row.gradeLabel, gradeExisting)
+          }
 
-        const lowestClass = classAverages.length > 0
-          ? classAverages.reduce((worst, current) => (current.average < worst.average ? current : worst))
-          : { name: '-', average: 0 }
-
-        const schoolAverage = validPercents.length > 0
-          ? roundOne(validPercents.reduce((sum, value) => sum + value, 0) / validPercents.length)
-          : 0
-
-        const overallPassRate = validPercents.length > 0
-          ? roundOne((passCount / validPercents.length) * 100)
-          : 0
-
-        const gradeAverages = Array.from(gradeAcc.entries())
-          .map(([grade, acc]) => ({
-            grade,
+          const classAverages = Array.from(classAcc.entries()).map(([name, acc]) => ({
+            name,
             average: acc.count > 0 ? roundOne(acc.sum / acc.count) : 0,
-            passRate: acc.count > 0 ? roundOne((acc.passCount / acc.count) * 100) : 0,
           }))
-          .sort((a, b) => a.grade.localeCompare(b.grade, undefined, { numeric: true, sensitivity: 'base' }))
 
-        const currentWeeks = weekCount(currentTerm.startDate, currentTerm.endDate)
-        const currentTrend = termWeekAverages(currentRows, currentTerm.startDate, currentWeeks)
+          const topClass = classAverages.length > 0
+            ? classAverages.reduce((best, current) => (current.average > best.average ? current : best))
+            : { name: '-', average: 0 }
 
-        const [lastRows, previousRows] = await Promise.all([
-          previousTerms[0]
-            ? getAcademicRowsForTerm({
-                schoolId,
-                termId: previousTerms[0].id,
-                termName: previousTerms[0].name,
-                academicYear: previousTerms[0].academicYear.year,
-              })
-            : Promise.resolve([]),
-          previousTerms[1]
-            ? getAcademicRowsForTerm({
-                schoolId,
-                termId: previousTerms[1].id,
-                termName: previousTerms[1].name,
-                academicYear: previousTerms[1].academicYear.year,
-              })
-            : Promise.resolve([]),
-        ])
+          const lowestClass = classAverages.length > 0
+            ? classAverages.reduce((worst, current) => (current.average < worst.average ? current : worst))
+            : { name: '-', average: 0 }
 
-        const lastTrend = previousTerms[0]
-          ? termWeekAverages(lastRows, previousTerms[0].startDate, currentWeeks)
-          : Array.from({ length: currentWeeks }, () => 0)
+          const schoolAverage = validPercents.length > 0
+            ? roundOne(validPercents.reduce((sum, value) => sum + value, 0) / validPercents.length)
+            : 0
 
-        const previousTrend = previousTerms[1]
-          ? termWeekAverages(previousRows, previousTerms[1].startDate, currentWeeks)
-          : Array.from({ length: currentWeeks }, () => 0)
+          const overallPassRate = validPercents.length > 0
+            ? roundOne((passCount / validPercents.length) * 100)
+            : 0
 
-        const trendByWeek = Array.from({ length: currentWeeks }, (_, index) => ({
-          week: `W${index + 1}`,
-          current: currentTrend[index] || 0,
-          last: lastTrend[index] || 0,
-          previous: previousTrend[index] || 0,
-        }))
+          const gradeAverages = Array.from(gradeAcc.entries())
+            .map(([grade, acc]) => ({
+              grade,
+              average: acc.count > 0 ? roundOne(acc.sum / acc.count) : 0,
+              passRate: acc.count > 0 ? roundOne((acc.passCount / acc.count) * 100) : 0,
+            }))
+            .sort((a, b) => a.grade.localeCompare(b.grade, undefined, { numeric: true, sensitivity: 'base' }))
 
-        const lastTermAverage = previousTerms[0]
-          ? (() => {
-              const percents = lastRows
-                .map((row) => resultPercent(row.totalScore, row.maxScore))
-                .filter((value): value is number => value !== null)
-              return percents.length > 0
-                ? roundOne(percents.reduce((sum, value) => sum + value, 0) / percents.length)
-                : 0
-            })()
-          : 0
+          const currentWeeks = weekCount(previousTerm.startDate, previousTerm.endDate)
+          const currentTrend = termWeekAverages(baseRows, previousTerm.startDate, currentWeeks)
 
-        const schoolAverageDelta = roundOne(schoolAverage - lastTermAverage)
+          const lastTrend = twoTermsAgo
+            ? termWeekAverages(lastRows, twoTermsAgo.startDate, currentWeeks)
+            : Array.from({ length: currentWeeks }, () => 0)
 
-        academic = {
-          passRate: overallPassRate,
-          topClass,
-          lowestClass,
-          schoolAverage: {
-            value: schoolAverage,
-            delta: `${schoolAverageDelta >= 0 ? '+' : ''}${schoolAverageDelta.toFixed(1)}% vs last term`,
-          },
-          gradeAverages,
-          trendByWeek,
+          const previousTrend = threeTermsAgo
+            ? termWeekAverages(previousRows, threeTermsAgo.startDate, currentWeeks)
+            : Array.from({ length: currentWeeks }, () => 0)
+
+          const trendByWeek = Array.from({ length: currentWeeks }, (_, index) => ({
+            week: `W${index + 1}`,
+            current: currentTrend[index] || 0,
+            last: lastTrend[index] || 0,
+            previous: previousTrend[index] || 0,
+          }))
+
+          const lastTermAverage = twoTermsAgo
+            ? (() => {
+                const percents = lastRows
+                  .map((row) => resultPercent(row.totalScore, row.maxScore))
+                  .filter((value): value is number => value !== null)
+                return percents.length > 0
+                  ? roundOne(percents.reduce((sum, value) => sum + value, 0) / percents.length)
+                  : 0
+              })()
+            : 0
+
+          const schoolAverageDelta = roundOne(schoolAverage - lastTermAverage)
+
+          academic = {
+            passRate: overallPassRate,
+            topClass,
+            lowestClass,
+            schoolAverage: {
+              value: schoolAverage,
+              delta: twoTermsAgo
+                ? `${schoolAverageDelta >= 0 ? '+' : ''}${schoolAverageDelta.toFixed(1)}% vs two terms ago`
+                : 'No earlier term to compare',
+            },
+            gradeAverages,
+            trendByWeek,
+          }
         }
 
         const classRows = await prisma.$queryRaw<Array<{

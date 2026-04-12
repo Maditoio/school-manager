@@ -58,8 +58,8 @@ export default function AcademicSection({ data, loading }) {
   if (!data) {
     return (
       <div className="rounded-2xl border p-6 text-center" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }}>
-        <p className="text-sm font-medium text-slate-200">{translateText('No academic data available for the current term yet.', locale)}</p>
-        <p className="mt-1 text-xs text-slate-400">{translateText('Results will appear after assessments are graded for this term.', locale)}</p>
+        <p className="text-sm font-medium text-slate-200">{translateText('No academic data available for the previous term yet.', locale)}</p>
+        <p className="mt-1 text-xs text-slate-400">{translateText('Results will appear after exam assessments are graded.', locale)}</p>
       </div>
     )
   }
@@ -124,9 +124,9 @@ export default function AcademicSection({ data, loading }) {
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-semibold text-slate-200">{translateText('Term Performance Trend', locale)}</p>
             <div className="flex items-center gap-3 text-[11px] text-slate-400">
-              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-indigo-500" />{translateText('Current', locale)}</span>
-              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-sky-400" />{translateText('Last', locale)}</span>
-              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-500" />{translateText('Two Terms Ago', locale)}</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-indigo-500" />{translateText('Previous Term', locale)}</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-sky-400" />{translateText('Two Terms Ago', locale)}</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-500" />{translateText('Three Terms Ago', locale)}</span>
             </div>
           </div>
           <div className="h-[270px]">

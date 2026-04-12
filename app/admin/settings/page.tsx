@@ -47,6 +47,9 @@ export default function AdminSettingsPage() {
   const [threshold, setThreshold] = useState(0)
   const [thresholdInput, setThresholdInput] = useState('0')
   const [thresholdSaving, setThresholdSaving] = useState(false)
+  const [minimumPassRatePerSubject, setMinimumPassRatePerSubject] = useState(50)
+  const [minimumPassRateInput, setMinimumPassRateInput] = useState('50')
+  const [minimumPassRateSaving, setMinimumPassRateSaving] = useState(false)
 
   // Currency setting
   const [currencyInput, setCurrencyInput] = useState<CurrencyCode>('ZAR')
@@ -86,8 +89,11 @@ export default function AdminSettingsPage() {
       const data = await res.json()
       if (res.ok) {
         const thresh = data.expenseApprovalThreshold ?? 0
+        const passRate = data.minimumPassRatePerSubject ?? 50
         setThreshold(thresh)
         setThresholdInput(String(thresh))
+        setMinimumPassRatePerSubject(passRate)
+        setMinimumPassRateInput(String(passRate))
         if (data.currency) setCurrencyInput(data.currency as CurrencyCode)
         if (data.logoUrl) setLogoUrl(data.logoUrl)
       }
@@ -226,6 +232,36 @@ export default function AdminSettingsPage() {
       showToast(t('Failed to save setting'), 'error')
     } finally {
       setThresholdSaving(false)
+    }
+  }
+
+  const handleSaveMinimumPassRate = async () => {
+    const value = Number(minimumPassRateInput)
+    if (isNaN(value) || value < 0 || value > 100) {
+      showToast(t('Please enter a valid percentage between 0 and 100'), 'warning')
+      return
+    }
+
+    try {
+      setMinimumPassRateSaving(true)
+      const res = await fetch('/api/schools/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ minimumPassRatePerSubject: value }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        showToast(data.error || t('Failed to save setting'), 'error')
+        return
+      }
+
+      setMinimumPassRatePerSubject(data.minimumPassRatePerSubject)
+      setMinimumPassRateInput(String(data.minimumPassRatePerSubject))
+      showToast(t('Minimum pass rate saved'), 'success')
+    } catch {
+      showToast(t('Failed to save setting'), 'error')
+    } finally {
+      setMinimumPassRateSaving(false)
     }
   }
 
@@ -463,6 +499,34 @@ export default function AdminSettingsPage() {
         {/* ──────────────────────────────────────────────────────── */}
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider ui-text-secondary">{t('Academic Calendar')}</h2>
+
+          <Card title={t('Academic Pass Mark')} className="mb-4 p-5">
+            <p className="text-sm ui-text-secondary mb-4">
+              {t('Set the minimum exam percentage required to pass a subject. Dashboard academic KPIs use this value for pass-rate calculations.')}
+            </p>
+            <div className="flex items-end gap-3 max-w-sm">
+              <Input
+                label={t('Minimum pass mark (%)')}
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                value={minimumPassRateInput}
+                onChange={(e) => setMinimumPassRateInput(e.target.value)}
+              />
+              <Button
+                type="button"
+                isLoading={minimumPassRateSaving}
+                onClick={handleSaveMinimumPassRate}
+                className="shrink-0"
+              >
+                {t('Save')}
+              </Button>
+            </div>
+            <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+              {t('Current minimum pass mark:')} {minimumPassRatePerSubject}%
+            </p>
+          </Card>
 
           {/* Create Academic Year & Add Term - Combined Form */}
           <div className="space-y-4">

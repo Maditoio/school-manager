@@ -312,7 +312,7 @@ export default function AnnouncementsPage() {
                     <img
                       src={imagePreview || formData.imageUrl}
                       alt={t('Announcement image preview')}
-                      className="h-full w-full rounded-lg object-cover"
+                      className="h-full w-full rounded-sm object-cover"
                     />
                     <button
                       type="button"
@@ -366,7 +366,7 @@ export default function AnnouncementsPage() {
                     </div>
                     {announcement.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={announcement.imageUrl} alt={announcement.title} className="h-48 w-full rounded-xl object-cover" />
+                      <img src={announcement.imageUrl} alt={announcement.title} className="h-48 w-full rounded-sm object-cover" />
                     ) : null}
                     <p className="text-gray-700 whitespace-pre-wrap">{announcement.message}</p>
                   </div>
