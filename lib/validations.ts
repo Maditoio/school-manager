@@ -117,6 +117,9 @@ export const recordFeePaymentSchema = z.object({
   paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'M_PESA', 'ORANGE_MONEY', 'OTHER']),
   paymentDate: z.string().optional(),
   notes: z.string().optional(),
+  receiptUrl: z.string().url('Invalid receipt URL').optional(),
+  receiptFileName: z.string().min(1).max(255).optional(),
+  receiptMimeType: z.string().min(1).max(120).optional(),
 })
 
 export const createExpenseSchema = z.object({
@@ -143,6 +146,9 @@ export const createExpenseSchema = z.object({
   paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'M_PESA', 'ORANGE_MONEY', 'OTHER']).optional().nullable(),
   vendorName: z.string().optional(),
   referenceNumber: z.string().optional(),
+  invoiceUrl: z.string().url('Invalid invoice URL').optional(),
+  invoiceFileName: z.string().min(1).max(255).optional(),
+  invoiceMimeType: z.string().min(1).max(120).optional(),
   beneficiaryName: z.string().optional(),
   studentId: z.string().uuid('Invalid student ID').optional().or(z.literal('')),
   status: z.enum(['RECORDED', 'APPROVED', 'VOID']).optional(),

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button'
 import Table from '@/components/ui/Table'
 import { Input, Select, TextArea } from '@/components/ui/Form'
 import { useToast } from '@/components/ui/Toast'
-import { BadgeDollarSign, FileText, Plus, ReceiptText, ShieldCheck, Wallet } from 'lucide-react'
+import { BadgeDollarSign, Plus, ReceiptText, ShieldCheck, Wallet } from 'lucide-react'
 import { translateText } from '@/lib/client-i18n'
 import { useLocale } from '@/lib/locale-context'
 import { useCurrency } from '@/lib/currency-context'
@@ -43,6 +43,9 @@ type ExpenseItem = {
   paymentMethod: PaymentMethod | null
   vendorName: string | null
   referenceNumber: string | null
+  invoiceUrl: string | null
+  invoiceFileName: string | null
+  invoiceMimeType: string | null
   beneficiaryName: string | null
   status: ExpenseStatus
   studentId: string | null
@@ -131,6 +134,7 @@ export default function FinanceExpensesPage() {
   const [selectedExpenseId, setSelectedExpenseId] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [uploadingInvoice, setUploadingInvoice] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
@@ -154,11 +158,15 @@ export default function FinanceExpensesPage() {
     paymentMethod: 'BANK_TRANSFER' as PaymentMethod,
     vendorName: '',
     referenceNumber: '',
+    invoiceUrl: '',
+    invoiceFileName: '',
+    invoiceMimeType: '',
     beneficiaryName: '',
     studentId: '',
     description: '',
     status: 'RECORDED' as ExpenseStatus,
   })
+  const [invoiceFile, setInvoiceFile] = useState<File | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -294,11 +302,15 @@ export default function FinanceExpensesPage() {
       paymentMethod: 'BANK_TRANSFER',
       vendorName: '',
       referenceNumber: '',
+      invoiceUrl: '',
+      invoiceFileName: '',
+      invoiceMimeType: '',
       beneficiaryName: '',
       studentId: '',
       description: '',
       status: 'RECORDED',
     })
+    setInvoiceFile(null)
   }
 
   const openCreateModal = () => {
@@ -320,12 +332,37 @@ export default function FinanceExpensesPage() {
       paymentMethod: expense.paymentMethod || 'BANK_TRANSFER',
       vendorName: expense.vendorName || '',
       referenceNumber: expense.referenceNumber || '',
+      invoiceUrl: expense.invoiceUrl || '',
+      invoiceFileName: expense.invoiceFileName || '',
+      invoiceMimeType: expense.invoiceMimeType || '',
       beneficiaryName: expense.beneficiaryName || '',
       studentId: expense.studentId || '',
       description: expense.description || '',
       status: expense.status,
     })
     setShowModal(true)
+  }
+
+  const uploadInvoice = async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('kind', 'expenses')
+
+    const res = await fetch('/api/finance/attachments', {
+      method: 'POST',
+      body: formData,
+    })
+    const data = await res.json()
+
+    if (!res.ok) {
+      throw new Error(data?.error || 'Failed to upload invoice')
+    }
+
+    return {
+      invoiceUrl: data.url as string,
+      invoiceFileName: data.fileName as string,
+      invoiceMimeType: data.mimeType as string,
+    }
   }
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -339,10 +376,20 @@ export default function FinanceExpensesPage() {
 
     try {
       setSaving(true)
+      let invoicePayload: { invoiceUrl: string; invoiceFileName: string; invoiceMimeType: string } | null = null
+      if (invoiceFile) {
+        setUploadingInvoice(true)
+        invoicePayload = await uploadInvoice(invoiceFile)
+      }
+
       const payload = {
         ...formData,
         amount,
         studentId: formData.studentId || undefined,
+        invoiceUrl: formData.invoiceUrl || undefined,
+        invoiceFileName: formData.invoiceFileName || undefined,
+        invoiceMimeType: formData.invoiceMimeType || undefined,
+        ...(invoicePayload ? invoicePayload : {}),
       }
 
       const res = await fetch(editingExpense ? `/api/expenses/${editingExpense.id}` : '/api/expenses', {
@@ -365,6 +412,7 @@ export default function FinanceExpensesPage() {
       console.error('Failed to save expense:', error)
       showToast(translateText('Failed to save expense', locale), 'error')
     } finally {
+      setUploadingInvoice(false)
       setSaving(false)
     }
   }
@@ -463,6 +511,17 @@ export default function FinanceExpensesPage() {
         }
         return labels[expense.status] || expense.status
       },
+    },
+    {
+      key: 'invoice',
+      label: translateText('Invoice', locale),
+      renderCell: (expense: ExpenseItem) => (
+        expense.invoiceUrl ? (
+          <a href={expense.invoiceUrl} target="_blank" rel="noreferrer" className="text-indigo-300 hover:underline">
+            {expense.invoiceFileName || translateText('View invoice', locale)}
+          </a>
+        ) : <span className="text-xs ui-text-secondary">—</span>
+      ),
     },
     {
       key: 'createdByName',
@@ -716,8 +775,22 @@ export default function FinanceExpensesPage() {
                   </Select>
                 </div>
                 <TextArea label="Description / Notes" rows={4} value={formData.description} onChange={(event) => setFormData((prev) => ({ ...prev, description: event.target.value }))} />
+                <div>
+                  <label className="mb-1 block text-sm font-medium ui-text-secondary">Invoice / Receipt (Optional)</label>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif,image/webp,application/pdf"
+                    onChange={(event) => setInvoiceFile(event.target.files?.[0] || null)}
+                    className="ui-input"
+                  />
+                  {formData.invoiceUrl ? (
+                    <a href={formData.invoiceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs text-indigo-300 hover:underline">
+                      {formData.invoiceFileName || 'Current invoice'}
+                    </a>
+                  ) : null}
+                </div>
                 <div className="flex gap-2 pt-2">
-                  <Button type="submit" isLoading={saving} className="flex-1">{editingExpense ? 'Update Expense' : 'Save Expense'}</Button>
+                  <Button type="submit" isLoading={saving || uploadingInvoice} className="flex-1">{editingExpense ? 'Update Expense' : 'Save Expense'}</Button>
                   <button type="button" onClick={() => { setShowModal(false); resetForm() }} className="flex-1 ui-button ui-button-secondary">Cancel</button>
                 </div>
               </form>

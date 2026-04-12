@@ -31,6 +31,9 @@ type ExpenseItem = {
   expenseDate: string
   vendorName: string | null
   referenceNumber: string | null
+  invoiceUrl: string | null
+  invoiceFileName: string | null
+  invoiceMimeType: string | null
   beneficiaryName: string | null
   status: ExpenseStatus
   studentName: string | null
@@ -320,6 +323,17 @@ export default function AdminExpensesPage() {
       key: 'createdByName',
       label: translateText('Recorded By', locale),
       sortable: true,
+    },
+    {
+      key: 'invoice',
+      label: translateText('Invoice', locale),
+      renderCell: (e: ExpenseItem) => (
+        e.invoiceUrl ? (
+          <a href={e.invoiceUrl} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">
+            {e.invoiceFileName || translateText('View invoice', locale)}
+          </a>
+        ) : <span className="text-xs ui-text-secondary">—</span>
+      ),
     },
     {
       key: 'status',

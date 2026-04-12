@@ -13,6 +13,8 @@ interface FeePayment {
   paymentMethod: string | null
   paymentNumber: string | null
   notes: string | null
+  receiptUrl: string | null
+  receiptFileName: string | null
 }
 
 interface FeeSchedule {
@@ -196,6 +198,7 @@ export default function StudentFeesPage() {
                                   <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Mode</th>
                                   <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Réf. #</th>
                                   <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Montant</th>
+                                  <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Facture</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -205,6 +208,11 @@ export default function StudentFeesPage() {
                                     <td className="px-3 py-2.5 text-xs ui-text-secondary">{p.paymentMethod ?? 'N/A'}</td>
                                     <td className="px-3 py-2.5 text-xs ui-text-secondary">{p.paymentNumber ?? '-'}</td>
                                     <td className="px-3 py-2.5 text-right text-sm font-semibold text-green-600">{fmt(p.amountPaid)}</td>
+                                    <td className="px-3 py-2.5 text-right text-xs">
+                                      <a href={`/student/fees/invoice/${p.id}`} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">
+                                        Voir
+                                      </a>
+                                    </td>
                                   </tr>
                                 ))}
                               </tbody>

@@ -91,6 +91,8 @@ type RecentPayment = {
   studentName: string
   admissionNumber: string | null
   className: string
+  receiptUrl: string | null
+  receiptFileName: string | null
 }
 
 export default function AdminFeesPage({
@@ -132,6 +134,8 @@ export default function AdminFeesPage({
     paymentDate: new Date().toISOString().slice(0, 10),
     notes: '',
   })
+  const [paymentReceiptFile, setPaymentReceiptFile] = useState<File | null>(null)
+  const [uploadingReceipt, setUploadingReceipt] = useState(false)
 
   const [creatingSchedule, setCreatingSchedule] = useState(false)
   const [recordingPayment, setRecordingPayment] = useState(false)
@@ -336,13 +340,20 @@ export default function AdminFeesPage({
         key: 'invoice',
         label: 'Invoice',
         renderCell: (payment: RecentPayment) => (
-          <Link
-            href={`${routePrefix}/fees/invoice/${payment.id}`}
-            target="_blank"
-            className="text-indigo-300 hover:underline"
-          >
-            View Invoice
-          </Link>
+          <div className="flex flex-col gap-1">
+            <Link
+              href={`${routePrefix}/fees/invoice/${payment.id}`}
+              target="_blank"
+              className="text-indigo-300 hover:underline"
+            >
+              View Invoice
+            </Link>
+            {payment.receiptUrl ? (
+              <a href={payment.receiptUrl} target="_blank" rel="noreferrer" className="text-xs text-indigo-300 hover:underline">
+                {payment.receiptFileName || 'View Receipt'}
+              </a>
+            ) : null}
+          </div>
         ),
       },
     ],
@@ -523,6 +534,28 @@ export default function AdminFeesPage({
     setShowPaymentStudentDropdown(false)
   }
 
+  const uploadReceipt = async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('kind', 'fees')
+
+    const res = await fetch('/api/finance/attachments', {
+      method: 'POST',
+      body: formData,
+    })
+    const data = await res.json()
+
+    if (!res.ok) {
+      throw new Error(data?.error || 'Failed to upload receipt')
+    }
+
+    return {
+      receiptUrl: data.url as string,
+      receiptFileName: data.fileName as string,
+      receiptMimeType: data.mimeType as string,
+    }
+  }
+
   const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -554,6 +587,12 @@ export default function AdminFeesPage({
 
     setRecordingPayment(true)
     try {
+      let receiptPayload: { receiptUrl: string; receiptFileName: string; receiptMimeType: string } | null = null
+      if (paymentReceiptFile) {
+        setUploadingReceipt(true)
+        receiptPayload = await uploadReceipt(paymentReceiptFile)
+      }
+
       const res = await fetch('/api/fees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -565,6 +604,7 @@ export default function AdminFeesPage({
           paymentMethod: paymentForm.paymentMethod,
           paymentDate: paymentForm.paymentDate,
           notes: paymentForm.notes,
+          ...(receiptPayload ? receiptPayload : {}),
         }),
       })
 
@@ -586,6 +626,7 @@ export default function AdminFeesPage({
         paymentDate: new Date().toISOString().slice(0, 10),
         notes: '',
       })
+      setPaymentReceiptFile(null)
       setPaymentModalSearchQuery('')
       showToast('Payment recorded successfully', 'success')
       setShowPaymentModal(false)
@@ -594,6 +635,7 @@ export default function AdminFeesPage({
       console.error('Failed to record payment:', error)
       showToast('Failed to record payment', 'error')
     } finally {
+      setUploadingReceipt(false)
       setRecordingPayment(false)
     }
   }
@@ -673,7 +715,25 @@ export default function AdminFeesPage({
               Track payments by period. Each class can have its own fee rate or share one flat rate.
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            {(isAdmin || session?.user?.role === 'FINANCE_MANAGER') && (
+            <button
+              onClick={() => setShowScheduleModal(true)}
+              className="ui-button ui-button-primary inline-flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Create Fee Schedule
+            </button>
+            )}
+            {canRecordPayment && (
+            <button
+              onClick={() => setShowPaymentModal(true)}
+              className="ui-button ui-button-secondary inline-flex items-center gap-2"
+            >
+              <Wallet className="h-4 w-4" />
+              Record Payment
+            </button>
+            )}
             {lastInvoiceId && (
               <Link
                 href={`${routePrefix}/fees/invoice/${lastInvoiceId}`}
@@ -685,27 +745,6 @@ export default function AdminFeesPage({
               </Link>
             )}
           </div>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          {(isAdmin || session?.user?.role === 'FINANCE_MANAGER') && (
-          <button
-            onClick={() => setShowScheduleModal(true)}
-            className="ui-button ui-button-primary inline-flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Create Fee Schedule
-          </button>
-          )}
-          {canRecordPayment && (
-          <button
-            onClick={() => setShowPaymentModal(true)}
-            className="ui-button ui-button-secondary inline-flex items-center gap-2"
-          >
-            <Wallet className="h-4 w-4" />
-            Record Payment
-          </button>
-          )}
         </div>
 
         {/* Pending approval panel (visible to both admin and finance) */}
@@ -902,6 +941,7 @@ export default function AdminFeesPage({
                   setShowPaymentModal(false)
                   setPaymentModalSearchQuery('')
                   setShowPaymentStudentDropdown(false)
+                  setPaymentReceiptFile(null)
                 }}
                 className="absolute right-4 top-4 ui-text-secondary hover:ui-text-primary"
               >
@@ -1060,10 +1100,23 @@ export default function AdminFeesPage({
                   />
                 </div>
 
+                <div>
+                  <label className="mb-1 block text-sm font-medium ui-text-secondary">
+                    Receipt (Optional)
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif,image/webp,application/pdf"
+                    onChange={(e) => setPaymentReceiptFile(e.target.files?.[0] || null)}
+                    className="ui-input"
+                  />
+                  <p className="mt-1 text-xs ui-text-secondary">Accepted: PNG, JPG, GIF, WebP, PDF (max 8MB)</p>
+                </div>
+
                 <div className="flex gap-2 pt-2">
                   <Button
                     type="submit"
-                    isLoading={recordingPayment}
+                    isLoading={recordingPayment || uploadingReceipt}
                     className="flex-1"
                     disabled={!selectedPeriodKey || loading}
                   >
@@ -1075,6 +1128,7 @@ export default function AdminFeesPage({
                       setShowPaymentModal(false)
                       setPaymentModalSearchQuery('')
                       setShowPaymentStudentDropdown(false)
+                      setPaymentReceiptFile(null)
                     }}
                     className="flex-1 ui-button ui-button-secondary"
                   >

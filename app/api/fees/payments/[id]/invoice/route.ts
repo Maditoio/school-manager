@@ -9,6 +9,9 @@ type InvoiceApiRow = {
   amount_paid: number
   payment_date: Date
   notes: string | null
+  receipt_url: string | null
+  receipt_file_name: string | null
+  receipt_mime_type: string | null
   school_id: string
   school_name: string
   student_id: string
@@ -69,7 +72,7 @@ export async function GET(
   try {
     const session = await auth()
 
-    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN'])) {
+    if (!session?.user || !hasRole(session.user.role, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER', 'STUDENT'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -80,6 +83,12 @@ export async function GET(
     }
 
     const { id } = await params
+    const isStudent = session.user.role === 'STUDENT'
+    const studentIdFilter = isStudent ? session.user.studentId : null
+
+    if (isStudent && !studentIdFilter) {
+      return NextResponse.json({ error: 'Student context required' }, { status: 400 })
+    }
 
     const rows = await prisma.$queryRaw<InvoiceApiRow[]>`
       SELECT
@@ -88,6 +97,9 @@ export async function GET(
         p.amount_paid,
         p.payment_date,
         p.notes,
+        p.receipt_url,
+        p.receipt_file_name,
+        p.receipt_mime_type,
         sch.id AS school_id,
         sch.name AS school_name,
         st.id AS student_id,
@@ -108,6 +120,7 @@ export async function GET(
       INNER JOIN fee_schedules fs ON fs.id = p.schedule_id
       WHERE p.id = ${id}
         AND p.school_id = ${schoolId}
+        AND (${studentIdFilter}::uuid IS NULL OR p.student_id = ${studentIdFilter}::uuid)
       LIMIT 1
     `
 
@@ -119,6 +132,9 @@ export async function GET(
           amountPaid: Number(row.amount_paid),
           paymentDate: row.payment_date,
           notes: row.notes,
+          receiptUrl: row.receipt_url,
+          receiptFileName: row.receipt_file_name,
+          receiptMimeType: row.receipt_mime_type,
           school: {
             id: row.school_id,
             name: row.school_name,

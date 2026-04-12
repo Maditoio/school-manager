@@ -33,6 +33,9 @@ type FeePaymentRow = {
   payment_number: string
   amount_paid: number
   payment_date: Date
+  receipt_url: string | null
+  receipt_file_name: string | null
+  receipt_mime_type: string | null
 }
 
 type ScheduleNormalized = {
@@ -99,6 +102,9 @@ function normalizePaymentRow(row: FeePaymentRow) {
     paymentNumber: row.payment_number,
     amountPaid: Number(row.amount_paid),
     paymentDate: new Date(row.payment_date),
+    receiptUrl: row.receipt_url,
+    receiptFileName: row.receipt_file_name,
+    receiptMimeType: row.receipt_mime_type,
   }
 }
 
@@ -329,6 +335,8 @@ export async function GET(request: NextRequest) {
       paymentNumber: string
       amountPaid: number
       paymentDate: Date
+      receiptUrl: string | null
+      receiptFileName: string | null
     }> = []
 
     if (periodScheduleIds.length > 0) {
@@ -343,6 +351,8 @@ export async function GET(request: NextRequest) {
             paymentNumber: true,
             amountPaid: true,
             paymentDate: true,
+            receiptUrl: true,
+            receiptFileName: true,
           },
           orderBy: { paymentDate: 'desc' },
         })
@@ -354,10 +364,13 @@ export async function GET(request: NextRequest) {
           paymentNumber: p.paymentNumber,
           amountPaid: Number(p.amountPaid),
           paymentDate: p.paymentDate,
+            receiptUrl: p.receiptUrl,
+            receiptFileName: p.receiptFileName,
         }))
       } else {
         const rows = await prisma.$queryRaw<FeePaymentRow[]>`
-          SELECT id, school_id, schedule_id, student_id, payment_method, payment_number, amount_paid, payment_date
+          SELECT id, school_id, schedule_id, student_id, payment_method, payment_number, amount_paid, payment_date,
+                 receipt_url, receipt_file_name, receipt_mime_type
           FROM fee_payments
           WHERE school_id = ${schoolId}
             AND schedule_id = ANY(${periodScheduleIds}::uuid[])
@@ -373,6 +386,8 @@ export async function GET(request: NextRequest) {
             paymentNumber: p.paymentNumber,
             amountPaid: p.amountPaid,
             paymentDate: p.paymentDate,
+            receiptUrl: p.receiptUrl,
+            receiptFileName: p.receiptFileName,
           }
         })
       }
@@ -470,6 +485,8 @@ export async function GET(request: NextRequest) {
         paymentNumber: payment.paymentNumber,
         amountPaid: payment.amountPaid,
         paymentDate: payment.paymentDate,
+        receiptUrl: payment.receiptUrl,
+        receiptFileName: payment.receiptFileName,
         studentName: student
           ? `${student.firstName} ${student.lastName}`
           : 'Unknown Student',
@@ -653,7 +670,17 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const { scheduleId, studentId, amountPaid, paymentMethod, paymentDate, notes } = validation.data
+      const {
+        scheduleId,
+        studentId,
+        amountPaid,
+        paymentMethod,
+        paymentDate,
+        notes,
+        receiptUrl,
+        receiptFileName,
+        receiptMimeType,
+      } = validation.data
 
       const delegates = getPrismaDelegates()
       const [scheduleRaw, student] = await Promise.all([
@@ -695,6 +722,9 @@ export async function POST(request: NextRequest) {
         amountPaid,
         paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
         notes: notes || null,
+        receiptUrl: receiptUrl || null,
+        receiptFileName: receiptFileName || null,
+        receiptMimeType: receiptMimeType || null,
         receivedBy: userId,
       }
 
@@ -703,16 +733,23 @@ export async function POST(request: NextRequest) {
         : await (async () => {
             const insertedId = crypto.randomUUID()
             const rows = await prisma.$queryRaw<FeePaymentRow[]>`
-              INSERT INTO fee_payments (id, school_id, schedule_id, student_id, term_id, payment_method, payment_number, amount_paid, payment_date, notes, received_by, created_at)
+              INSERT INTO fee_payments (
+                id, school_id, schedule_id, student_id, term_id,
+                payment_method, payment_number, amount_paid, payment_date,
+                notes, receipt_url, receipt_file_name, receipt_mime_type,
+                received_by, created_at
+              )
               VALUES (
                 ${insertedId}, ${paymentPayload.schoolId}, ${paymentPayload.scheduleId},
                 ${paymentPayload.studentId}, ${paymentPayload.termId},
                 ${paymentPayload.paymentMethod}::"PaymentMethod",
                 ${paymentPayload.paymentNumber}, ${paymentPayload.amountPaid},
                 ${paymentPayload.paymentDate}, ${paymentPayload.notes},
+                ${paymentPayload.receiptUrl}, ${paymentPayload.receiptFileName}, ${paymentPayload.receiptMimeType},
                 ${paymentPayload.receivedBy}, NOW()
               )
-              RETURNING id, school_id, schedule_id, student_id, payment_method, payment_number, amount_paid, payment_date
+              RETURNING id, school_id, schedule_id, student_id, payment_method, payment_number, amount_paid, payment_date,
+                        receipt_url, receipt_file_name, receipt_mime_type
             `
             const inserted = normalizePaymentRow(rows[0])
             return {
@@ -724,6 +761,9 @@ export async function POST(request: NextRequest) {
               paymentNumber: inserted.paymentNumber,
               amountPaid: inserted.amountPaid,
               paymentDate: inserted.paymentDate,
+              receiptUrl: inserted.receiptUrl,
+              receiptFileName: inserted.receiptFileName,
+              receiptMimeType: inserted.receiptMimeType,
             }
           })()
 

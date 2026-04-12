@@ -10,6 +10,9 @@ type InvoicePageRow = {
   amount_paid: number
   payment_date: Date
   notes: string | null
+  receipt_url: string | null
+  receipt_file_name: string | null
+  receipt_mime_type: string | null
   school_name: string
   student_first_name: string
   student_last_name: string
@@ -45,7 +48,7 @@ function periodLabel(periodType: 'MONTHLY' | 'SEMESTER' | 'YEARLY', year: number
   return `Year ${year}`
 }
 
-async function getInvoiceData(paymentId: string, schoolId: string) {
+async function getInvoiceData(paymentId: string, schoolId: string, studentId?: string | null) {
   const rows = await prisma.$queryRaw<InvoicePageRow[]>`
     SELECT
       p.id AS payment_id,
@@ -54,6 +57,9 @@ async function getInvoiceData(paymentId: string, schoolId: string) {
       p.amount_paid,
       p.payment_date,
       p.notes,
+      p.receipt_url,
+      p.receipt_file_name,
+      p.receipt_mime_type,
       sch.name AS school_name,
       st.first_name AS student_first_name,
       st.last_name AS student_last_name,
@@ -74,6 +80,7 @@ async function getInvoiceData(paymentId: string, schoolId: string) {
     LEFT JOIN users rec ON rec.id = p.received_by
     WHERE p.id = ${paymentId}
       AND p.school_id = ${schoolId}
+      AND (${studentId ?? null}::uuid IS NULL OR p.student_id = ${studentId ?? null}::uuid)
     LIMIT 1
   `
 
@@ -89,6 +96,9 @@ async function getInvoiceData(paymentId: string, schoolId: string) {
     amountPaid: Number(row.amount_paid),
     paymentDate: row.payment_date,
     notes: row.notes,
+    receiptUrl: row.receipt_url,
+    receiptFileName: row.receipt_file_name,
+    receiptMimeType: row.receipt_mime_type,
     school: {
       name: row.school_name,
     },
@@ -130,11 +140,16 @@ function serverFormatCurrency(currency: string, amount: number): string {
 export default async function FeeInvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
 
-  if (!session?.user || !['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE'].includes(session.user.role)) {
+  if (!session?.user || !['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER', 'STUDENT'].includes(session.user.role)) {
     redirect('/login')
   }
 
   if (!session.user.schoolId) {
+    redirect('/login')
+  }
+
+  const isStudent = session.user.role === 'STUDENT'
+  if (isStudent && !session.user.studentId) {
     redirect('/login')
   }
 
@@ -147,7 +162,7 @@ export default async function FeeInvoicePage({ params }: { params: Promise<{ id:
   const t = (text: string) => translateText(text, locale)
 
   const { id } = await params
-  const payment = await getInvoiceData(id, session.user.schoolId)
+  const payment = await getInvoiceData(id, session.user.schoolId, isStudent ? session.user.studentId : null)
 
   const schoolSettings = await prisma.schoolSettings.findUnique({
     where: { schoolId: session.user.schoolId },
@@ -216,6 +231,21 @@ export default async function FeeInvoicePage({ params }: { params: Promise<{ id:
             style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}
           >
             <span className="font-medium ui-text-primary">{t('Notes:')}</span> {payment.notes}
+          </div>
+        )}
+
+        {payment.receiptUrl && (
+          <div
+            className="mt-4 rounded-[10px] border p-3"
+            style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}
+          >
+            <p className="text-sm font-medium ui-text-primary">{t('Attached Receipt')}</p>
+            <a href={payment.receiptUrl} target="_blank" rel="noreferrer" className="mt-1 inline-block text-sm text-indigo-400 hover:underline">
+              {payment.receiptFileName || t('Open receipt')}
+            </a>
+            {payment.receiptMimeType?.startsWith('image/') ? (
+              <img src={payment.receiptUrl} alt={t('Payment receipt')} className="mt-3 max-h-80 w-auto rounded border" style={{ borderColor: 'var(--border-subtle)' }} />
+            ) : null}
           </div>
         )}
 
