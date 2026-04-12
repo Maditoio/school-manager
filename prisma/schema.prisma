@@ -56,6 +56,7 @@ model SchoolSettings {
   schoolId                  String          @unique @map("school_id")
   expenseApprovalThreshold  Float           @default(0) @map("expense_approval_threshold")
   minimumPassRatePerSubject Float           @default(50) @map("minimum_pass_rate_per_subject")
+  feeGracePeriodDays        Int             @default(0) @map("fee_grace_period_days")
   currency                  String          @default("ZAR") @map("currency")
   logoUrl                   String?         @map("logo_url")
   reportTemplate            Int             @default(1) @map("report_template")
@@ -83,9 +84,36 @@ model SchoolBilling {
   createdAt            DateTime               @default(now()) @map("created_at")
   updatedAt            DateTime               @updatedAt @map("updated_at")
   school               School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  payments             SchoolBillingPayment[]
 
   @@index([billingYear])
   @@map("school_billing")
+}
+
+enum BillingPaymentType {
+  ONBOARDING
+  ANNUAL
+  ADJUSTMENT
+}
+
+model SchoolBillingPayment {
+  id            String             @id @default(uuid())
+  billingId     String             @map("billing_id")
+  amount        Float
+  paymentType   BillingPaymentType @map("payment_type")
+  paymentDate   DateTime           @map("payment_date") @db.Date
+  paymentMethod String?            @map("payment_method")
+  referenceNumber String?          @map("reference_number")
+  notes         String?
+  recordedById  String?            @map("recorded_by_id")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  billing       SchoolBilling      @relation(fields: [billingId], references: [id], onDelete: Cascade)
+  recordedBy    User?              @relation("BillingPaymentRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@index([billingId])
+  @@index([paymentDate])
+  @@map("school_billing_payments")
 }
 
 model User {
@@ -117,6 +145,7 @@ model User {
   expenseAuditLogs         ExpenseAuditLog[]      @relation("ExpenseAuditActor")
   expensesCreated          Expense[]              @relation("ExpenseCreatedBy")
   expensesUpdated          Expense[]              @relation("ExpenseUpdatedBy")
+  billingPaymentsRecorded  SchoolBillingPayment[] @relation("BillingPaymentRecorder")
   fundRequestsCreated      FundRequest[]          @relation("FundRequestedBy")
   fundRequestsReviewed     FundRequest[]          @relation("FundRequestReviewedBy")
   feePaymentsReceived      FeePayment[]           @relation("FeePaymentReceivedBy")

@@ -8,6 +8,7 @@ import AcademicSection from './sections/AcademicSection'
 import StaffSection from './sections/StaffSection'
 import AlertsSection from './sections/AlertsSection'
 import CalendarSection from './sections/CalendarSection'
+import LicenseCoverageWidget from '@/components/ui/LicenseCoverageWidget'
 import { dashboardData } from './dashboardData'
 import { useLocale } from '@/lib/locale-context'
 import { translateDashboardDynamic, translateText } from '@/lib/client-i18n'
@@ -349,6 +350,11 @@ export default function DashboardPage({ user }) {
             <div className="transition-opacity duration-300" style={{ opacity: loaded.financial ? 1 : 0.85 }}>
               <FinancialSection data={dashboardState.financial} loading={!loaded.financial} />
             </div>
+          </section>
+
+          <section className="space-y-2">
+            {sectionLabel(translateText('License Coverage', locale))}
+            <LicenseCoverageWidget feesHref="/admin/fees" />
           </section>
 
           <section className="space-y-2">

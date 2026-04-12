@@ -15,7 +15,14 @@ export async function GET() {
 
     const schools = await prisma.school.findMany({
       include: {
-        schoolBilling: true,
+        schoolBilling: {
+          include: {
+            payments: {
+              select: { id: true, amount: true, paymentType: true, paymentDate: true },
+              orderBy: { paymentDate: 'desc' },
+            },
+          },
+        },
         _count: {
           select: {
             users: true,

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 type ApplicableSchedule = {
   id: string
   amountDue: number
+  createdAt: Date
 }
 
 function buildPeriodKey(periodType: string, year: number, month: number | null, semester: number | null) {
@@ -88,6 +89,7 @@ async function getApplicableSchedulesForStudent(studentId: string) {
       month: true,
       semester: true,
       amountDue: true,
+      createdAt: true,
     },
     orderBy: [{ year: 'desc' }, { createdAt: 'desc' }],
   })
@@ -103,12 +105,12 @@ async function getApplicableSchedulesForStudent(studentId: string) {
     }
 
     if (!existing) {
-      scheduleByPeriod.set(key, candidate)
+      scheduleByPeriod.set(key, { id: schedule.id, amountDue: Number(schedule.amountDue), createdAt: schedule.createdAt })
       continue
     }
 
     if (schedule.classId && schedule.classId === student.classId) {
-      scheduleByPeriod.set(key, candidate)
+      scheduleByPeriod.set(key, { id: schedule.id, amountDue: Number(schedule.amountDue), createdAt: schedule.createdAt })
     }
   }
 
@@ -151,6 +153,13 @@ export async function getStudentFeeAccessStatus(studentId: string) {
     }
   }
 
+  // Fetch school settings to get grace period
+  const settings = await prisma.schoolSettings.findUnique({
+    where: { schoolId: student.schoolId },
+    select: { feeGracePeriodDays: true },
+  })
+  const gracePeriodDays = settings?.feeGracePeriodDays ?? 0
+
   const payments = await prisma.feePayment.findMany({
     where: {
       studentId,
@@ -167,11 +176,17 @@ export async function getStudentFeeAccessStatus(studentId: string) {
     paidBySchedule.set(payment.scheduleId, (paidBySchedule.get(payment.scheduleId) ?? 0) + Number(payment.amountPaid))
   }
 
+  const nowMs = Date.now()
+  const gracePeriodMs = gracePeriodDays * 24 * 60 * 60 * 1000
+
   let outstandingBalance = 0
   let unpaidScheduleCount = 0
   for (const schedule of applicableSchedules) {
     const balance = Math.max(schedule.amountDue - (paidBySchedule.get(schedule.id) ?? 0), 0)
     if (balance > 0) {
+      // Within grace period — don't count towards lockout
+      const ageMs = nowMs - new Date(schedule.createdAt).getTime()
+      if (gracePeriodDays > 0 && ageMs < gracePeriodMs) continue
       outstandingBalance += balance
       unpaidScheduleCount += 1
     }

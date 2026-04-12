@@ -27,6 +27,7 @@ interface School {
   suspensionReason?: string
   suspendedAt?: string
   schoolBilling?: {
+    id: string
     onboardingFee: number
     onboardingStatus: 'PENDING' | 'PAID' | 'WAIVED'
     annualPricePerStudent: number
@@ -36,7 +37,24 @@ interface School {
     licenseEndDate: string | null
     enabledModules: string[]
     notes: string | null
+    payments?: Array<{
+      id: string
+      amount: number
+      paymentType: 'ONBOARDING' | 'ANNUAL' | 'ADJUSTMENT'
+      paymentDate: string
+    }>
   } | null
+}
+
+interface LedgerPayment {
+  id: string
+  amount: number
+  paymentType: 'ONBOARDING' | 'ANNUAL' | 'ADJUSTMENT'
+  paymentDate: string
+  paymentMethod: string | null
+  referenceNumber: string | null
+  notes: string | null
+  recordedBy: { id: string; firstName: string | null; lastName: string | null; email: string } | null
 }
 
 export default function SchoolsPage() {
@@ -48,9 +66,25 @@ export default function SchoolsPage() {
   const [showModal, setShowModal] = useState(false)
   const [editingSchool, setEditingSchool] = useState<School | null>(null)
     const [showSuspensionModal, setShowSuspensionModal] = useState(false)
-    const [suspensionAction, setSuspensionAction] = useState<{ schoolId: string; action: 'suspend' | 'unsuspend' } | null>(null)
-    const [suspensionReason, setSuspensionReason] = useState('')
-    const [suspensionLoading, setSuspensionLoading] = useState(false)
+  const [suspensionAction, setSuspensionAction] = useState<{ schoolId: string; action: 'suspend' | 'unsuspend' } | null>(null)
+  const [suspensionReason, setSuspensionReason] = useState('')
+  const [suspensionLoading, setSuspensionLoading] = useState(false)
+
+  // Ledger state
+  const [showLedgerModal, setShowLedgerModal] = useState(false)
+  const [ledgerSchool, setLedgerSchool] = useState<School | null>(null)
+  const [ledgerPayments, setLedgerPayments] = useState<LedgerPayment[]>([])
+  const [ledgerTotalPaid, setLedgerTotalPaid] = useState(0)
+  const [ledgerLoading, setLedgerLoading] = useState(false)
+  const [paymentForm, setPaymentForm] = useState({
+    amount: '',
+    paymentType: 'ANNUAL',
+    paymentDate: new Date().toISOString().slice(0, 10),
+    paymentMethod: '',
+    referenceNumber: '',
+    notes: '',
+  })
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     plan: 'BASIC',
@@ -243,6 +277,93 @@ export default function SchoolsPage() {
     }
   }
 
+  const openLedger = async (school: School) => {
+    setLedgerSchool(school)
+    setLedgerPayments([])
+    setLedgerTotalPaid(0)
+    setShowLedgerModal(true)
+    setLedgerLoading(true)
+    setPaymentForm({
+      amount: '',
+      paymentType: 'ANNUAL',
+      paymentDate: new Date().toISOString().slice(0, 10),
+      paymentMethod: '',
+      referenceNumber: '',
+      notes: '',
+    })
+    try {
+      const res = await fetch(`/api/schools/${school.id}/billing-payments`)
+      if (res.ok) {
+        const data = await res.json()
+        setLedgerPayments(Array.isArray(data.payments) ? data.payments : [])
+        setLedgerTotalPaid(Number(data.totalPaid) || 0)
+      }
+    } catch (error) {
+      console.error('Failed to fetch billing payments:', error)
+    } finally {
+      setLedgerLoading(false)
+    }
+  }
+
+  const handleAddPayment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!ledgerSchool) return
+    setPaymentSubmitting(true)
+    try {
+      const res = await fetch(`/api/schools/${ledgerSchool.id}/billing-payments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: Number(paymentForm.amount),
+          paymentType: paymentForm.paymentType,
+          paymentDate: paymentForm.paymentDate,
+          paymentMethod: paymentForm.paymentMethod || undefined,
+          referenceNumber: paymentForm.referenceNumber || undefined,
+          notes: paymentForm.notes || undefined,
+        }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setLedgerPayments((prev) => [data.payment, ...prev])
+        setLedgerTotalPaid((prev) => prev + data.payment.amount)
+        setPaymentForm({
+          amount: '',
+          paymentType: 'ANNUAL',
+          paymentDate: new Date().toISOString().slice(0, 10),
+          paymentMethod: '',
+          referenceNumber: '',
+          notes: '',
+        })
+        showToast('Payment recorded successfully', 'success')
+      } else {
+        const data = await res.json()
+        showToast(`Error: ${JSON.stringify(data.error)}`, 'error')
+      }
+    } catch (error) {
+      console.error('Failed to record payment:', error)
+      showToast('Failed to record payment', 'error')
+    } finally {
+      setPaymentSubmitting(false)
+    }
+  }
+
+  const handleDeletePayment = async (paymentId: string, amount: number) => {
+    if (!ledgerSchool || !confirm('Delete this payment record?')) return
+    try {
+      const res = await fetch(`/api/schools/${ledgerSchool.id}/billing-payments/${paymentId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setLedgerPayments((prev) => prev.filter((p) => p.id !== paymentId))
+        setLedgerTotalPaid((prev) => prev - amount)
+        showToast('Payment deleted', 'success')
+      } else {
+        showToast('Failed to delete payment', 'error')
+      }
+    } catch (error) {
+      console.error('Failed to delete payment:', error)
+      showToast(`Failed to delete payment: ${error}`, 'error')
+    }
+  }
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -357,6 +478,9 @@ export default function SchoolsPage() {
                   <div className="flex gap-2 pt-3 flex-wrap">
                     <Button variant="secondary" onClick={() => handleEdit(school)}>
                       {t('generic.edit')}
+                    </Button>
+                    <Button variant="secondary" onClick={() => openLedger(school)}>
+                      Ledger
                     </Button>
                     <Button
                       variant={school.suspended ? 'secondary' : 'danger'}
@@ -520,6 +644,152 @@ export default function SchoolsPage() {
                   <Button type="submit">{editingSchool ? t('generic.update') : t('generic.create')}</Button>
                 </div>
               </form>
+            </Card>
+          </div>
+        )}
+
+        {showLedgerModal && ledgerSchool && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-3xl p-6 max-h-[92vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold">Billing Ledger</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">{ledgerSchool.name}</p>
+                </div>
+                <Button variant="secondary" onClick={() => setShowLedgerModal(false)}>Close</Button>
+              </div>
+
+              {/* Summary */}
+              <div className="grid grid-cols-3 gap-3 mb-6">
+                <div className="bg-blue-50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-blue-600 font-medium uppercase tracking-wide">Onboarding Fee</p>
+                  <p className="text-lg font-bold text-blue-800 mt-1">
+                    {(ledgerSchool.schoolBilling?.onboardingFee ?? 0).toLocaleString()}
+                  </p>
+                  <p className={`text-xs mt-0.5 font-medium ${
+                    ledgerSchool.schoolBilling?.onboardingStatus === 'PAID' ? 'text-green-600' :
+                    ledgerSchool.schoolBilling?.onboardingStatus === 'WAIVED' ? 'text-purple-600' : 'text-amber-600'
+                  }`}>
+                    {ledgerSchool.schoolBilling?.onboardingStatus ?? 'PENDING'}
+                  </p>
+                </div>
+                <div className="bg-green-50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-green-600 font-medium uppercase tracking-wide">Total Paid</p>
+                  <p className="text-lg font-bold text-green-800 mt-1">{ledgerTotalPaid.toLocaleString()}</p>
+                  <p className="text-xs mt-0.5 text-green-600">{ledgerPayments.length} payments</p>
+                </div>
+                <div className="bg-amber-50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-amber-600 font-medium uppercase tracking-wide">Annual Due</p>
+                  <p className="text-lg font-bold text-amber-800 mt-1">
+                    {((ledgerSchool.schoolBilling?.annualPricePerStudent ?? 0) * (ledgerSchool.schoolBilling?.licensedStudentCount ?? 0)).toLocaleString()}
+                  </p>
+                  <p className="text-xs mt-0.5 text-amber-600">
+                    {ledgerSchool.schoolBilling?.licensedStudentCount ?? 0} licensed × {ledgerSchool.schoolBilling?.annualPricePerStudent ?? 0}/student
+                  </p>
+                </div>
+              </div>
+
+              {/* Add Payment Form */}
+              <div className="border rounded-lg p-4 mb-6 bg-gray-50">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Record New Payment</h3>
+                <form onSubmit={handleAddPayment} className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label="Amount"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={paymentForm.amount}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                      required
+                    />
+                    <Select
+                      label="Payment Type"
+                      value={paymentForm.paymentType}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, paymentType: e.target.value })}
+                      options={[
+                        { value: 'ONBOARDING', label: 'Onboarding Fee' },
+                        { value: 'ANNUAL', label: 'Annual License' },
+                        { value: 'ADJUSTMENT', label: 'Adjustment / Credit' },
+                      ]}
+                    />
+                    <Input
+                      label="Payment Date"
+                      type="date"
+                      value={paymentForm.paymentDate}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })}
+                      required
+                    />
+                    <Input
+                      label="Payment Method"
+                      value={paymentForm.paymentMethod}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
+                      placeholder="EFT, Cash, Card..."
+                    />
+                    <Input
+                      label="Reference Number"
+                      value={paymentForm.referenceNumber}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, referenceNumber: e.target.value })}
+                      placeholder="Invoice / transaction ref"
+                    />
+                  </div>
+                  <Input
+                    label="Notes"
+                    value={paymentForm.notes}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+                    placeholder="Optional notes..."
+                  />
+                  <div className="flex justify-end">
+                    <Button type="submit" isLoading={paymentSubmitting}>
+                      Record Payment
+                    </Button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Payment History */}
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Payment History</h3>
+              {ledgerLoading ? (
+                <p className="text-sm text-gray-500">Loading payments...</p>
+              ) : ledgerPayments.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-6">No payments recorded yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {ledgerPayments.map((payment) => (
+                    <div key={payment.id} className="flex items-start justify-between rounded-lg border p-3 bg-white">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            payment.paymentType === 'ONBOARDING' ? 'bg-blue-100 text-blue-700' :
+                            payment.paymentType === 'ANNUAL' ? 'bg-green-100 text-green-700' :
+                            'bg-purple-100 text-purple-700'
+                          }`}>
+                            {payment.paymentType}
+                          </span>
+                          <span className="text-sm font-semibold text-gray-800">
+                            {Number(payment.amount).toLocaleString()}
+                          </span>
+                          {payment.referenceNumber && (
+                            <span className="text-xs text-gray-400">#{payment.referenceNumber}</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {new Date(payment.paymentDate).toLocaleDateString()}
+                          {payment.paymentMethod && ` · ${payment.paymentMethod}`}
+                          {payment.recordedBy && ` · Recorded by ${payment.recordedBy.firstName ?? ''} ${payment.recordedBy.lastName ?? ''}`.trimEnd()}
+                        </p>
+                        {payment.notes && <p className="text-xs text-gray-400 italic">{payment.notes}</p>}
+                      </div>
+                      <button
+                        onClick={() => handleDeletePayment(payment.id, payment.amount)}
+                        className="ml-3 text-xs text-red-400 hover:text-red-600 shrink-0"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Card>
           </div>
         )}
