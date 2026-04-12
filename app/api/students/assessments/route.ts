@@ -55,6 +55,10 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    if (session.user.role === 'STUDENT' && session.user.studentId !== studentId) {
+      return NextResponse.json({ error: 'Unauthorized access to student data' }, { status: 403 })
+    }
+
     if (!db.studentAssessment) {
       return NextResponse.json({ error: 'Assessments unavailable' }, { status: 500 })
     }
@@ -62,6 +66,10 @@ export async function GET(request: NextRequest) {
     const studentAssessments = await db.studentAssessment.findMany({
       where: {
         studentId,
+        assessment:
+          session.user.role === 'PARENT' || session.user.role === 'STUDENT'
+            ? { published: true }
+            : undefined,
       },
       include: {
         assessment: {

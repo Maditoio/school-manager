@@ -60,6 +60,7 @@ export default function TeacherAssessmentsPage() {
 
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [formLoading, setFormLoading] = useState(false)
+  const [publishLoadingId, setPublishLoadingId] = useState<string | null>(null)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -210,6 +211,37 @@ export default function TeacherAssessmentsPage() {
     } catch (error) {
       console.error('Error deleting assessment:', error)
       alert('Failed to delete assessment')
+    }
+  }
+
+  const handleTogglePublish = async (assessment: Assessment) => {
+    setPublishLoadingId(assessment.id)
+
+    try {
+      const res = await fetch(`/api/assessments/${assessment.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: assessment.title,
+          description: assessment.description,
+          type: assessment.type,
+          totalMarks: assessment.totalMarks,
+          dueDate: assessment.dueDate,
+          published: !assessment.published,
+        }),
+      })
+
+      if (res.ok) {
+        await fetchAssessments()
+      } else {
+        const error = await res.json().catch(() => ({}))
+        alert(error.error || 'Failed to update publish status')
+      }
+    } catch (error) {
+      console.error('Error updating publish status:', error)
+      alert('Failed to update publish status')
+    } finally {
+      setPublishLoadingId(null)
     }
   }
 
@@ -515,6 +547,21 @@ export default function TeacherAssessmentsPage() {
                             className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700 transition-colors"
                           >
                             Grade
+                          </button>
+                          <button
+                            onClick={() => handleTogglePublish(assessment)}
+                            disabled={publishLoadingId === assessment.id}
+                            className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white rounded transition-colors disabled:opacity-60 ${
+                              assessment.published
+                                ? 'bg-amber-600 hover:bg-amber-700'
+                                : 'bg-indigo-600 hover:bg-indigo-700'
+                            }`}
+                          >
+                            {publishLoadingId === assessment.id
+                              ? 'Saving...'
+                              : assessment.published
+                                ? 'Unpublish'
+                                : 'Publish'}
                           </button>
                           <button
                             onClick={() => handleDelete(assessment.id)}

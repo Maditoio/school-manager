@@ -145,7 +145,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { title, description, type, totalMarks, dueDate } = body
+    const { title, description, type, totalMarks, dueDate, published } = body
 
     // Verify ownership
     const existing = await prisma.assessment.findFirst({
@@ -184,7 +184,8 @@ export async function PUT(
         description,
         type,
         totalMarks: totalMarks ? parseFloat(totalMarks) : undefined,
-        dueDate: dueDate ? new Date(dueDate) : null
+        dueDate: dueDate ? new Date(dueDate) : null,
+        published: typeof published === 'boolean' ? published : undefined,
       },
       include: {
         subject: true

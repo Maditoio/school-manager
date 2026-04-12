@@ -35,6 +35,11 @@ export async function GET() {
         select: { status: true, date: true },
       },
       studentAssessments: {
+        where: {
+          assessment: {
+            published: true,
+          },
+        },
         orderBy: { createdAt: 'desc' },
         take: 20,
         include: {
