@@ -30,7 +30,14 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
   const { data: session, update } = useSession()
   const { showToast } = useToast()
   const { locale, setLocale } = useLocale()
-  const [theme, setTheme] = useState('light')
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === 'undefined') return 'light'
+    try {
+      return localStorage.getItem('ui-theme') || 'light'
+    } catch {
+      return 'light'
+    }
+  })
   const [desktopSidebarWidth, setDesktopSidebarWidth] = useState(240)
   const [schoolName, setSchoolName] = useState('School Dashboard')
   const [isSchoolSuspended, setIsSchoolSuspended] = useState(false)
@@ -65,12 +72,7 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
   useEffect(() => {
     const schoolId = session?.user?.schoolId
 
-    if (!schoolId) {
-      if (session?.user?.role === 'SUPER_ADMIN') {
-        setSchoolName(translateText('Platform Dashboard', locale))
-      }
-      return
-    }
+    if (!schoolId) return
 
     let active = true
 
@@ -95,15 +97,8 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
     }
   }, [locale, session?.user?.role, session?.user?.schoolId])
   useEffect(() => {
-    try {
-      const savedTheme = localStorage.getItem('ui-theme') || 'light'
-      setTheme(savedTheme)
-      document.documentElement.setAttribute('data-theme', savedTheme)
-    } catch {
-      setTheme('light')
-      document.documentElement.setAttribute('data-theme', 'light')
-    }
-  }, [])
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [theme])
 
   const handleLogout = async () => {
     await signOut({ redirect: false })
@@ -204,7 +199,16 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
 
   const translatedChildren = useMemo(() => {
     const role = String(session?.user?.role || '')
-    const shouldTranslatePageContent = locale !== 'en' && (role === 'SCHOOL_ADMIN' || role === 'DEPUTY_ADMIN' || role === 'SUPER_ADMIN' || role === 'FINANCE' || role === 'FINANCE_MANAGER' || role === 'TEACHER')
+    const shouldTranslatePageContent =
+      locale !== 'en' &&
+      (role === 'SCHOOL_ADMIN' ||
+        role === 'DEPUTY_ADMIN' ||
+        role === 'SUPER_ADMIN' ||
+        role === 'FINANCE' ||
+        role === 'FINANCE_MANAGER' ||
+        role === 'TEACHER' ||
+        role === 'STUDENT' ||
+        role === 'PARENT')
 
     if (!shouldTranslatePageContent) {
       return children
@@ -212,6 +216,11 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
 
     return translateNode(children, locale)
   }, [children, locale, session?.user?.role])
+
+  const displaySchoolName =
+    !session?.user?.schoolId && session?.user?.role === 'SUPER_ADMIN'
+      ? translateText('Platform Dashboard', locale)
+      : schoolName
 
   return (
     <div className="min-h-screen bg-background ui-text-primary">
@@ -237,7 +246,7 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
           <div className="print:hidden">
           <Toolbar
             sidebarOpen={isSidebarOpen}
-            schoolName={schoolName}
+            schoolName={displaySchoolName}
             theme={theme}
             onThemeToggle={handleThemeToggle}
             language={locale}

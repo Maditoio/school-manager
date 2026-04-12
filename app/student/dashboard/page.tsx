@@ -5,6 +5,8 @@ import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { STUDENT_NAV_ITEMS } from '@/lib/admin-nav'
+import { translateText } from '@/lib/client-i18n'
+import { useLocale } from '@/lib/locale-context'
 
 interface StudentAssessmentResult {
   id: string
@@ -95,6 +97,18 @@ const statusBadgeLabels: Record<string, string> = {
   SUSPENDED: 'SUSPENDU',
 }
 
+const statusDotStyles: Record<string, string> = {
+  PRESENT: 'bg-emerald-500',
+  ABSENT: 'bg-rose-500',
+  LATE: 'bg-amber-500',
+}
+
+const statusTextLabels: Record<string, string> = {
+  PRESENT: 'Present',
+  ABSENT: 'Absent',
+  LATE: 'Late',
+}
+
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
@@ -106,6 +120,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 
 export default function StudentDashboardPage() {
   const { data: session, status } = useSession()
+  const { locale } = useLocale()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [data, setData] = useState<MeResponse | null>(null)
@@ -145,9 +160,19 @@ export default function StudentDashboardPage() {
   const results: StudentAssessmentResult[] = s?.studentAssessments ?? []
   const filteredResults = typeFilter === 'ALL' ? results : results.filter(r => r.assessment.type === typeFilter)
   const gradedResults = results.filter(r => r.graded && r.score !== null)
+  const recentAttendance = [...(s?.attendance ?? [])]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5)
   const avgScore = gradedResults.length > 0
     ? Math.round(gradedResults.reduce((sum, r) => sum + (r.score! / r.assessment.totalMarks) * 100, 0) / gradedResults.length)
     : null
+  const t = (text: string) => translateText(text, locale)
+
+  const formatDay = (value: string) =>
+    new Date(value).toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-KE' : 'en-US', { weekday: 'short' })
+
+  const formatDate = (value: string) =>
+    new Date(value).toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-KE' : 'en-US', { month: 'short', day: 'numeric' })
 
   return (
     <DashboardLayout
@@ -159,12 +184,12 @@ export default function StudentDashboardPage() {
       navItems={STUDENT_NAV_ITEMS}
     >
       <div className="space-y-4">
-        <h1 className="text-lg font-semibold ui-text-primary">Mon Profil</h1>
+        <h1 className="text-lg font-semibold ui-text-primary">{t('My Profile')}</h1>
 
         {loading ? (
           <div className="ui-surface p-6 flex items-center gap-3">
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-(--border-subtle) border-t-(--accent)" />
-            <p className="text-sm ui-text-secondary">Chargement du profil...</p>
+            <p className="text-sm ui-text-secondary">{t('Loading profile...')}</p>
           </div>
         ) : error ? (
           <div className="ui-surface p-5">
@@ -189,9 +214,9 @@ export default function StudentDashboardPage() {
                     <p className="text-base font-semibold ui-text-primary leading-tight">
                       {s.firstName} {s.lastName}
                     </p>
-                    <p className="text-xs ui-text-secondary mt-0.5">
+                    {/* <p className="text-xs ui-text-secondary mt-0.5">
                       {s.class?.name ?? 'Sans classe'} · {s.academicYear}
-                    </p>
+                    </p> */}
                     <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${
                       s.status === 'ACTIVE'
                         ? 'bg-green-100 text-green-700'
@@ -203,32 +228,54 @@ export default function StudentDashboardPage() {
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
-                  <Field label="N° d'admission" value={s.admissionNumber} />
-                  <Field label="Classe" value={s.class?.name} />
-                  <Field label="Niveau" value={s.class?.grade} />
-                  <Field label="Année" value={String(s.academicYear)} />
-                  {s.dateOfBirth && <Field label="Date de naissance" value={new Date(s.dateOfBirth).toLocaleDateString('fr-FR')} />}
-                  {s.gender && <Field label="Genre" value={genderLabels[s.gender] ?? s.gender} />}
+                  <Field label={t('Admission Number')} value={s.admissionNumber} />
+                  <Field label={t('Class')} value={s.class?.name} />
+                  {/* <Field label="Niveau" value={s.class?.grade} /> */}
+                  <Field label={t('Year')} value={String(s.academicYear)} />
+                  {s.dateOfBirth && <Field label={t('Date of Birth')} value={new Date(s.dateOfBirth).toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-KE' : 'en-US')} />}
+                  {s.gender && <Field label={t('Gender')} value={genderLabels[s.gender] ?? s.gender} />}
                 </div>
               </div>
 
               {/* Attendance */}
               <div className="ui-surface p-5">
                 <p className="text-xs font-semibold uppercase tracking-wider ui-text-secondary mb-3">
-                  Assiduité
+                  {t('Attendance')}
                 </p>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {recentAttendance.length > 0 ? (
+                    [...recentAttendance].reverse().map((record) => (
+                      <div
+                        key={`${record.date}-${record.status}`}
+                        className="flex min-w-18 flex-col items-center rounded-2xl border px-3 py-2"
+                        style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}
+                      >
+                        <span className="text-xs font-semibold ui-text-primary">{formatDay(record.date)}</span>
+                        <span className="mt-2 text-[10px] ui-text-secondary">{formatDate(record.date)}</span>
+                        <span
+                          className={`mt-2 h-3 w-3 rounded-full ${statusDotStyles[record.status] || 'bg-slate-500'}`}
+                          title={t(statusTextLabels[record.status] || record.status)}
+                        />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="w-full rounded-xl border px-4 py-5 text-center text-sm ui-text-secondary" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
+                      {t('No attendance records yet')}
+                    </div>
+                  )}
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
                   <span className="rounded-lg border border-(--border-subtle) bg-green-50 px-3 py-1.5 text-center">
                     <span className="block text-base font-bold text-green-700">{s.attendanceSummary.present}</span>
-                    <span className="text-[10px] text-green-600">Présent</span>
+                    <span className="text-[10px] text-green-600">{t('Present')}</span>
                   </span>
                   <span className="rounded-lg border border-(--border-subtle) bg-red-50 px-3 py-1.5 text-center">
                     <span className="block text-base font-bold text-red-700">{s.attendanceSummary.absent}</span>
-                    <span className="text-[10px] text-red-600">Absent</span>
+                    <span className="text-[10px] text-red-600">{t('Absent')}</span>
                   </span>
                   <span className="rounded-lg border border-(--border-subtle) px-3 py-1.5 text-center" style={{ background: 'var(--surface-soft)' }}>
                     <span className="block text-base font-bold" style={{ color: 'var(--accent)' }}>{s.attendanceSummary.rate}%</span>
-                    <span className="text-[10px] ui-text-secondary">Taux</span>
+                    <span className="text-[10px] ui-text-secondary">{t('Rate')}</span>
                   </span>
                 </div>
               </div>
@@ -237,11 +284,11 @@ export default function StudentDashboardPage() {
               {s.parent && (
                 <div className="ui-surface p-5">
                   <p className="text-xs font-semibold uppercase tracking-wider ui-text-secondary mb-3">
-                    Parent / Tuteur
+                    {t('Parent / Guardian')}
                   </p>
                   <div className="space-y-2">
-                    <Field label="Nom" value={`${s.parent.firstName} ${s.parent.lastName}`} />
-                    <Field label="E-mail" value={s.parent.email} />
+                    <Field label={t('Name')} value={`${s.parent.firstName} ${s.parent.lastName}`} />
+                    <Field label={t('Email')} value={s.parent.email} />
                   </div>
                 </div>
               )}
@@ -250,7 +297,7 @@ export default function StudentDashboardPage() {
               {s.class?.subjectAssignments && s.class.subjectAssignments.length > 0 && (
                 <div className="ui-surface p-5">
                   <p className="text-xs font-semibold uppercase tracking-wider ui-text-secondary mb-3">
-                    Matières
+                    {t('Subjects')}
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {s.class.subjectAssignments.map(cs => (
@@ -271,11 +318,11 @@ export default function StudentDashboardPage() {
             <div className="ui-surface p-5 flex flex-col gap-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm font-semibold ui-text-primary">Résultats des évaluations</p>
+                  <p className="text-sm font-semibold ui-text-primary">{t('Assessment Results')}</p>
                   {avgScore !== null && (
                     <p className="text-xs ui-text-secondary mt-0.5">
-                      Moyenne : <span className="font-semibold" style={{ color: 'var(--accent)' }}>{avgScore}%</span>
-                      {' '}sur {gradedResults.length} notée{gradedResults.length > 1 ? 's' : ''}
+                      {t('Average')}: <span className="font-semibold" style={{ color: 'var(--accent)' }}>{avgScore}%</span>
+                      {' '}{t('across')} {gradedResults.length} {t('graded assessment')}{gradedResults.length > 1 ? 's' : ''}
                     </p>
                   )}
                 </div>

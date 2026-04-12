@@ -41,17 +41,12 @@ const LocaleContext = createContext<LocaleContextValue | undefined>(undefined)
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession()
-  const [locale, setLocaleState] = useState<ClientLocale>(getInitialLocale)
+  const [localLocale, setLocalLocale] = useState<ClientLocale>(getInitialLocale)
 
-  useEffect(() => {
-    const storedLocale = getLocaleFromStorage()
-    if (!storedLocale) {
-      const sessionLocale = session?.user?.preferredLanguage
-      if (isSupportedLocale(sessionLocale) && sessionLocale !== locale) {
-        setLocaleState(sessionLocale)
-      }
-    }
-  }, [session?.user?.preferredLanguage, locale])
+  const sessionLocale = isSupportedLocale(session?.user?.preferredLanguage)
+    ? session.user.preferredLanguage
+    : null
+  const locale: ClientLocale = sessionLocale || localLocale
 
   useEffect(() => {
     if (typeof document === 'undefined') return
@@ -67,7 +62,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(
     () => ({
       locale,
-      setLocale: (next: ClientLocale) => setLocaleState(next),
+      setLocale: (next: ClientLocale) => setLocalLocale(next),
     }),
     [locale]
   )
