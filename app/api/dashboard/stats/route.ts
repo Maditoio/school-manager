@@ -748,7 +748,9 @@ export async function GET(request: NextRequest) {
               : 'No yearly fee schedule set',
         },
         progressPercent,
-        progressLabel: `${progressPercent.toFixed(1)}% · R ${Math.round(totalCollected).toLocaleString('en-ZA')} of R ${Math.round(targetAmount).toLocaleString('en-ZA')}`,
+        progressLabel: `${progressPercent.toFixed(1)}% collected`,
+        progressCollected: totalCollected,
+        progressTarget: targetAmount,
         paymentMethodsTotal: totalCollected,
         paymentMethods,
       }

@@ -1,3 +1,10 @@
+const today = new Date()
+const isoDateWithOffset = (offsetDays) => {
+  const date = new Date(today)
+  date.setDate(date.getDate() + offsetDays)
+  return date.toISOString().slice(0, 10)
+}
+
 export const dashboardData = {
   header: {
     principalName: 'Principal Smith',
@@ -18,7 +25,7 @@ export const dashboardData = {
       label: 'New This Term',
       value: 84,
       accent: '#34d399',
-      trendLabel: '+12% vs last term',
+      trendLabel: 'Live enrollment updates',
       sparkline: [9, 15, 18, 10, 12, 8, 12],
     },
     // Students marked absent today
@@ -34,7 +41,7 @@ export const dashboardData = {
       label: 'Fee Defaulters',
       value: 112,
       accent: '#fbbf24',
-      trendLabel: '-8 vs last week',
+      trendLabel: 'Live fee status updates',
       sparkline: [129, 126, 124, 121, 118, 116, 112],
     },
     // Students performing below pass threshold
@@ -72,17 +79,19 @@ export const dashboardData = {
   },
 
   financial: {
-    periodLabel: 'Financial Health · Term 2 2025',
-    totalCollected: { value: 1240000, sub: '82% of term target' },
-    outstandingBalance: { value: 320000, sub: '112 accounts' },
-    collectedToday: { value: 18500, sub: '23 payments' },
-    termTarget: { value: 1560000, sub: 'Expected total' },
-    progressPercent: 82,
+    periodLabel: 'Financial Health · Live Data',
+    totalCollected: { value: 0, sub: 'Awaiting synced payments' },
+    outstandingBalance: { value: 0, sub: 'Awaiting synced balances' },
+    collectedToday: { value: 0, sub: 'Awaiting today payments' },
+    termTarget: { value: 0, sub: 'Awaiting approved schedule' },
+    progressPercent: 0,
+    progressCollected: 0,
+    progressTarget: 0,
     paymentMethods: [
       // Payments by method over current term
-      { name: 'Cash', percent: 35, amount: 434000, count: 418, color: '#6366f1' },
-      { name: 'Bank Transfer', percent: 48, amount: 595200, count: 312, color: '#34d399' },
-      { name: 'Mobile Payment', percent: 17, amount: 210800, count: 167, color: '#38bdf8' },
+      { name: 'Cash', percent: 0, amount: 0, count: 0, color: '#6366f1' },
+      { name: 'Bank Transfer', percent: 0, amount: 0, count: 0, color: '#34d399' },
+      { name: 'Mobile Payment', percent: 0, amount: 0, count: 0, color: '#38bdf8' },
     ],
   },
 
@@ -90,7 +99,7 @@ export const dashboardData = {
     passRate: 76.4,
     topClass: { name: 'Grade 11A', average: 92.3 },
     lowestClass: { name: 'Grade 8C', average: 58.1 },
-    schoolAverage: { value: 71.2, delta: '+3.1% vs last term' },
+    schoolAverage: { value: 71.2, delta: 'Live term comparison' },
     gradeAverages: [
       { grade: 'Grade 8', average: 58, passRate: 61 },
       { grade: 'Grade 9', average: 63, passRate: 69 },
@@ -180,7 +189,7 @@ export const dashboardData = {
       id: 'ev1',
       title: 'Grade 12 Trial Exams',
       daysUntil: 4,
-      dateISO: '2025-06-19',
+      dateISO: isoDateWithOffset(4),
       category: 'Exam',
       color: '#ef4444',
     },
@@ -188,7 +197,7 @@ export const dashboardData = {
       id: 'ev2',
       title: 'PTA Meeting',
       daysUntil: 6,
-      dateISO: '2025-06-21',
+      dateISO: isoDateWithOffset(6),
       category: 'Meeting',
       color: '#6366f1',
     },
@@ -196,7 +205,7 @@ export const dashboardData = {
       id: 'ev3',
       title: 'Youth Day Holiday',
       daysUntil: 9,
-      dateISO: '2025-06-24',
+      dateISO: isoDateWithOffset(9),
       category: 'Holiday',
       color: '#34d399',
     },
@@ -204,7 +213,7 @@ export const dashboardData = {
       id: 'ev4',
       title: 'Term 2 Reports Due',
       daysUntil: 8,
-      dateISO: '2025-06-23',
+      dateISO: isoDateWithOffset(8),
       category: 'Admin',
       color: '#fbbf24',
     },
@@ -212,7 +221,7 @@ export const dashboardData = {
       id: 'ev5',
       title: 'Grade 8–11 Exams',
       daysUntil: 12,
-      dateISO: '2025-06-27',
+      dateISO: isoDateWithOffset(12),
       category: 'Exam',
       color: '#ef4444',
     },

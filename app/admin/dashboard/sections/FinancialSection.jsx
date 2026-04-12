@@ -34,7 +34,16 @@ export default function FinancialSection({ data, loading }) {
   const { locale } = useLocale()
   const { formatCurrency } = useCurrency()
   const [progress, setProgress] = useState(0)
-  const progressLabel = translateDashboardDynamic(data.progressLabel || `${data.progressPercent}%`, locale)
+  const progressCollected = Number.isFinite(Number(data.progressCollected))
+    ? Number(data.progressCollected)
+    : Number(data.totalCollected?.value || 0)
+  const progressTarget = Number.isFinite(Number(data.progressTarget))
+    ? Number(data.progressTarget)
+    : Number(data.termTarget?.value || 0)
+  const progressLabel = translateDashboardDynamic(
+    `${Number(data.progressPercent || 0).toFixed(1)}% · ${formatCurrency(progressCollected)} ${translateText('of', locale)} ${formatCurrency(progressTarget)}`,
+    locale
+  )
   const paymentMethodsTotal = Number.isFinite(Number(data.paymentMethodsTotal))
     ? Number(data.paymentMethodsTotal)
     : Number(data.totalCollected?.value || 0)
@@ -116,6 +125,9 @@ export default function FinancialSection({ data, loading }) {
               <Tooltip
                 formatter={(value, name, props) => [translateDashboardDynamic(`${formatCurrency(props.payload.amount)} (${props.payload.count} payments)`, locale), translateText(String(name), locale)]}
                 contentStyle={{ background: '#161924', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#e2e8f0' }}
+                labelStyle={{ color: '#f8fafc' }}
+                itemStyle={{ color: '#e2e8f0' }}
+                wrapperStyle={{ outline: 'none' }}
               />
             </PieChart>
           </ResponsiveContainer>

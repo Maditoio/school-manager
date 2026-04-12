@@ -18,6 +18,8 @@ export type SchoolAdminDashboardStats = {
     termTarget: { value: number; sub: string }
     progressPercent: number
     progressLabel: string
+    progressCollected?: number
+    progressTarget?: number
     paymentMethodsTotal: number
     paymentMethods: Array<{
       name: string
