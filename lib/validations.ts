@@ -27,6 +27,15 @@ export const createSchoolSchema = z.object({
   adminPassword: z.string().min(6, 'Password must be at least 6 characters'),
   adminFirstName: z.string().min(1, 'First name is required'),
   adminLastName: z.string().min(1, 'Last name is required'),
+  onboardingFee: z.coerce.number().min(0).optional(),
+  onboardingStatus: z.enum(['PENDING', 'PAID', 'WAIVED']).optional(),
+  annualPricePerStudent: z.coerce.number().min(0).optional(),
+  licensedStudentCount: z.coerce.number().int().min(0).optional(),
+  billingYear: z.coerce.number().int().min(2000).max(2100).optional(),
+  licenseStartDate: z.string().optional().or(z.literal('')),
+  licenseEndDate: z.string().optional().or(z.literal('')),
+  enabledModules: z.array(z.string().min(1)).optional(),
+  billingNotes: z.string().optional(),
 })
 
 export const createStudentSchema = z.object({

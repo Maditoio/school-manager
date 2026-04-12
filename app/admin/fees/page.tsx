@@ -68,6 +68,22 @@ type Summary = {
   pendingAmount: number
 }
 
+type LicenseSummary = {
+  configured: boolean
+  onboardingFee: number
+  onboardingStatus: 'PENDING' | 'PAID' | 'WAIVED'
+  annualPricePerStudent: number
+  licensedStudentCount: number
+  activeStudents: number
+  coveredStudents: number
+  uncoveredStudents: number
+  billingYear: number
+  licenseStartDate: string | null
+  licenseEndDate: string | null
+  enabledModules: string[]
+  notes: string | null
+}
+
 type StudentStatus = {
   studentId: string
   studentName: string
@@ -116,6 +132,7 @@ export default function AdminFeesPage({
     collectedAmount: 0,
     pendingAmount: 0,
   })
+  const [licenseSummary, setLicenseSummary] = useState<LicenseSummary | null>(null)
   const [studentStatuses, setStudentStatuses] = useState<StudentStatus[]>([])
   const [recentPayments, setRecentPayments] = useState<RecentPayment[]>([])
 
@@ -304,6 +321,18 @@ export default function AdminFeesPage({
           return student.status === 'NOT_PAID' ? 'NOT PAID' : student.status
         },
       },
+      {
+        key: 'access',
+        label: 'Portal Access',
+        renderCell: (student: StudentStatus) => {
+          const blocked = student.status === 'NOT_PAID' || student.status === 'PARTIAL'
+          return (
+            <span className={blocked ? 'text-rose-400' : 'text-emerald-400'}>
+              {blocked ? 'LOCKED' : 'ACTIVE'}
+            </span>
+          )
+        },
+      },
     ],
     []
   )
@@ -431,6 +460,7 @@ export default function AdminFeesPage({
             pendingAmount: 0,
           }
         )
+        setLicenseSummary(data.licenseSummary || null)
         setStudentStatuses(Array.isArray(data.studentStatuses) ? data.studentStatuses : [])
         setRecentPayments(Array.isArray(data.recentPayments) ? data.recentPayments : [])
         setPendingSchedules(Array.isArray(data.pendingSchedules) ? data.pendingSchedules : [])
@@ -443,6 +473,7 @@ export default function AdminFeesPage({
         showToast(message, 'error')
         setPeriods([])
         setSummary({ studentsCount: 0, payingCount: 0, notPayingCount: 0, collectedAmount: 0, pendingAmount: 0 })
+        setLicenseSummary(null)
         setStudentStatuses([])
         setRecentPayments([])
         setPendingSchedules([])
@@ -1296,6 +1327,47 @@ export default function AdminFeesPage({
             icon={<Wallet className="h-4 w-4" />}
           />
         </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <StatCard
+            title="Licensed Students"
+            value={licenseSummary?.licensedStudentCount ?? 0}
+            icon={<Users className="h-4 w-4" />}
+          />
+          <StatCard
+            title="Covered Students"
+            value={licenseSummary?.coveredStudents ?? 0}
+            icon={<CircleCheck className="h-4 w-4" />}
+          />
+          <StatCard
+            title="Uncovered Students"
+            value={licenseSummary?.uncoveredStudents ?? 0}
+            icon={<AlertTriangle className="h-4 w-4" />}
+          />
+        </div>
+
+        <Card title="School License Coverage">
+          <div className="flex flex-wrap gap-6 text-sm">
+            <div>
+              <p className="ui-text-secondary">Billing year</p>
+              <p className="font-semibold ui-text-primary">{licenseSummary?.billingYear || '-'}</p>
+            </div>
+            <div>
+              <p className="ui-text-secondary">Onboarding</p>
+              <p className="font-semibold ui-text-primary">{licenseSummary?.onboardingStatus || 'PENDING'}</p>
+            </div>
+            <div>
+              <p className="ui-text-secondary">Annual price per student</p>
+              <p className="font-semibold ui-text-primary">{formatCurrency(licenseSummary?.annualPricePerStudent ?? 0)}</p>
+            </div>
+            <div>
+              <p className="ui-text-secondary">Modules</p>
+              <p className="font-semibold ui-text-primary">
+                {licenseSummary?.enabledModules?.length ? licenseSummary.enabledModules.join(', ') : 'No modules configured'}
+              </p>
+            </div>
+          </div>
+        </Card>
 
         <Card title="Pending Collection">
           <div className="text-2xl font-semibold text-rose-500">

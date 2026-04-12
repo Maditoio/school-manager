@@ -36,6 +36,7 @@ model School {
   parentComplaints             ParentComplaint[]
   parentInteractions           ParentInteraction[]
   results                      Result[]
+  schoolBilling                SchoolBilling?
   schoolSettings               SchoolSettings?
   reportTemplates              ReportTemplate[]
   students                     Student[]
@@ -65,6 +66,26 @@ model SchoolSettings {
   activeTemplate            ReportTemplate? @relation("ActiveTemplate", fields: [activeTemplateId], references: [id])
 
   @@map("school_settings")
+}
+
+model SchoolBilling {
+  id                   String                 @id @default(uuid())
+  schoolId             String                 @unique @map("school_id")
+  onboardingFee        Float                  @default(0) @map("onboarding_fee")
+  onboardingStatus     SchoolOnboardingStatus @default(PENDING) @map("onboarding_status")
+  annualPricePerStudent Float                 @default(0) @map("annual_price_per_student")
+  licensedStudentCount Int                    @default(0) @map("licensed_student_count")
+  billingYear          Int                    @default(0) @map("billing_year")
+  licenseStartDate     DateTime?              @map("license_start_date") @db.Date
+  licenseEndDate       DateTime?              @map("license_end_date") @db.Date
+  enabledModules       String[]               @default([]) @map("enabled_modules")
+  notes                String?
+  createdAt            DateTime               @default(now()) @map("created_at")
+  updatedAt            DateTime               @updatedAt @map("updated_at")
+  school               School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([billingYear])
+  @@map("school_billing")
 }
 
 model User {
@@ -950,6 +971,12 @@ enum SubscriptionPlan {
   BASIC
   STANDARD
   PREMIUM
+}
+
+enum SchoolOnboardingStatus {
+  PENDING
+  PAID
+  WAIVED
 }
 
 enum AttendanceStatus {

@@ -2,6 +2,7 @@ import NextAuth, { DefaultSession } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { CredentialsSignin } from "next-auth"
 import { prisma } from "@/lib/prisma"
+import { getPortalAccessState } from "@/lib/access-control"
 import { compare, hash } from "bcryptjs"
 import { UserRole } from "@prisma/client"
 
@@ -34,6 +35,8 @@ declare module "next-auth" {
       firstName: string | null
       lastName: string | null
       studentId: string | null
+      paymentAccessBlocked: boolean
+      paymentAccessReason: string | null
     } & DefaultSession["user"]
   }
 
@@ -47,6 +50,8 @@ declare module "next-auth" {
     firstName: string | null
     lastName: string | null
     studentId: string | null
+    paymentAccessBlocked: boolean
+    paymentAccessReason: string | null
   }
 }
 
@@ -112,6 +117,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         const flags = await getUserAuthFlags(user.id)
+        const portalAccess = await getPortalAccessState({
+          role: user.role,
+          studentId: user.studentId ?? null,
+          userId: user.id,
+        })
+
+        if (portalAccess.blocked) {
+          const err = new CredentialsSignin('payment_required')
+          err.code = 'payment_required'
+          throw err
+        }
 
         return {
           id: user.id,
@@ -123,6 +139,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           firstName: user.firstName,
           lastName: user.lastName,
           studentId: user.studentId ?? null,
+          paymentAccessBlocked: false,
+          paymentAccessReason: null,
         }
       },
     }),
@@ -139,6 +157,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.firstName = user.firstName
         token.lastName = user.lastName
         token.studentId = user.studentId ?? null
+        token.paymentAccessBlocked = user.paymentAccessBlocked
+        token.paymentAccessReason = user.paymentAccessReason
       }
       if (trigger === 'update') {
         if (updateData?.preferredLanguage) {
@@ -148,6 +168,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.mustResetPassword = false
         }
       }
+
+      if (typeof token.id === 'string' && (token.role === 'STUDENT' || token.role === 'PARENT')) {
+        const portalAccess = await getPortalAccessState({
+          role: token.role as string,
+          studentId: (token.studentId as string | null) ?? null,
+          userId: token.id,
+        })
+        token.paymentAccessBlocked = portalAccess.blocked
+        token.paymentAccessReason = portalAccess.reason
+      } else {
+        token.paymentAccessBlocked = false
+        token.paymentAccessReason = null
+      }
+
       return token
     },
     async session({ session, token }) {
@@ -161,6 +195,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.firstName = token.firstName as string | null
         session.user.lastName = token.lastName as string | null
         session.user.studentId = token.studentId as string | null
+        session.user.paymentAccessBlocked = Boolean(token.paymentAccessBlocked)
+        session.user.paymentAccessReason = (token.paymentAccessReason as string | null) ?? null
       }
       return session
     },

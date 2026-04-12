@@ -15,6 +15,7 @@ export async function GET() {
 
     const schools = await prisma.school.findMany({
       include: {
+        schoolBilling: true,
         _count: {
           select: {
             users: true,
@@ -56,6 +57,10 @@ export async function POST(request: NextRequest) {
 
     const { name, plan, adminPassword, adminFirstName, adminLastName } = validation.data
     const normalizedAdminEmail = validation.data.adminEmail.trim().toLowerCase()
+    const billingYear = validation.data.billingYear ?? new Date().getFullYear()
+    const enabledModules = Array.isArray(validation.data.enabledModules)
+      ? validation.data.enabledModules.map((item) => item.trim()).filter(Boolean)
+      : []
 
     // Check if admin email already exists
     const existingUser = await prisma.user.findUnique({
@@ -79,6 +84,19 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         plan,
+        schoolBilling: {
+          create: {
+            onboardingFee: validation.data.onboardingFee ?? 0,
+            onboardingStatus: validation.data.onboardingStatus ?? 'PENDING',
+            annualPricePerStudent: validation.data.annualPricePerStudent ?? 0,
+            licensedStudentCount: validation.data.licensedStudentCount ?? 0,
+            billingYear,
+            licenseStartDate: validation.data.licenseStartDate ? new Date(validation.data.licenseStartDate) : null,
+            licenseEndDate: validation.data.licenseEndDate ? new Date(validation.data.licenseEndDate) : null,
+            enabledModules,
+            notes: validation.data.billingNotes?.trim() || null,
+          },
+        },
         users: {
           create: {
             email: normalizedAdminEmail,
@@ -97,6 +115,7 @@ export async function POST(request: NextRequest) {
         },
       },
       include: {
+        schoolBilling: true,
         users: {
           where: { role: 'SCHOOL_ADMIN' },
           select: {

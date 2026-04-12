@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Input, Select } from '@/components/ui/Form'
+import { Input, Select, TextArea } from '@/components/ui/Form'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
@@ -26,6 +26,17 @@ interface School {
   suspended: boolean
   suspensionReason?: string
   suspendedAt?: string
+  schoolBilling?: {
+    onboardingFee: number
+    onboardingStatus: 'PENDING' | 'PAID' | 'WAIVED'
+    annualPricePerStudent: number
+    licensedStudentCount: number
+    billingYear: number
+    licenseStartDate: string | null
+    licenseEndDate: string | null
+    enabledModules: string[]
+    notes: string | null
+  } | null
 }
 
 export default function SchoolsPage() {
@@ -47,6 +58,15 @@ export default function SchoolsPage() {
     adminPassword: '',
     adminFirstName: '',
     adminLastName: '',
+    onboardingFee: '0',
+    onboardingStatus: 'PENDING',
+    annualPricePerStudent: '0',
+    licensedStudentCount: '0',
+    billingYear: String(new Date().getFullYear()),
+    licenseStartDate: '',
+    licenseEndDate: '',
+    enabledModules: '',
+    billingNotes: '',
   })
 
   useEffect(() => {
@@ -92,6 +112,15 @@ export default function SchoolsPage() {
           body: JSON.stringify({
             name: formData.name,
             plan: formData.plan,
+            onboardingFee: Number(formData.onboardingFee || 0),
+            onboardingStatus: formData.onboardingStatus,
+            annualPricePerStudent: Number(formData.annualPricePerStudent || 0),
+            licensedStudentCount: Number(formData.licensedStudentCount || 0),
+            billingYear: Number(formData.billingYear || new Date().getFullYear()),
+            licenseStartDate: formData.licenseStartDate || null,
+            licenseEndDate: formData.licenseEndDate || null,
+            enabledModules: formData.enabledModules.split(',').map((item) => item.trim()).filter(Boolean),
+            billingNotes: formData.billingNotes,
           }),
         })
 
@@ -109,7 +138,14 @@ export default function SchoolsPage() {
         const res = await fetch('/api/schools', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({
+            ...formData,
+            onboardingFee: Number(formData.onboardingFee || 0),
+            annualPricePerStudent: Number(formData.annualPricePerStudent || 0),
+            licensedStudentCount: Number(formData.licensedStudentCount || 0),
+            billingYear: Number(formData.billingYear || new Date().getFullYear()),
+            enabledModules: formData.enabledModules.split(',').map((item) => item.trim()).filter(Boolean),
+          }),
         })
 
         if (res.ok) {
@@ -137,6 +173,15 @@ export default function SchoolsPage() {
       adminPassword: '',
       adminFirstName: '',
       adminLastName: '',
+      onboardingFee: String(school.schoolBilling?.onboardingFee ?? 0),
+      onboardingStatus: school.schoolBilling?.onboardingStatus ?? 'PENDING',
+      annualPricePerStudent: String(school.schoolBilling?.annualPricePerStudent ?? 0),
+      licensedStudentCount: String(school.schoolBilling?.licensedStudentCount ?? 0),
+      billingYear: String(school.schoolBilling?.billingYear ?? new Date().getFullYear()),
+      licenseStartDate: school.schoolBilling?.licenseStartDate?.slice(0, 10) ?? '',
+      licenseEndDate: school.schoolBilling?.licenseEndDate?.slice(0, 10) ?? '',
+      enabledModules: school.schoolBilling?.enabledModules?.join(', ') ?? '',
+      billingNotes: school.schoolBilling?.notes ?? '',
     })
     setShowModal(true)
   }
@@ -206,6 +251,15 @@ export default function SchoolsPage() {
       adminPassword: '',
       adminFirstName: '',
       adminLastName: '',
+      onboardingFee: '0',
+      onboardingStatus: 'PENDING',
+      annualPricePerStudent: '0',
+      licensedStudentCount: '0',
+      billingYear: String(new Date().getFullYear()),
+      licenseStartDate: '',
+      licenseEndDate: '',
+      enabledModules: '',
+      billingNotes: '',
     })
     setEditingSchool(null)
   }
@@ -293,6 +347,9 @@ export default function SchoolsPage() {
                     <p>📍 {school.address}</p>
                     <p>📦 Plan: {school.subscriptionPlan}</p>
                     <p>💳 Status: {school.subscriptionStatus}</p>
+                    <p>👥 Licensed Students: {school.schoolBilling?.licensedStudentCount ?? 0}</p>
+                    <p>💰 Annual / Student: {school.schoolBilling?.annualPricePerStudent ?? 0}</p>
+                    <p>🧭 Onboarding: {school.schoolBilling?.onboardingStatus ?? 'PENDING'}</p>
                                       {school.suspended && school.suspensionReason && (
                                         <p className="text-orange-700 font-medium">Reason: {school.suspensionReason}</p>
                                       )}
@@ -344,6 +401,75 @@ export default function SchoolsPage() {
                   <option value="PREMIUM">{t('school.schools.premium')}</option>
                   <option value="ENTERPRISE">{t('school.schools.enterprise')}</option>
                 </Select>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <Input
+                    label="Onboarding Fee"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.onboardingFee}
+                    onChange={(e) => setFormData({ ...formData, onboardingFee: e.target.value })}
+                  />
+                  <Select
+                    label="Onboarding Status"
+                    value={formData.onboardingStatus}
+                    onChange={(e) => setFormData({ ...formData, onboardingStatus: e.target.value })}
+                    options={[
+                      { value: 'PENDING', label: 'Pending' },
+                      { value: 'PAID', label: 'Paid' },
+                      { value: 'WAIVED', label: 'Waived' },
+                    ]}
+                  />
+                  <Input
+                    label="Annual Price Per Student"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.annualPricePerStudent}
+                    onChange={(e) => setFormData({ ...formData, annualPricePerStudent: e.target.value })}
+                  />
+                  <Input
+                    label="Licensed Student Count"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formData.licensedStudentCount}
+                    onChange={(e) => setFormData({ ...formData, licensedStudentCount: e.target.value })}
+                  />
+                  <Input
+                    label="Billing Year"
+                    type="number"
+                    min="2000"
+                    max="2100"
+                    value={formData.billingYear}
+                    onChange={(e) => setFormData({ ...formData, billingYear: e.target.value })}
+                  />
+                  <Input
+                    label="Enabled Modules"
+                    value={formData.enabledModules}
+                    onChange={(e) => setFormData({ ...formData, enabledModules: e.target.value })}
+                    placeholder="fees, attendance, assessments"
+                  />
+                  <Input
+                    label="License Start Date"
+                    type="date"
+                    value={formData.licenseStartDate}
+                    onChange={(e) => setFormData({ ...formData, licenseStartDate: e.target.value })}
+                  />
+                  <Input
+                    label="License End Date"
+                    type="date"
+                    value={formData.licenseEndDate}
+                    onChange={(e) => setFormData({ ...formData, licenseEndDate: e.target.value })}
+                  />
+                </div>
+                <TextArea
+                  label="Billing Notes"
+                  rows={3}
+                  value={formData.billingNotes}
+                  onChange={(e) => setFormData({ ...formData, billingNotes: e.target.value })}
+                />
                 
                 {!editingSchool && (
                   <div className="border-t pt-4 mt-4">

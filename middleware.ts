@@ -33,6 +33,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
+  if (session.user.paymentAccessBlocked) {
+    const allowedBlockedRoutes =
+      pathname.startsWith('/payment-required') ||
+      pathname.startsWith('/api/auth')
+
+    if (!allowedBlockedRoutes) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: session.user.paymentAccessReason || 'Payment required before access is restored.' },
+          { status: 403 }
+        )
+      }
+
+      return NextResponse.redirect(new URL('/payment-required', request.url))
+    }
+  } else if (pathname.startsWith('/payment-required')) {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+
   // Role-based access control
   const role = session.user.role
 

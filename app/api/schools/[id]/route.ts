@@ -24,6 +24,7 @@ export async function GET(
     const school = await prisma.school.findUnique({
       where: { id: schoolId },
       include: {
+        schoolBilling: true,
         _count: {
           select: {
             users: true,
@@ -63,6 +64,9 @@ export async function PATCH(
 
     const body = await request.json()
     const { id: schoolId } = await params
+    const enabledModules = Array.isArray(body.enabledModules)
+      ? body.enabledModules.map((item: unknown) => String(item).trim()).filter(Boolean)
+      : undefined
 
     const school = await prisma.school.update({
       where: { id: schoolId },
@@ -70,6 +74,35 @@ export async function PATCH(
         name: body.name,
         plan: body.plan,
         active: body.active,
+        schoolBilling: {
+          upsert: {
+            create: {
+              onboardingFee: Number(body.onboardingFee ?? 0),
+              onboardingStatus: body.onboardingStatus ?? 'PENDING',
+              annualPricePerStudent: Number(body.annualPricePerStudent ?? 0),
+              licensedStudentCount: Number(body.licensedStudentCount ?? 0),
+              billingYear: Number(body.billingYear ?? new Date().getFullYear()),
+              licenseStartDate: body.licenseStartDate ? new Date(body.licenseStartDate) : null,
+              licenseEndDate: body.licenseEndDate ? new Date(body.licenseEndDate) : null,
+              enabledModules: enabledModules ?? [],
+              notes: typeof body.billingNotes === 'string' ? body.billingNotes.trim() || null : null,
+            },
+            update: {
+              onboardingFee: Number(body.onboardingFee ?? 0),
+              onboardingStatus: body.onboardingStatus ?? 'PENDING',
+              annualPricePerStudent: Number(body.annualPricePerStudent ?? 0),
+              licensedStudentCount: Number(body.licensedStudentCount ?? 0),
+              billingYear: Number(body.billingYear ?? new Date().getFullYear()),
+              licenseStartDate: body.licenseStartDate ? new Date(body.licenseStartDate) : null,
+              licenseEndDate: body.licenseEndDate ? new Date(body.licenseEndDate) : null,
+              enabledModules: enabledModules ?? [],
+              notes: typeof body.billingNotes === 'string' ? body.billingNotes.trim() || null : null,
+            },
+          },
+        },
+      },
+      include: {
+        schoolBilling: true,
       },
     })
 

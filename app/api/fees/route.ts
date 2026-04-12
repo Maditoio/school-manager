@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { getSchoolLicenseStatus } from '@/lib/access-control'
 import { prisma } from '@/lib/prisma'
 import { hasRole } from '@/lib/auth-utils'
 import { createFeeScheduleSchema, recordFeePaymentSchema } from '@/lib/validations'
@@ -228,7 +229,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const periodKey = searchParams.get('periodKey')
 
-    const allSchedules = await getAllSchedulesForSchool(schoolId)
+    const [allSchedules, licenseSummary] = await Promise.all([
+      getAllSchedulesForSchool(schoolId),
+      getSchoolLicenseStatus(schoolId),
+    ])
 
     // Pending schedules visible to all finance/admin roles
     const pendingSchedules = allSchedules
@@ -291,6 +295,7 @@ export async function GET(request: NextRequest) {
         periods: [],
         selectedPeriod: null,
         pendingSchedules,
+        licenseSummary,
         summary: { studentsCount: 0, payingCount: 0, notPayingCount: 0, collectedAmount: 0, pendingAmount: 0 },
         studentStatuses: [],
         recentPayments: [],
@@ -504,6 +509,7 @@ export async function GET(request: NextRequest) {
       periods,
       selectedPeriod: selectedPeriodData,
       pendingSchedules,
+      licenseSummary,
       summary: {
         studentsCount: studentStatuses.length,
         payingCount,
