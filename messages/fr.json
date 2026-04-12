@@ -1435,4 +1435,34 @@
     "of": "sur",
     "results": "résultats"
   }
+  ,
+  "studentUi": {
+    "myProfile": "Mon Profil",
+    "schoolFees": "Frais Scolaires",
+    "communications": "Communications",
+    "studentHub": "Espace Etudiant",
+    "library": "Bibliotheque",
+    "loadingProfile": "Chargement du profil...",
+    "admissionNumber": "Numero d'admission",
+    "class": "Classe",
+    "year": "Annee",
+    "dateOfBirth": "Date de naissance",
+    "gender": "Genre",
+    "attendance": "Assiduite",
+    "noAttendanceRecordsYet": "Aucun enregistrement de presence pour le moment",
+    "present": "Present",
+    "absent": "Absent",
+    "late": "En retard",
+    "rate": "Taux",
+    "parentGuardian": "Parent / Tuteur",
+    "name": "Nom",
+    "email": "E-mail",
+    "subjects": "Matieres",
+    "assessmentResults": "Resultats des evaluations",
+    "average": "Moyenne",
+    "across": "sur",
+    "gradedAssessment": "evaluation notee",
+    "noAssessmentsYet": "Aucune evaluation pour l'instant.",
+    "pending": "En attente"
+  }
 }

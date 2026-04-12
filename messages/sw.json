@@ -1347,4 +1347,34 @@
     "columnActions": "Vitendo",
     "resetPassword": "Weka Upya Nenosiri"
   }
+  ,
+  "studentUi": {
+    "myProfile": "Wasifu Wangu",
+    "schoolFees": "Ada za Shule",
+    "communications": "Mawasiliano",
+    "studentHub": "Kituo cha Mwanafunzi",
+    "library": "Maktaba",
+    "loadingProfile": "Inapakia wasifu...",
+    "admissionNumber": "Namba ya Uandikishaji",
+    "class": "Darasa",
+    "year": "Mwaka",
+    "dateOfBirth": "Tarehe ya Kuzaliwa",
+    "gender": "Jinsia",
+    "attendance": "Mahudhurio",
+    "noAttendanceRecordsYet": "Hakuna rekodi za mahudhurio bado",
+    "present": "Yupo",
+    "absent": "Hayupo",
+    "late": "Amechelewa",
+    "rate": "Kiwango",
+    "parentGuardian": "Mzazi / Mlezi",
+    "name": "Jina",
+    "email": "Barua pepe",
+    "subjects": "Masomo",
+    "assessmentResults": "Matokeo ya Tathmini",
+    "average": "Wastani",
+    "across": "katika",
+    "gradedAssessment": "tathmini iliyopimwa",
+    "noAssessmentsYet": "Hakuna tathmini bado.",
+    "pending": "Inasubiri"
+  }
 }

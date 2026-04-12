@@ -40,13 +40,9 @@ interface LocaleContextValue {
 const LocaleContext = createContext<LocaleContextValue | undefined>(undefined)
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession()
+  useSession()
   const [localLocale, setLocalLocale] = useState<ClientLocale>(getInitialLocale)
-
-  const sessionLocale = isSupportedLocale(session?.user?.preferredLanguage)
-    ? session.user.preferredLanguage
-    : null
-  const locale: ClientLocale = sessionLocale || localLocale
+  const locale: ClientLocale = localLocale
 
   useEffect(() => {
     if (typeof document === 'undefined') return
