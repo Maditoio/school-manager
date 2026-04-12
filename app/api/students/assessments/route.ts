@@ -4,9 +4,7 @@ import { prisma } from '@/lib/prisma'
 
 type StudentAssessmentDelegate = {
   findMany: (args: {
-    where: {
-      studentId: string
-    }
+    where: Record<string, unknown>
     include: {
       assessment: {
         include: {
