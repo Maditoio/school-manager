@@ -354,6 +354,7 @@ export async function GET(request: NextRequest) {
             paymentDate: true,
             receiptUrl: true,
             receiptFileName: true,
+            receiptMimeType: true,
           },
           orderBy: { paymentDate: 'desc' },
         })
