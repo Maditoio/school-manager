@@ -51,6 +51,7 @@ const statusLabels: Record<string, string> = {
 const periodTypeLabels: Record<string, string> = {
   MONTHLY: 'Mensuel',
   SEMESTER: 'Semestriel',
+  YEARLY: 'Annuel',
   ANNUAL: 'Annuel',
   TERM: 'Trimestre',
   WEEKLY: 'Hebdomadaire',

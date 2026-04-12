@@ -70,33 +70,6 @@ const typeColors: Record<string, string> = {
   ASSIGNMENT: 'bg-amber-100 text-amber-700',
 }
 
-const typeLabels: Record<string, string> = {
-  QUIZ: 'Quiz',
-  TEST: 'Test',
-  EXAM: 'Examen',
-  ASSIGNMENT: 'Devoir',
-}
-
-const filterButtonLabels: Record<string, string> = {
-  ALL: 'Tout',
-  EXAM: 'Examen',
-  TEST: 'Test',
-  QUIZ: 'Quiz',
-  ASSIGNMENT: 'Devoir',
-}
-
-const genderLabels: Record<string, string> = {
-  MALE: 'Masculin',
-  FEMALE: 'Féminin',
-  OTHER: 'Autre',
-}
-
-const statusBadgeLabels: Record<string, string> = {
-  ACTIVE: 'ACTIF',
-  INACTIVE: 'INACTIF',
-  SUSPENDED: 'SUSPENDU',
-}
-
 const statusDotStyles: Record<string, string> = {
   PRESENT: 'bg-emerald-500',
   ABSENT: 'bg-rose-500',
@@ -113,7 +86,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
       <p className="text-[11px] font-medium uppercase tracking-wider ui-text-secondary mb-0.5">{label}</p>
-      <p className="text-sm font-medium ui-text-primary">{value || 'N/A'}</p>
+      <p className="text-sm font-medium ui-text-primary">{value || '-'}</p>
     </div>
   )
 }
@@ -167,6 +140,44 @@ export default function StudentDashboardPage() {
     ? Math.round(gradedResults.reduce((sum, r) => sum + (r.score! / r.assessment.totalMarks) * 100, 0) / gradedResults.length)
     : null
   const t = (text: string) => translateText(text, locale)
+  const isFr = locale === 'fr'
+  const isSw = locale === 'sw'
+
+  const typeLabels: Record<string, string> = {
+    QUIZ: isFr ? 'Interro' : isSw ? 'Jaribio Fupi' : 'Quiz',
+    TEST: isFr ? 'Test' : isSw ? 'Mtihani' : 'Test',
+    EXAM: isFr ? 'Examen' : isSw ? 'Mtihani Mkuu' : 'Exam',
+    ASSIGNMENT: isFr ? 'Devoir' : isSw ? 'Kazi' : 'Assignment',
+  }
+
+  const filterButtonLabels: Record<string, string> = {
+    ALL: isFr ? 'Tout' : isSw ? 'Zote' : 'All',
+    EXAM: typeLabels.EXAM,
+    TEST: typeLabels.TEST,
+    QUIZ: typeLabels.QUIZ,
+    ASSIGNMENT: typeLabels.ASSIGNMENT,
+  }
+
+  const genderLabels: Record<string, string> = {
+    MALE: isFr ? 'Masculin' : isSw ? 'Mwanaume' : 'Male',
+    FEMALE: isFr ? 'Feminin' : isSw ? 'Mwanamke' : 'Female',
+    OTHER: isFr ? 'Autre' : isSw ? 'Nyingine' : 'Other',
+  }
+
+  const statusBadgeLabels: Record<string, string> = {
+    ACTIVE: isFr ? 'ACTIF' : isSw ? 'HAI' : 'ACTIVE',
+    INACTIVE: isFr ? 'INACTIF' : isSw ? 'ISIYO HAI' : 'INACTIVE',
+    SUSPENDED: isFr ? 'SUSPENDU' : isSw ? 'IMESITISHWA' : 'SUSPENDED',
+  }
+
+  const averageSummaryText =
+    avgScore === null
+      ? ''
+      : isFr
+      ? `Moyenne: ${avgScore}% sur ${gradedResults.length} evaluation${gradedResults.length > 1 ? 's' : ''} notee${gradedResults.length > 1 ? 's' : ''}`
+      : isSw
+      ? `Wastani: ${avgScore}% katika tathmini ${gradedResults.length}`
+      : `Average: ${avgScore}% across ${gradedResults.length} graded assessment${gradedResults.length > 1 ? 's' : ''}`
 
   const formatDay = (value: string) =>
     new Date(value).toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-KE' : 'en-US', { weekday: 'short' })
@@ -321,8 +332,7 @@ export default function StudentDashboardPage() {
                   <p className="text-sm font-semibold ui-text-primary">{t('Assessment Results')}</p>
                   {avgScore !== null && (
                     <p className="text-xs ui-text-secondary mt-0.5">
-                      {t('Average')}: <span className="font-semibold" style={{ color: 'var(--accent)' }}>{avgScore}%</span>
-                      {' '}{t('across')} {gradedResults.length} {t('graded assessment')}{gradedResults.length > 1 ? 's' : ''}
+                      <span className="font-semibold" style={{ color: 'var(--accent)' }}>{averageSummaryText}</span>
                     </p>
                   )}
                 </div>
@@ -345,9 +355,15 @@ export default function StudentDashboardPage() {
               </div>
 
               {results.length === 0 ? (
-                <p className="py-8 text-center text-sm ui-text-secondary">Aucune évaluation pour l&apos;instant.</p>
+                <p className="py-8 text-center text-sm ui-text-secondary">{t('No assessments yet.')}</p>
               ) : filteredResults.length === 0 ? (
-                <p className="py-8 text-center text-sm ui-text-secondary">Aucune évaluation de type {(filterButtonLabels[typeFilter] ?? typeFilter).toLowerCase()}.</p>
+                <p className="py-8 text-center text-sm ui-text-secondary">
+                  {isFr
+                    ? `Aucune evaluation de type ${(filterButtonLabels[typeFilter] ?? typeFilter).toLowerCase()}.`
+                    : isSw
+                    ? `Hakuna tathmini ya aina ya ${(filterButtonLabels[typeFilter] ?? typeFilter).toLowerCase()}.`
+                    : `No ${filterButtonLabels[typeFilter] ?? typeFilter} assessments yet.`}
+                </p>
               ) : (
                 <div className="overflow-auto rounded-lg border border-(--border-subtle)">
                   <table className="w-full text-sm">
@@ -385,7 +401,7 @@ export default function StudentDashboardPage() {
                                   <span className="ml-1 text-[11px] font-normal ui-text-secondary">({pct}%)</span>
                                 </span>
                               ) : (
-                                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500">En attente</span>
+                                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500">{t('Pending')}</span>
                               )}
                             </td>
                           </tr>
