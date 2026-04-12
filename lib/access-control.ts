@@ -1,15 +1,5 @@
 import { prisma } from '@/lib/prisma'
 
-type ApplicableSchedule = {
-  id: string
-  amountDue: number
-  createdAt: Date
-}
-
-function buildPeriodKey(periodType: string, year: number, month: number | null, semester: number | null) {
-  return `${periodType}:${year}:${month ?? ''}:${semester ?? ''}`
-}
-
 function toDateOnly(value: Date | null | undefined) {
   if (!value) return null
   return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()))
@@ -29,15 +19,51 @@ function isLicenseActive(startDate: Date | null, endDate: Date | null) {
 export async function getSchoolLicenseStatus(schoolId: string) {
   const [billing, activeStudents] = await Promise.all([
     prisma.schoolBilling.findUnique({ where: { schoolId } }),
-    prisma.student.count({ where: { schoolId, status: 'ACTIVE' } }),
+    prisma.student.findMany({
+      where: { schoolId, status: 'ACTIVE' },
+      select: { id: true },
+    }),
   ])
+
+  const activeStudentCount = activeStudents.length
+  const licenseYear = billing?.billingYear && billing.billingYear > 0 ? billing.billingYear : new Date().getFullYear()
+  const requiredAmountPerStudent = Number(billing?.annualPricePerStudent ?? 0)
 
   const licensedStudentCount = billing && isLicenseActive(billing.licenseStartDate, billing.licenseEndDate)
     ? billing.licensedStudentCount
     : 0
 
-  const coveredStudents = Math.min(activeStudents, licensedStudentCount)
-  const uncoveredStudents = Math.max(activeStudents - licensedStudentCount, 0)
+  const coverageCapacity = Math.min(activeStudentCount, licensedStudentCount)
+  const uncoveredCapacity = Math.max(activeStudentCount - licensedStudentCount, 0)
+
+  const activeStudentIds = activeStudents.map((student) => student.id)
+  const payments = activeStudentIds.length
+    ? await prisma.studentLicensePayment.findMany({
+        where: {
+          schoolId,
+          licenseYear,
+          studentId: { in: activeStudentIds },
+        },
+        select: {
+          studentId: true,
+          amountPaid: true,
+        },
+      })
+    : []
+
+  const paidByStudent = new Map<string, number>()
+  for (const payment of payments) {
+    paidByStudent.set(payment.studentId, (paidByStudent.get(payment.studentId) ?? 0) + Number(payment.amountPaid))
+  }
+
+  const hasAccess = (paidAmount: number) =>
+    requiredAmountPerStudent > 0 ? paidAmount >= requiredAmountPerStudent : paidAmount > 0
+
+  const studentsWithAccess = activeStudentIds.reduce((count, studentId) => {
+    const paidAmount = paidByStudent.get(studentId) ?? 0
+    return hasAccess(paidAmount) ? count + 1 : count
+  }, 0)
+  const studentsWithoutAccess = Math.max(activeStudentCount - studentsWithAccess, 0)
 
   return {
     configured: Boolean(billing),
@@ -45,9 +71,15 @@ export async function getSchoolLicenseStatus(schoolId: string) {
     onboardingStatus: billing?.onboardingStatus ?? 'PENDING',
     annualPricePerStudent: billing?.annualPricePerStudent ?? 0,
     licensedStudentCount,
-    activeStudents,
-    coveredStudents,
-    uncoveredStudents,
+    activeStudents: activeStudentCount,
+    coveredStudents: studentsWithAccess,
+    uncoveredStudents: studentsWithoutAccess,
+    coverageCapacity,
+    uncoveredCapacity,
+    studentsWithAccess,
+    studentsWithoutAccess,
+    requiredAmountPerStudent,
+    licenseYear,
     billingYear: billing?.billingYear ?? 0,
     licenseStartDate: billing?.licenseStartDate ?? null,
     licenseEndDate: billing?.licenseEndDate ?? null,
@@ -56,69 +88,17 @@ export async function getSchoolLicenseStatus(schoolId: string) {
   }
 }
 
-async function getApplicableSchedulesForStudent(studentId: string) {
+export async function getStudentFeeAccessStatus(studentId: string) {
   const student = await prisma.student.findUnique({
     where: { id: studentId },
     select: {
       id: true,
       schoolId: true,
-      classId: true,
-      academicYear: true,
       status: true,
       firstName: true,
       lastName: true,
     },
   })
-
-  if (!student) {
-    return { student: null, applicableSchedules: [] as ApplicableSchedule[] }
-  }
-
-  const schedules = await prisma.feeSchedule.findMany({
-    where: {
-      schoolId: student.schoolId,
-      year: student.academicYear,
-      status: 'APPROVED',
-      OR: [{ classId: student.classId }, { classId: null }],
-    },
-    select: {
-      id: true,
-      classId: true,
-      periodType: true,
-      year: true,
-      month: true,
-      semester: true,
-      amountDue: true,
-      createdAt: true,
-    },
-    orderBy: [{ year: 'desc' }, { createdAt: 'desc' }],
-  })
-
-  const scheduleByPeriod = new Map<string, ApplicableSchedule>()
-
-  for (const schedule of schedules) {
-    const key = buildPeriodKey(schedule.periodType, schedule.year, schedule.month, schedule.semester)
-    const existing = scheduleByPeriod.get(key)
-    const candidate = {
-      id: schedule.id,
-      amountDue: Number(schedule.amountDue),
-    }
-
-    if (!existing) {
-      scheduleByPeriod.set(key, { id: schedule.id, amountDue: Number(schedule.amountDue), createdAt: schedule.createdAt })
-      continue
-    }
-
-    if (schedule.classId && schedule.classId === student.classId) {
-      scheduleByPeriod.set(key, { id: schedule.id, amountDue: Number(schedule.amountDue), createdAt: schedule.createdAt })
-    }
-  }
-
-  return { student, applicableSchedules: Array.from(scheduleByPeriod.values()) }
-}
-
-export async function getStudentFeeAccessStatus(studentId: string) {
-  const { student, applicableSchedules } = await getApplicableSchedulesForStudent(studentId)
 
   if (!student) {
     return {
@@ -142,68 +122,50 @@ export async function getStudentFeeAccessStatus(studentId: string) {
     }
   }
 
-  if (applicableSchedules.length === 0) {
-    return {
-      allowed: true,
-      blocked: false,
-      reason: null,
-      outstandingBalance: 0,
-      unpaidScheduleCount: 0,
-      studentName: `${student.firstName} ${student.lastName}`.trim(),
-    }
-  }
-
-  // Fetch school settings to get grace period
-  const settings = await prisma.schoolSettings.findUnique({
+  const billing = await prisma.schoolBilling.findUnique({
     where: { schoolId: student.schoolId },
-    select: { feeGracePeriodDays: true },
+    select: {
+      annualPricePerStudent: true,
+      billingYear: true,
+    },
   })
-  const gracePeriodDays = settings?.feeGracePeriodDays ?? 0
 
-  const payments = await prisma.feePayment.findMany({
+  const licenseYear = billing?.billingYear && billing.billingYear > 0 ? billing.billingYear : new Date().getFullYear()
+  const requiredAmount = Number(billing?.annualPricePerStudent ?? 0)
+
+  const payments = await prisma.studentLicensePayment.findMany({
     where: {
       studentId,
-      scheduleId: { in: applicableSchedules.map((schedule) => schedule.id) },
+      schoolId: student.schoolId,
+      licenseYear,
     },
     select: {
-      scheduleId: true,
       amountPaid: true,
     },
   })
 
-  const paidBySchedule = new Map<string, number>()
-  for (const payment of payments) {
-    paidBySchedule.set(payment.scheduleId, (paidBySchedule.get(payment.scheduleId) ?? 0) + Number(payment.amountPaid))
-  }
+  const totalPaid = payments.reduce((sum, payment) => sum + Number(payment.amountPaid), 0)
+  const outstandingBalance = requiredAmount > 0
+    ? Number(Math.max(requiredAmount - totalPaid, 0).toFixed(2))
+    : 0
+  const hasAccess = requiredAmount > 0 ? totalPaid >= requiredAmount : totalPaid > 0
+  const unpaidScheduleCount = hasAccess ? 0 : 1
 
-  const nowMs = Date.now()
-  const gracePeriodMs = gracePeriodDays * 24 * 60 * 60 * 1000
-
-  let outstandingBalance = 0
-  let unpaidScheduleCount = 0
-  for (const schedule of applicableSchedules) {
-    const balance = Math.max(schedule.amountDue - (paidBySchedule.get(schedule.id) ?? 0), 0)
-    if (balance > 0) {
-      // Within grace period — don't count towards lockout
-      const ageMs = nowMs - new Date(schedule.createdAt).getTime()
-      if (gracePeriodDays > 0 && ageMs < gracePeriodMs) continue
-      outstandingBalance += balance
-      unpaidScheduleCount += 1
-    }
-  }
-
-  const blocked = outstandingBalance > 0
+  const blocked = !hasAccess
   const studentName = `${student.firstName} ${student.lastName}`.trim()
 
   return {
     allowed: !blocked,
     blocked,
     reason: blocked
-      ? `Outstanding school fees of ${outstandingBalance.toFixed(2)} must be cleared before portal access is restored.`
+      ? `Portal access is blocked until the student license payment is completed for ${licenseYear}. Remaining amount: ${outstandingBalance.toFixed(2)}.`
       : null,
-    outstandingBalance: Number(outstandingBalance.toFixed(2)),
+    outstandingBalance,
     unpaidScheduleCount,
     studentName,
+    licenseYear,
+    requiredAmount,
+    totalPaid: Number(totalPaid.toFixed(2)),
   }
 }
 
@@ -250,7 +212,7 @@ export async function getParentFeeAccessStatus(parentUserId: string) {
     allowed: !blocked,
     blocked,
     reason: blocked
-      ? `Portal access is blocked because ${unpaidStudents[0].studentName} has outstanding school fees.`
+      ? `Portal access is blocked because ${unpaidStudents[0].studentName} has not completed the student license payment.`
       : null,
     unpaidStudents,
   }

@@ -31,6 +31,7 @@ model School {
   expenses                     Expense[]
   fundRequests                 FundRequest[]
   feePayments                  FeePayment[]
+  studentLicensePayments       StudentLicensePayment[]
   feeSchedules                 FeeSchedule[]
   messages                     Message[]
   parentComplaints             ParentComplaint[]
@@ -56,7 +57,6 @@ model SchoolSettings {
   schoolId                  String          @unique @map("school_id")
   expenseApprovalThreshold  Float           @default(0) @map("expense_approval_threshold")
   minimumPassRatePerSubject Float           @default(50) @map("minimum_pass_rate_per_subject")
-  feeGracePeriodDays        Int             @default(0) @map("fee_grace_period_days")
   currency                  String          @default("ZAR") @map("currency")
   logoUrl                   String?         @map("logo_url")
   reportTemplate            Int             @default(1) @map("report_template")
@@ -149,6 +149,7 @@ model User {
   fundRequestsCreated      FundRequest[]          @relation("FundRequestedBy")
   fundRequestsReviewed     FundRequest[]          @relation("FundRequestReviewedBy")
   feePaymentsReceived      FeePayment[]           @relation("FeePaymentReceivedBy")
+  studentLicensePaymentsRecorded StudentLicensePayment[] @relation("StudentLicensePaymentRecorder")
   feeSchedulesApproved     FeeSchedule[]          @relation("FeeScheduleApprovedBy")
   feeSchedulesCreated      FeeSchedule[]          @relation("FeeScheduleCreatedBy")
   receivedMessages         Message[]              @relation("ReceivedMessages")
@@ -328,6 +329,7 @@ model Student {
   studentAssessments    StudentAssessment[]
   attendance            Attendance[]
   feePayments           FeePayment[]
+  studentLicensePayments StudentLicensePayment[]
   complaints            ParentComplaint[]
   results               Result[]
   classHistory          StudentClassHistory[]
@@ -759,6 +761,30 @@ model FeePayment {
   @@index([schoolId, scheduleId, studentId])
   @@index([termId])
   @@map("fee_payments")
+}
+
+model StudentLicensePayment {
+  id              String        @id @default(uuid())
+  schoolId        String        @map("school_id")
+  studentId       String        @map("student_id")
+  licenseYear     Int           @map("license_year")
+  amountPaid      Float         @map("amount_paid")
+  paymentDate     DateTime      @map("payment_date") @db.Date
+  paymentMethod   PaymentMethod @default(OTHER) @map("payment_method")
+  referenceNumber String?       @map("reference_number")
+  notes           String?
+  receivedBy      String        @map("received_by")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  school          School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  receiver        User          @relation("StudentLicensePaymentRecorder", fields: [receivedBy], references: [id])
+
+  @@index([schoolId])
+  @@index([studentId])
+  @@index([licenseYear])
+  @@index([schoolId, studentId, licenseYear])
+  @@map("student_license_payments")
 }
 
 model Expense {

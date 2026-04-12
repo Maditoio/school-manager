@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth'
 import { getSchoolLicenseStatus } from '@/lib/access-control'
 import { prisma } from '@/lib/prisma'
 import { hasRole } from '@/lib/auth-utils'
-import { createFeeScheduleSchema, recordFeePaymentSchema } from '@/lib/validations'
+import { createFeeScheduleSchema, recordFeePaymentSchema, recordStudentLicensePaymentSchema } from '@/lib/validations'
 import { CurrentTermNotSetError, getCurrentEditableTermForSchool, TermLockedError } from '@/lib/term-utils'
 
 type FeeScheduleStatus = 'PENDING_APPROVAL' | 'APPROVED'
@@ -296,7 +296,15 @@ export async function GET(request: NextRequest) {
         selectedPeriod: null,
         pendingSchedules,
         licenseSummary,
-        summary: { studentsCount: 0, payingCount: 0, notPayingCount: 0, collectedAmount: 0, pendingAmount: 0 },
+        summary: {
+          studentsCount: 0,
+          payingCount: 0,
+          notPayingCount: 0,
+          collectedAmount: 0,
+          pendingAmount: 0,
+          studentsWithLicenseAccess: 0,
+          studentsWithoutLicenseAccess: 0,
+        },
         studentStatuses: [],
         recentPayments: [],
       })
@@ -425,7 +433,35 @@ export async function GET(request: NextRequest) {
       periodSchedules.filter((s) => s.classId !== null).map((s) => [s.classId!, s])
     )
 
-    // Per-student fee resolution: class-specific first, then school-wide fallback
+    const licenseYear = licenseSummary?.licenseYear && Number(licenseSummary.licenseYear) > 0
+      ? Number(licenseSummary.licenseYear)
+      : new Date().getFullYear()
+    const requiredLicenseAmount = Number(licenseSummary?.requiredAmountPerStudent ?? licenseSummary?.annualPricePerStudent ?? 0)
+
+    const licensePayments = students.length
+      ? await prisma.studentLicensePayment.findMany({
+          where: {
+            schoolId,
+            licenseYear,
+            studentId: { in: students.map((student) => student.id) },
+          },
+          select: {
+            studentId: true,
+            amountPaid: true,
+          },
+        })
+      : []
+
+    const licensePaidByStudent = new Map<string, number>()
+    for (const payment of licensePayments) {
+      licensePaidByStudent.set(
+        payment.studentId,
+        (licensePaidByStudent.get(payment.studentId) ?? 0) + Number(payment.amountPaid)
+      )
+    }
+
+    // Per-student fee resolution: class-specific first, then school-wide fallback.
+    // Portal access is now based on student license payment status.
     const studentStatuses = students.map((student) => {
       const classSchedule = student.classId ? (classScheduleMap.get(student.classId) ?? null) : null
       const applicableSchedule = classSchedule ?? schoolWideSchedule
@@ -444,6 +480,11 @@ export async function GET(request: NextRequest) {
           ? 'PARTIAL'
           : 'NOT_PAID'
 
+      const licensePaidAmount = Number((licensePaidByStudent.get(student.id) ?? 0).toFixed(2))
+      const hasLicenseAccess = requiredLicenseAmount > 0
+        ? licensePaidAmount >= requiredLicenseAmount
+        : licensePaidAmount > 0
+
       return {
         studentId: student.id,
         studentName: `${student.firstName} ${student.lastName}`,
@@ -456,6 +497,9 @@ export async function GET(request: NextRequest) {
         balance,
         status,
         lastPaymentDate: studentPayments?.lastPaymentDate ?? null,
+        licensePaidAmount,
+        hasLicenseAccess,
+        licenseYear,
       }
     })
 
@@ -469,6 +513,8 @@ export async function GET(request: NextRequest) {
       studentsWithSchedule.reduce((sum, s) => sum + s.amountDue, 0).toFixed(2)
     )
     const pendingAmount = Number(Math.max(expectedAmount - collectedAmount, 0).toFixed(2))
+    const studentsWithLicenseAccess = studentStatuses.filter((s) => s.hasLicenseAccess).length
+    const studentsWithoutLicenseAccess = studentStatuses.length - studentsWithLicenseAccess
 
     // Recent payments with student details
     const paymentStudentIds = Array.from(new Set(periodPayments.map((p) => p.studentId)))
@@ -516,6 +562,8 @@ export async function GET(request: NextRequest) {
         notPayingCount: studentsCount - payingCount,
         collectedAmount,
         pendingAmount,
+        studentsWithLicenseAccess,
+        studentsWithoutLicenseAccess,
       },
       studentStatuses,
       recentPayments,
@@ -777,6 +825,66 @@ export async function POST(request: NextRequest) {
               receiptMimeType: inserted.receiptMimeType,
             }
           })()
+
+      return NextResponse.json({ payment }, { status: 201 })
+    }
+
+    if (action === 'recordStudentLicensePayment') {
+      if (!hasRole(role, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
+        return NextResponse.json({ error: 'Only finance and admin staff can record student license payments' }, { status: 403 })
+      }
+
+      const validation = recordStudentLicensePaymentSchema.safeParse(body)
+      if (!validation.success) {
+        return NextResponse.json(
+          { error: validation.error.issues.map((i) => i.message).join(', ') },
+          { status: 400 }
+        )
+      }
+
+      const {
+        studentId,
+        amountPaid,
+        paymentMethod,
+        paymentDate,
+        notes,
+        referenceNumber,
+        licenseYear,
+      } = validation.data
+
+      const [student, schoolBilling] = await Promise.all([
+        prisma.student.findUnique({
+          where: { id: studentId },
+          select: { id: true, schoolId: true },
+        }),
+        prisma.schoolBilling.findUnique({
+          where: { schoolId },
+          select: { billingYear: true },
+        }),
+      ])
+
+      if (!student || student.schoolId !== schoolId) {
+        return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+      }
+
+      const resolvedLicenseYear =
+        licenseYear ?? (schoolBilling?.billingYear && schoolBilling.billingYear > 0
+          ? schoolBilling.billingYear
+          : new Date().getFullYear())
+
+      const payment = await prisma.studentLicensePayment.create({
+        data: {
+          schoolId,
+          studentId,
+          licenseYear: resolvedLicenseYear,
+          amountPaid,
+          paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
+          paymentMethod,
+          referenceNumber: referenceNumber || null,
+          notes: notes || null,
+          receivedBy: userId,
+        },
+      })
 
       return NextResponse.json({ payment }, { status: 201 })
     }

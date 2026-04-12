@@ -30,7 +30,7 @@ export default function LoginPage() {
         if (result.code === 'account_suspended') {
           setError('Your account has been suspended. Please contact the administrator.')
         } else if (result.code === 'payment_required') {
-          setError('Access is blocked until the required school fees are fully paid.')
+          setError('Access is blocked until the student license payment is completed.')
         } else {
           setError('Invalid email or password')
         }

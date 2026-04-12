@@ -33,7 +33,6 @@ export async function GET() {
     return NextResponse.json({
       expenseApprovalThreshold: settings?.expenseApprovalThreshold ?? 0,
       minimumPassRatePerSubject: settings?.minimumPassRatePerSubject ?? 50,
-      feeGracePeriodDays: settings?.feeGracePeriodDays ?? 0,
       currency: settings?.currency ?? 'ZAR',
       logoUrl: settings?.logoUrl ?? null,
       reportTemplate: settings?.reportTemplate ?? 1,
@@ -59,7 +58,6 @@ export async function PATCH(request: NextRequest) {
     const updateData: {
       expenseApprovalThreshold?: number
       minimumPassRatePerSubject?: number
-      feeGracePeriodDays?: number
       currency?: string
       logoUrl?: string | null
       reportTemplate?: number
@@ -79,14 +77,6 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: 'Minimum pass rate must be between 0 and 100' }, { status: 400 })
       }
       updateData.minimumPassRatePerSubject = passRate
-    }
-
-    if (body.feeGracePeriodDays !== undefined) {
-      const grace = Number(body.feeGracePeriodDays)
-      if (!Number.isInteger(grace) || grace < 0 || grace > 365) {
-        return NextResponse.json({ error: 'Grace period must be an integer between 0 and 365 days' }, { status: 400 })
-      }
-      updateData.feeGracePeriodDays = grace
     }
 
     if (body.currency !== undefined) {
@@ -126,7 +116,6 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({
       expenseApprovalThreshold: settings.expenseApprovalThreshold,
       minimumPassRatePerSubject: settings.minimumPassRatePerSubject,
-      feeGracePeriodDays: settings.feeGracePeriodDays,
       currency: settings.currency,
       logoUrl: settings.logoUrl ?? null,
       reportTemplate: settings.reportTemplate,

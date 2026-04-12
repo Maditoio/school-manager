@@ -66,6 +66,8 @@ type Summary = {
   notPayingCount: number
   collectedAmount: number
   pendingAmount: number
+  studentsWithLicenseAccess?: number
+  studentsWithoutLicenseAccess?: number
 }
 
 type LicenseSummary = {
@@ -82,6 +84,10 @@ type LicenseSummary = {
   licenseEndDate: string | null
   enabledModules: string[]
   notes: string | null
+  studentsWithAccess?: number
+  studentsWithoutAccess?: number
+  requiredAmountPerStudent?: number
+  licenseYear?: number
 }
 
 type StudentStatus = {
@@ -96,6 +102,9 @@ type StudentStatus = {
   balance: number
   status: FeeStatus
   lastPaymentDate: string | null
+  licensePaidAmount: number
+  hasLicenseAccess: boolean
+  licenseYear: number
 }
 
 type RecentPayment = {
@@ -175,7 +184,12 @@ export default function AdminFeesPage({
   const pageSize = 10
 
   const isAdmin = session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'DEPUTY_ADMIN'
-  const canRecordPayment = session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'FINANCE'
+  const canRecordFeePayment = session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'FINANCE'
+  const canRecordLicensePayment =
+    session?.user?.role === 'SCHOOL_ADMIN' ||
+    session?.user?.role === 'DEPUTY_ADMIN' ||
+    session?.user?.role === 'FINANCE' ||
+    session?.user?.role === 'FINANCE_MANAGER'
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -249,6 +263,54 @@ export default function AdminFeesPage({
     const start = (recentPaymentsPage - 1) * pageSize
     return filteredRecentPayments.slice(start, start + pageSize)
   }, [filteredRecentPayments, recentPaymentsPage])
+
+  const handleRecordStudentLicensePayment = async (student: StudentStatus) => {
+    const defaultAmount = String(
+      Number(licenseSummary?.requiredAmountPerStudent ?? licenseSummary?.annualPricePerStudent ?? 0)
+    )
+    const amountInput = window.prompt(
+      `Record license payment for ${student.studentName}. Enter amount paid:`,
+      defaultAmount
+    )
+
+    if (amountInput === null) return
+    const amountPaid = Number(amountInput)
+    if (!Number.isFinite(amountPaid) || amountPaid <= 0) {
+      showToast('Enter a valid positive amount', 'warning')
+      return
+    }
+
+    const paymentMethodInput = window.prompt('Payment method (CASH, BANK_TRANSFER, M_PESA, ORANGE_MONEY, OTHER):', 'CASH')
+    if (paymentMethodInput === null) return
+    const paymentMethod = paymentMethodInput.trim().toUpperCase() as PaymentMethod
+    if (!['CASH', 'BANK_TRANSFER', 'M_PESA', 'ORANGE_MONEY', 'OTHER'].includes(paymentMethod)) {
+      showToast('Invalid payment method', 'warning')
+      return
+    }
+
+    const res = await fetch('/api/fees', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        action: 'recordStudentLicensePayment',
+        studentId: student.studentId,
+        amountPaid,
+        paymentMethod,
+        paymentDate: new Date().toISOString().slice(0, 10),
+        licenseYear: student.licenseYear,
+      }),
+    })
+
+    const data = await res.json()
+    if (!res.ok) {
+      showToast(data?.error || 'Failed to record student license payment', 'error')
+      return
+    }
+
+    showToast('Student license payment recorded', 'success')
+    window.location.reload()
+  }
 
   const statusColumns = useMemo(
     () => [
@@ -325,7 +387,7 @@ export default function AdminFeesPage({
         key: 'access',
         label: 'Portal Access',
         renderCell: (student: StudentStatus) => {
-          const blocked = student.status === 'NOT_PAID' || student.status === 'PARTIAL'
+          const blocked = !student.hasLicenseAccess
           return (
             <span className={blocked ? 'text-rose-400' : 'text-emerald-400'}>
               {blocked ? 'LOCKED' : 'ACTIVE'}
@@ -333,8 +395,33 @@ export default function AdminFeesPage({
           )
         },
       },
+      {
+        key: 'licensePaidAmount',
+        label: 'License Paid',
+        sortable: true,
+        renderCell: (student: StudentStatus) => formatCurrency(student.licensePaidAmount),
+      },
+      {
+        key: 'licenseAction',
+        label: 'License Payment',
+        renderCell: (student: StudentStatus) => {
+          if (!canRecordLicensePayment) return <span className="text-xs text-slate-500">—</span>
+          if (student.hasLicenseAccess) {
+            return <span className="text-xs text-emerald-400">Paid</span>
+          }
+          return (
+            <button
+              type="button"
+              onClick={() => void handleRecordStudentLicensePayment(student)}
+              className="text-xs text-indigo-300 hover:underline"
+            >
+              Record
+            </button>
+          )
+        },
+      },
     ],
-    []
+    [canRecordLicensePayment, formatCurrency, handleRecordStudentLicensePayment]
   )
 
   const recentColumns = useMemo(
@@ -801,7 +888,7 @@ export default function AdminFeesPage({
               Create Fee Schedule
             </button>
             )}
-            {canRecordPayment && (
+            {canRecordFeePayment && (
             <button
               onClick={() => setShowPaymentModal(true)}
               className="ui-button ui-button-secondary inline-flex items-center gap-2"
@@ -1330,18 +1417,18 @@ export default function AdminFeesPage({
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <StatCard
-            title="Licensed Students"
-            value={licenseSummary?.licensedStudentCount ?? 0}
+            title="Students With Access"
+            value={summary.studentsWithLicenseAccess ?? licenseSummary?.studentsWithAccess ?? 0}
             icon={<Users className="h-4 w-4" />}
           />
           <StatCard
-            title="Covered Students"
-            value={licenseSummary?.coveredStudents ?? 0}
-            icon={<CircleCheck className="h-4 w-4" />}
+            title="Students Without Access"
+            value={summary.studentsWithoutLicenseAccess ?? licenseSummary?.studentsWithoutAccess ?? 0}
+            icon={<AlertTriangle className="h-4 w-4" />}
           />
           <StatCard
-            title="Uncovered Students"
-            value={licenseSummary?.uncoveredStudents ?? 0}
+            title="License Year"
+            value={licenseSummary?.licenseYear ?? licenseSummary?.billingYear ?? new Date().getFullYear()}
             icon={<AlertTriangle className="h-4 w-4" />}
           />
         </div>

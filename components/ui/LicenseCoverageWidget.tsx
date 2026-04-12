@@ -13,6 +13,10 @@ interface LicenseStatus {
   activeStudents: number
   coveredStudents: number
   uncoveredStudents: number
+  studentsWithAccess?: number
+  studentsWithoutAccess?: number
+  requiredAmountPerStudent?: number
+  licenseYear?: number
   billingYear: number
   licenseStartDate: string | null
   licenseEndDate: string | null
@@ -61,12 +65,15 @@ export default function LicenseCoverageWidget({ feesHref = '/admin/fees', classN
   if (loading) return <Skeleton />
   if (!status) return null
 
+  const withAccess = status.studentsWithAccess ?? status.coveredStudents
+  const withoutAccess = status.studentsWithoutAccess ?? status.uncoveredStudents
+
   const coveragePercent =
-    status.licensedStudentCount > 0
-      ? Math.min(100, Math.round((status.activeStudents / status.licensedStudentCount) * 100))
+    status.activeStudents > 0
+      ? Math.min(100, Math.round((withAccess / status.activeStudents) * 100))
       : 0
 
-  const isOverLicensed = status.uncoveredStudents > 0
+  const hasBlockedStudents = withoutAccess > 0
   const isExpiringSoon = (() => {
     if (!status.licenseEndDate) return false
     const end = new Date(status.licenseEndDate)
@@ -109,11 +116,11 @@ export default function LicenseCoverageWidget({ feesHref = '/admin/fees', classN
       {/* Stat tiles */}
       <div className="grid grid-cols-3 gap-3 mb-3">
         <StatTile
-          label="Licensed"
-          value={status.licensedStudentCount}
+          label="With Access"
+          value={withAccess}
           icon={<ShieldCheck className="h-4 w-4" style={{ color: '#34d399' }} />}
           accent="#34d399"
-          sub={`${status.billingYear > 0 ? status.billingYear : '—'}`}
+          sub={`${status.licenseYear ?? status.billingYear ?? '—'}`}
         />
         <StatTile
           label="Active"
@@ -123,13 +130,13 @@ export default function LicenseCoverageWidget({ feesHref = '/admin/fees', classN
           sub="students"
         />
         <StatTile
-          label={isOverLicensed ? 'Uncovered' : 'Covered'}
-          value={isOverLicensed ? status.uncoveredStudents : status.coveredStudents}
-          icon={isOverLicensed
+          label={hasBlockedStudents ? 'No Access' : 'No Access'}
+          value={withoutAccess}
+          icon={hasBlockedStudents
             ? <ShieldAlert className="h-4 w-4" style={{ color: '#f87171' }} />
             : <ShieldCheck className="h-4 w-4" style={{ color: '#34d399' }} />}
-          accent={isOverLicensed ? '#f87171' : '#34d399'}
-          sub={isOverLicensed ? 'need coverage' : 'of licensed'}
+          accent={hasBlockedStudents ? '#f87171' : '#34d399'}
+          sub={hasBlockedStudents ? 'students blocked' : 'all active have access'}
         />
       </div>
 
@@ -144,7 +151,7 @@ export default function LicenseCoverageWidget({ feesHref = '/admin/fees', classN
             className="h-1.5 rounded-full transition-all duration-700"
             style={{
               width: `${Math.min(coveragePercent, 100)}%`,
-              background: isOverLicensed ? '#f87171' : '#34d399',
+              background: hasBlockedStudents ? '#f87171' : '#34d399',
             }}
           />
         </div>
@@ -154,7 +161,7 @@ export default function LicenseCoverageWidget({ feesHref = '/admin/fees', classN
       <div className="flex items-center justify-between text-xs text-slate-500">
         <div className="flex items-center gap-1.5">
           <Banknote className="h-3.5 w-3.5" />
-          <span>{status.annualPricePerStudent.toLocaleString()} / student/year</span>
+          <span>{(status.requiredAmountPerStudent ?? status.annualPricePerStudent).toLocaleString()} / student/year</span>
         </div>
         <span
           className="px-2 py-0.5 rounded-full text-xs font-medium"

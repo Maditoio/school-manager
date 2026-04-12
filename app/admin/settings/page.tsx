@@ -50,9 +50,6 @@ export default function AdminSettingsPage() {
   const [minimumPassRatePerSubject, setMinimumPassRatePerSubject] = useState(50)
   const [minimumPassRateInput, setMinimumPassRateInput] = useState('50')
   const [minimumPassRateSaving, setMinimumPassRateSaving] = useState(false)
-  const [feeGracePeriodDays, setFeeGracePeriodDays] = useState(0)
-  const [feeGracePeriodInput, setFeeGracePeriodInput] = useState('0')
-  const [feeGracePeriodSaving, setFeeGracePeriodSaving] = useState(false)
 
   // Currency setting
   const [currencyInput, setCurrencyInput] = useState<CurrencyCode>('ZAR')
@@ -97,9 +94,6 @@ export default function AdminSettingsPage() {
         setThresholdInput(String(thresh))
         setMinimumPassRatePerSubject(passRate)
         setMinimumPassRateInput(String(passRate))
-        const grace = data.feeGracePeriodDays ?? 0
-        setFeeGracePeriodDays(grace)
-        setFeeGracePeriodInput(String(grace))
         if (data.currency) setCurrencyInput(data.currency as CurrencyCode)
         if (data.logoUrl) setLogoUrl(data.logoUrl)
       }
@@ -238,34 +232,6 @@ export default function AdminSettingsPage() {
       showToast(t('Failed to save setting'), 'error')
     } finally {
       setThresholdSaving(false)
-    }
-  }
-
-  const handleSaveFeeGracePeriod = async () => {
-    const value = Number(feeGracePeriodInput)
-    if (!Number.isInteger(value) || value < 0 || value > 365) {
-      showToast(t('Grace period must be between 0 and 365 days'), 'warning')
-      return
-    }
-    try {
-      setFeeGracePeriodSaving(true)
-      const res = await fetch('/api/schools/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feeGracePeriodDays: value }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        showToast(data.error || t('Failed to save setting'), 'error')
-        return
-      }
-      setFeeGracePeriodDays(data.feeGracePeriodDays)
-      setFeeGracePeriodInput(String(data.feeGracePeriodDays))
-      showToast(t('Fee grace period saved'), 'success')
-    } catch {
-      showToast(t('Failed to save setting'), 'error')
-    } finally {
-      setFeeGracePeriodSaving(false)
     }
   }
 
@@ -559,36 +525,6 @@ export default function AdminSettingsPage() {
             </div>
             <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
               {t('Current minimum pass mark:')} {minimumPassRatePerSubject}%
-            </p>
-          </Card>
-
-          <Card title={t('Fee Grace Period')} className="mb-4 p-5">
-            <p className="text-sm ui-text-secondary mb-4">
-              {t('Number of days after a fee schedule is created before access is blocked for non-payment. Set to 0 to block immediately on outstanding balance.')}
-            </p>
-            <div className="flex items-end gap-3 max-w-sm">
-              <Input
-                label={t('Grace period (days)')}
-                type="number"
-                min="0"
-                max="365"
-                step="1"
-                value={feeGracePeriodInput}
-                onChange={(e) => setFeeGracePeriodInput(e.target.value)}
-              />
-              <Button
-                type="button"
-                isLoading={feeGracePeriodSaving}
-                onClick={handleSaveFeeGracePeriod}
-                className="shrink-0"
-              >
-                {t('Save')}
-              </Button>
-            </div>
-            <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
-              {feeGracePeriodDays === 0
-                ? t('No grace period — access blocked immediately on outstanding balance.')
-                : `${t('Current grace period:')} ${feeGracePeriodDays} ${t('days')}`}
             </p>
           </Card>
 
