@@ -129,27 +129,32 @@ export default function Toolbar({
       style={{
         left: `${sidebarWidth}px`,
         transition: 'left 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-        background: 'rgba(255, 255, 255, 0.03)',
+        background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(255, 255, 255, 0.86)',
         backdropFilter: 'blur(12px)',
       }}
     >
-      <div className="relative h-full border-b border-white/5 px-5 sm:px-6">
+      <div className={`relative h-full px-5 sm:px-6 ${isDark ? 'border-b border-white/5' : 'border-b border-slate-200/80'}`}>
         <div
           className="absolute inset-x-0 bottom-0 h-px"
           style={{
             background:
-              'linear-gradient(to right, rgba(99,102,241,0), rgba(99,102,241,0.35), rgba(99,102,241,0))',
+              isDark
+                ? 'linear-gradient(to right, rgba(99,102,241,0), rgba(99,102,241,0.35), rgba(99,102,241,0))'
+                : 'linear-gradient(to right, rgba(99,102,241,0), rgba(99,102,241,0.25), rgba(99,102,241,0))',
           }}
         />
 
         <div className="flex h-full items-center justify-between">
           <div className="flex min-w-0 items-center gap-2.5">
-            <GraduationCap className="h-4 w-4 shrink-0 text-indigo-400/70" aria-hidden="true" />
+            <GraduationCap className={`h-4 w-4 shrink-0 ${isDark ? 'text-indigo-400/70' : 'text-indigo-600'}`} aria-hidden="true" />
             <p
-              className="truncate bg-clip-text text-lg font-semibold tracking-tight text-transparent sm:text-xl"
+              className="truncate text-lg font-semibold tracking-tight sm:text-xl"
               style={{
                 fontFamily: '"Plus Jakarta Sans", "DM Sans", system-ui, sans-serif',
-                backgroundImage: 'linear-gradient(90deg, #ffffff 0%, #f1f5f9 78%, #c7d2fe 100%)',
+                color: isDark ? undefined : '#0f172a',
+                backgroundImage: isDark ? 'linear-gradient(90deg, #ffffff 0%, #f1f5f9 78%, #c7d2fe 100%)' : undefined,
+                WebkitBackgroundClip: isDark ? 'text' : undefined,
+                WebkitTextFillColor: isDark ? 'transparent' : undefined,
               }}
             >
               {schoolName || 'School Dashboard'}

@@ -112,6 +112,7 @@ export default function AdminExpensesPage() {
   const [threshold, setThreshold] = useState(0)
   const [thresholdInput, setThresholdInput] = useState('0')
   const [thresholdSaving, setThresholdSaving] = useState(false)
+  const [invoicePreview, setInvoicePreview] = useState<{ url: string; fileName: string; mimeType: string | null } | null>(null)
 
   // Void modal state
   const [showVoidModal, setShowVoidModal] = useState(false)
@@ -329,9 +330,17 @@ export default function AdminExpensesPage() {
       label: translateText('Invoice', locale),
       renderCell: (e: ExpenseItem) => (
         e.invoiceUrl ? (
-          <a href={e.invoiceUrl} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">
+          <button
+            type="button"
+            onClick={() => setInvoicePreview({
+              url: e.invoiceUrl as string,
+              fileName: e.invoiceFileName || translateText('Invoice', locale),
+              mimeType: e.invoiceMimeType,
+            })}
+            className="text-indigo-400 hover:underline"
+          >
             {e.invoiceFileName || translateText('View invoice', locale)}
-          </a>
+          </button>
         ) : <span className="text-xs ui-text-secondary">—</span>
       ),
     },
@@ -614,6 +623,37 @@ export default function AdminExpensesPage() {
                   {translateText('Cancel', locale)}
                 </button>
               </div>
+            </div>
+          </Card>
+        </div>
+      ) : null}
+
+      {invoicePreview ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--overlay) p-4">
+          <Card title={translateText('Invoice Preview', locale)} className="w-full max-w-3xl p-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <p className="truncate text-sm ui-text-secondary">{invoicePreview.fileName}</p>
+              <div className="flex items-center gap-2">
+                <a href={invoicePreview.url} download={invoicePreview.fileName} className="ui-button ui-button-secondary px-3 py-1.5 text-sm">
+                  {translateText('Download', locale)}
+                </a>
+                <button type="button" onClick={() => setInvoicePreview(null)} className="ui-button ui-button-secondary px-3 py-1.5 text-sm">
+                  {translateText('Close', locale)}
+                </button>
+              </div>
+            </div>
+            <div className="max-h-[70vh] overflow-auto rounded-[10px] border p-2" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
+              {invoicePreview.mimeType?.startsWith('image/') ? (
+                <img src={invoicePreview.url} alt={invoicePreview.fileName} className="mx-auto h-auto max-h-[65vh] w-auto rounded" />
+              ) : invoicePreview.mimeType === 'application/pdf' ? (
+                <iframe src={invoicePreview.url} title={invoicePreview.fileName} className="h-[65vh] w-full rounded" />
+              ) : (
+                <div className="p-6 text-center">
+                  <a href={invoicePreview.url} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">
+                    {translateText('Open invoice', locale)}
+                  </a>
+                </div>
+              )}
             </div>
           </Card>
         </div>

@@ -337,6 +337,7 @@ export async function GET(request: NextRequest) {
       paymentDate: Date
       receiptUrl: string | null
       receiptFileName: string | null
+      receiptMimeType: string | null
     }> = []
 
     if (periodScheduleIds.length > 0) {
@@ -366,6 +367,7 @@ export async function GET(request: NextRequest) {
           paymentDate: p.paymentDate,
             receiptUrl: p.receiptUrl,
             receiptFileName: p.receiptFileName,
+            receiptMimeType: p.receiptMimeType,
         }))
       } else {
         const rows = await prisma.$queryRaw<FeePaymentRow[]>`
@@ -388,6 +390,7 @@ export async function GET(request: NextRequest) {
             paymentDate: p.paymentDate,
             receiptUrl: p.receiptUrl,
             receiptFileName: p.receiptFileName,
+            receiptMimeType: p.receiptMimeType,
           }
         })
       }
@@ -487,6 +490,7 @@ export async function GET(request: NextRequest) {
         paymentDate: payment.paymentDate,
         receiptUrl: payment.receiptUrl,
         receiptFileName: payment.receiptFileName,
+        receiptMimeType: payment.receiptMimeType,
         studentName: student
           ? `${student.firstName} ${student.lastName}`
           : 'Unknown Student',

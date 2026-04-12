@@ -93,6 +93,7 @@ type RecentPayment = {
   className: string
   receiptUrl: string | null
   receiptFileName: string | null
+  receiptMimeType: string | null
 }
 
 export default function AdminFeesPage({
@@ -151,6 +152,9 @@ export default function AdminFeesPage({
   const [recentPaymentsPage, setRecentPaymentsPage] = useState(1)
   const [paymentModalSearchQuery, setPaymentModalSearchQuery] = useState('')
   const [showPaymentStudentDropdown, setShowPaymentStudentDropdown] = useState(false)
+  const [selectedStudentDue, setSelectedStudentDue] = useState<StudentStatus | null>(null)
+  const [calculatingStudentDue, setCalculatingStudentDue] = useState(false)
+  const [receiptPreview, setReceiptPreview] = useState<{ url: string; fileName: string; mimeType: string | null } | null>(null)
   const pageSize = 10
 
   const isAdmin = session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'DEPUTY_ADMIN'
@@ -349,9 +353,17 @@ export default function AdminFeesPage({
               View Invoice
             </Link>
             {payment.receiptUrl ? (
-              <a href={payment.receiptUrl} target="_blank" rel="noreferrer" className="text-xs text-indigo-300 hover:underline">
+              <button
+                type="button"
+                onClick={() => setReceiptPreview({
+                  url: payment.receiptUrl as string,
+                  fileName: payment.receiptFileName || 'Receipt',
+                  mimeType: payment.receiptMimeType,
+                })}
+                className="text-left text-xs text-indigo-300 hover:underline"
+              >
                 {payment.receiptFileName || 'View Receipt'}
-              </a>
+              </button>
             ) : null}
           </div>
         ),
@@ -528,10 +540,38 @@ export default function AdminFeesPage({
     }
   }
 
-  const handleSelectStudent = (studentId: string) => {
+  const handleSelectStudent = async (studentId: string) => {
     setPaymentForm((prev) => ({ ...prev, studentId }))
     setPaymentModalSearchQuery('')
     setShowPaymentStudentDropdown(false)
+
+    const fallback = studentStatuses.find((s) => s.studentId === studentId) ?? null
+    setSelectedStudentDue(fallback)
+
+    if (!selectedPeriodKey) return
+
+    setCalculatingStudentDue(true)
+    try {
+      const params = new URLSearchParams({ periodKey: selectedPeriodKey })
+      const res = await fetch(`/api/fees?${params.toString()}`, {
+        method: 'GET',
+        cache: 'no-store',
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+      })
+
+      if (!res.ok) return
+      const data = await res.json()
+      if (!Array.isArray(data.studentStatuses)) return
+
+      const refreshed = data.studentStatuses.find((s: StudentStatus) => s.studentId === studentId) ?? null
+      setStudentStatuses(data.studentStatuses)
+      setSelectedStudentDue(refreshed)
+    } catch {
+      // keep fallback values if refresh fails
+    } finally {
+      setCalculatingStudentDue(false)
+    }
   }
 
   const uploadReceipt = async (file: File) => {
@@ -569,10 +609,15 @@ export default function AdminFeesPage({
       return
     }
 
+    if (calculatingStudentDue) {
+      showToast('Still calculating student balance. Please wait a moment.', 'warning')
+      return
+    }
+
     // Resolve the applicable scheduleId for the selected student
-    const selectedStudentStatus = studentStatuses.find(
-      (s) => s.studentId === paymentForm.studentId
-    )
+    const selectedStudentStatus =
+      (selectedStudentDue?.studentId === paymentForm.studentId ? selectedStudentDue : null) ||
+      studentStatuses.find((s) => s.studentId === paymentForm.studentId)
 
     if (!selectedStudentStatus?.scheduleId) {
       showToast('No approved fee schedule found for this student\'s class in the selected period', 'warning')
@@ -942,6 +987,7 @@ export default function AdminFeesPage({
                   setPaymentModalSearchQuery('')
                   setShowPaymentStudentDropdown(false)
                   setPaymentReceiptFile(null)
+                  setSelectedStudentDue(null)
                 }}
                 className="absolute right-4 top-4 ui-text-secondary hover:ui-text-primary"
               >
@@ -958,6 +1004,7 @@ export default function AdminFeesPage({
                       const newKey = e.target.value
                       setSelectedPeriodKey(newKey)
                       setPaymentForm((prev) => ({ ...prev, studentId: '' }))
+                      setSelectedStudentDue(null)
                       fetchFeesData(newKey)
                     }}
                     className="ui-select"
@@ -994,18 +1041,32 @@ export default function AdminFeesPage({
                           background: 'var(--surface-soft)',
                         }}
                       >
-                        {studentStatuses.find((s) => s.studentId === paymentForm.studentId)?.studentName}
+                        {(selectedStudentDue?.studentId === paymentForm.studentId
+                          ? selectedStudentDue
+                          : studentStatuses.find((s) => s.studentId === paymentForm.studentId))?.studentName}
                         {(() => {
-                          const sel = studentStatuses.find(
-                            (s) => s.studentId === paymentForm.studentId
-                          )
+                          const sel =
+                            (selectedStudentDue?.studentId === paymentForm.studentId ? selectedStudentDue : null) ||
+                            studentStatuses.find((s) => s.studentId === paymentForm.studentId)
+
+                          if (calculatingStudentDue) {
+                            return <span className="ml-2 text-xs ui-text-secondary">Calculating outstanding amount…</span>
+                          }
+
                           if (!sel?.scheduleId)
                             return (
                               <span className="ml-2 text-xs text-amber-400">No fee schedule</span>
                             )
+                          if (sel.balance < 0) {
+                            return (
+                              <span className="ml-2 text-xs ui-text-secondary">
+                                Credit: {formatCurrency(Math.abs(sel.balance))}
+                              </span>
+                            )
+                          }
                           return (
                             <span className="ml-2 text-xs ui-text-secondary">
-                              Due: {formatCurrency(sel.amountDue)}
+                              Owed: {formatCurrency(sel.balance)}
                             </span>
                           )
                         })()}
@@ -1024,7 +1085,9 @@ export default function AdminFeesPage({
                               <div className="font-medium ui-text-primary">{student.studentName}</div>
                               <div className="text-xs ui-text-secondary">
                                 {student.className} · {student.admissionNumber || 'No admission'}
-                                {student.scheduleId ? ` · Due: ${formatCurrency(student.amountDue)}` : ' · No schedule'}
+                                {student.scheduleId
+                                  ? ` · Owed: ${formatCurrency(Math.max(student.balance, 0))}`
+                                  : ' · No schedule'}
                               </div>
                             </button>
                           ))
@@ -1129,6 +1192,7 @@ export default function AdminFeesPage({
                       setPaymentModalSearchQuery('')
                       setShowPaymentStudentDropdown(false)
                       setPaymentReceiptFile(null)
+                      setSelectedStudentDue(null)
                     }}
                     className="flex-1 ui-button ui-button-secondary"
                   >
@@ -1139,6 +1203,48 @@ export default function AdminFeesPage({
             </Card>
           </div>
         )}
+
+        {receiptPreview ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--overlay) p-4">
+            <Card title="Receipt Preview" className="w-full max-w-3xl p-4">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <p className="truncate text-sm ui-text-secondary">{receiptPreview.fileName}</p>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={receiptPreview.url}
+                    download={receiptPreview.fileName}
+                    className="ui-button ui-button-secondary px-3 py-1.5 text-sm"
+                  >
+                    Download
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setReceiptPreview(null)}
+                    className="ui-button ui-button-secondary px-3 py-1.5 text-sm"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+              <div
+                className="max-h-[70vh] overflow-auto rounded-[10px] border p-2"
+                style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}
+              >
+                {receiptPreview.mimeType?.startsWith('image/') ? (
+                  <img src={receiptPreview.url} alt={receiptPreview.fileName} className="mx-auto h-auto max-h-[65vh] w-auto rounded" />
+                ) : receiptPreview.mimeType === 'application/pdf' ? (
+                  <iframe src={receiptPreview.url} title={receiptPreview.fileName} className="h-[65vh] w-full rounded" />
+                ) : (
+                  <div className="p-6 text-center">
+                    <a href={receiptPreview.url} target="_blank" rel="noreferrer" className="text-indigo-300 hover:underline">
+                      Open receipt
+                    </a>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        ) : null}
 
         {/* Period selector */}
         {periods.length > 0 && (
