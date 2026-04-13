@@ -41,6 +41,9 @@ export default function FinanceLicensesPage() {
   const [students, setStudents] = useState<StudentCoverage[]>([])
   const [consequences, setConsequences] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [coverageFilter, setCoverageFilter] = useState<'all' | 'covered' | 'not_covered'>('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 15
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -87,14 +90,23 @@ export default function FinanceLicensesPage() {
   const navItems = session.user.role === 'FINANCE_MANAGER' ? FINANCE_MANAGER_NAV_ITEMS : FINANCE_NAV_ITEMS
 
   const filteredRows = useMemo(() => {
-    if (!searchQuery.trim()) return students
-    const query = searchQuery.toLowerCase()
-    return students.filter((row) =>
-      row.studentName.toLowerCase().includes(query) ||
-      row.className.toLowerCase().includes(query) ||
-      String(row.admissionNumber || '').toLowerCase().includes(query)
-    )
-  }, [students, searchQuery])
+    let rows = students
+
+    if (coverageFilter === 'covered') rows = rows.filter((r) => r.covered)
+    else if (coverageFilter === 'not_covered') rows = rows.filter((r) => !r.covered)
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      rows = rows.filter(
+        (row) =>
+          row.studentName.toLowerCase().includes(query) ||
+          row.className.toLowerCase().includes(query) ||
+          String(row.admissionNumber || '').toLowerCase().includes(query),
+      )
+    }
+
+    return rows
+  }, [students, searchQuery, coverageFilter])
 
   const columns = [
     {
@@ -178,7 +190,25 @@ export default function FinanceLicensesPage() {
           columns={columns}
           data={filteredRows}
           loading={loading}
-          onSearch={(value: string) => setSearchQuery(value)}
+          page={currentPage}
+          pageSize={pageSize}
+          totalCount={filteredRows.length}
+          onPageChange={setCurrentPage}
+          onSearch={(value: string) => {
+            setSearchQuery(value)
+            setCurrentPage(1)
+          }}
+          filterLabel="Coverage"
+          filterOptions={[
+            { value: 'all', label: 'All students' },
+            { value: 'covered', label: 'Covered' },
+            { value: 'not_covered', label: 'Not covered' },
+          ]}
+          activeFilter={coverageFilter}
+          onFilterChange={(value) => {
+            setCoverageFilter(value as 'all' | 'covered' | 'not_covered')
+            setCurrentPage(1)
+          }}
           rowKey="studentId"
           emptyMessage="No student license records available for the current school."
         />
