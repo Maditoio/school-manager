@@ -187,7 +187,7 @@ export function Sidebar({ items, user, onLogout, appName = 'School Connect', onD
 
   useEffect(() => {
     if (isDesktop) onDesktopWidthChange?.(width)
-    else onDesktopWidthChange?.(0)
+    else onDesktopWidthChange?.(SIDEBAR_WIDTH_COLLAPSED)
   }, [isDesktop, onDesktopWidthChange, width])
 
   const initials = useMemo(() => {
