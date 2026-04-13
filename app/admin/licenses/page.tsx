@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
@@ -8,6 +8,8 @@ import { Card, StatCard } from '@/components/ui/Card'
 import Table from '@/components/ui/Table'
 import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 import { useCurrency } from '@/lib/currency-context'
+import { translateText } from '@/lib/client-i18n'
+import { useLocale } from '@/lib/locale-context'
 import { AlertTriangle, ShieldCheck, ShieldX, Users } from 'lucide-react'
 
 type LicenseSummary = {
@@ -36,6 +38,8 @@ type StudentCoverage = {
 export default function AdminLicensesPage() {
   const { data: session, status } = useSession()
   const { formatCurrency } = useCurrency()
+  const { locale } = useLocale()
+  const t = useCallback((text: string) => translateText(text, locale), [locale])
   const [loading, setLoading] = useState(true)
   const [summary, setSummary] = useState<LicenseSummary | null>(null)
   const [students, setStudents] = useState<StudentCoverage[]>([])
@@ -64,7 +68,7 @@ export default function AdminLicensesPage() {
         const data = await res.json()
 
         if (!res.ok) {
-          throw new Error(data?.error || 'Failed to load license overview')
+          throw new Error(data?.error || t('Failed to load license overview'))
         }
 
         setSummary(data.summary)
@@ -87,7 +91,7 @@ export default function AdminLicensesPage() {
     }
 
     loadOverview()
-  }, [session?.user])
+  }, [session?.user, t])
 
   const filteredRows = useMemo(() => {
     let rows = students
@@ -109,7 +113,7 @@ export default function AdminLicensesPage() {
   }, [students, searchQuery, coverageFilter])
 
   if (status === 'loading' || !session) {
-    return <div>Loading...</div>
+    return <div>{t('Loading...')}</div>
   }
 
   const navItems = session.user.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS
@@ -117,34 +121,34 @@ export default function AdminLicensesPage() {
   const columns = [
     {
       key: 'studentName',
-      label: 'Student',
+      label: t('Student'),
       renderCell: (row: StudentCoverage) => (
         <div className="flex flex-col">
           <span className="font-medium ui-text-primary">{row.studentName}</span>
-          <span className="text-xs ui-text-secondary">{row.admissionNumber || 'No admission number'}</span>
+          <span className="text-xs ui-text-secondary">{row.admissionNumber || t('No admission number')}</span>
         </div>
       ),
     },
-    { key: 'className', label: 'Class' },
+    { key: 'className', label: t('Class') },
     {
       key: 'covered',
-      label: 'Coverage',
+      label: t('Coverage'),
       renderCell: (row: StudentCoverage) => (
         <span className={row.covered ? 'text-emerald-500' : 'text-rose-500'}>
-          {row.covered ? (row.coverageSource === 'BULK' ? 'Covered by bulk' : 'Covered by extra payment') : 'Not covered'}
+          {row.covered ? (row.coverageSource === 'BULK' ? t('Covered by bulk') : t('Covered by extra payment')) : t('Not covered')}
         </span>
       ),
     },
     {
       key: 'paidAmount',
-      label: 'Paid Amount',
+      label: t('Paid Amount'),
       renderCell: (row: StudentCoverage) => formatCurrency(row.paidAmount),
     },
     {
       key: 'amountRequiredToCover',
-      label: 'Amount Required',
+      label: t('Amount Required'),
       renderCell: (row: StudentCoverage) =>
-        row.amountRequiredToCover > 0 ? formatCurrency(row.amountRequiredToCover) : '—',
+        row.amountRequiredToCover > 0 ? formatCurrency(row.amountRequiredToCover) : t('—'),
     },
   ]
 
@@ -152,36 +156,36 @@ export default function AdminLicensesPage() {
     <DashboardLayout
       user={{
         name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Admin',
-        role: session.user.role === 'DEPUTY_ADMIN' ? 'Deputy Admin' : 'School Admin',
+        role: session.user.role === 'DEPUTY_ADMIN' ? t('Deputy Admin') : t('School Admin'),
         email: session.user.email,
       }}
       navItems={navItems}
     >
       <div className="space-y-4">
         <div>
-          <h1 className="text-[24px] font-bold ui-text-primary">School Licenses</h1>
-          <p className="mt-1 ui-text-secondary">Review school seat coverage and identify students that still need coverage.</p>
+          <h1 className="text-[24px] font-bold ui-text-primary">{t('School Licenses')}</h1>
+          <p className="mt-1 ui-text-secondary">{t('Review school seat coverage and identify students that still need coverage.')}</p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard title="Active Students" value={summary?.activeStudents ?? 0} icon={<Users className="h-4 w-4" />} />
-          <StatCard title="Covered Students" value={summary?.coveredStudents ?? 0} icon={<ShieldCheck className="h-4 w-4" />} />
-          <StatCard title="Not Covered" value={summary?.notCoveredStudents ?? 0} icon={<ShieldX className="h-4 w-4" />} />
-          <StatCard title="Cost To Cover" value={formatCurrency(summary?.costToCoverAllUncovered ?? 0)} icon={<AlertTriangle className="h-4 w-4" />} />
+          <StatCard title={t('Active Students')} value={summary?.activeStudents ?? 0} icon={<Users className="h-4 w-4" />} />
+          <StatCard title={t('Covered Students')} value={summary?.coveredStudents ?? 0} icon={<ShieldCheck className="h-4 w-4" />} />
+          <StatCard title={t('Not Covered')} value={summary?.notCoveredStudents ?? 0} icon={<ShieldX className="h-4 w-4" />} />
+          <StatCard title={t('Cost To Cover')} value={formatCurrency(summary?.costToCoverAllUncovered ?? 0)} icon={<AlertTriangle className="h-4 w-4" />} />
         </div>
 
-        <Card title="Coverage Summary">
+        <Card title={t('Coverage Summary')}>
           <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2 xl:grid-cols-4">
-            <div><p className="ui-text-secondary">License Year</p><p className="font-semibold ui-text-primary">{summary?.licenseYear ?? '-'}</p></div>
-            <div><p className="ui-text-secondary">Bulk Seats Purchased</p><p className="font-semibold ui-text-primary">{summary?.bulkSeatsPurchased ?? 0}</p></div>
-            <div><p className="ui-text-secondary">Covered by Bulk</p><p className="font-semibold ui-text-primary">{summary?.coveredByBulk ?? 0}</p></div>
-            <div><p className="ui-text-secondary">Covered by Extra Payments</p><p className="font-semibold ui-text-primary">{summary?.coveredByExtraPayments ?? 0}</p></div>
-            <div><p className="ui-text-secondary">Annual Price Per Student</p><p className="font-semibold ui-text-primary">{formatCurrency(summary?.annualPricePerStudent ?? 0)}</p></div>
-            <div><p className="ui-text-secondary">Students Not Covered</p><p className="font-semibold text-rose-500">{summary?.notCoveredStudents ?? 0}</p></div>
+            <div><p className="ui-text-secondary">{t('License Year')}</p><p className="font-semibold ui-text-primary">{summary?.licenseYear ?? '-'}</p></div>
+            <div><p className="ui-text-secondary">{t('Bulk Seats Purchased')}</p><p className="font-semibold ui-text-primary">{summary?.bulkSeatsPurchased ?? 0}</p></div>
+            <div><p className="ui-text-secondary">{t('Covered by Bulk')}</p><p className="font-semibold ui-text-primary">{summary?.coveredByBulk ?? 0}</p></div>
+            <div><p className="ui-text-secondary">{t('Covered by Extra Payments')}</p><p className="font-semibold ui-text-primary">{summary?.coveredByExtraPayments ?? 0}</p></div>
+            <div><p className="ui-text-secondary">{t('Annual Price Per Student')}</p><p className="font-semibold ui-text-primary">{formatCurrency(summary?.annualPricePerStudent ?? 0)}</p></div>
+            <div><p className="ui-text-secondary">{t('Students Not Covered')}</p><p className="font-semibold text-rose-500">{summary?.notCoveredStudents ?? 0}</p></div>
           </div>
         </Card>
 
-        <Card title="License Details">
+        <Card title={t('License Details')}>
           <ul className="space-y-2 text-sm ui-text-secondary">
             {licenseDetails.map((item) => (
               <li key={item} className="rounded-[10px] border px-3 py-2" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
@@ -192,7 +196,7 @@ export default function AdminLicensesPage() {
         </Card>
 
         <Table
-          title="Student License Coverage"
+          title={t('Student License Coverage')}
           columns={columns}
           data={filteredRows}
           loading={loading}
@@ -204,11 +208,11 @@ export default function AdminLicensesPage() {
             setSearchQuery(value)
             setCurrentPage(1)
           }}
-          filterLabel="Coverage"
+          filterLabel={t('Coverage')}
           filterOptions={[
-            { value: 'all', label: 'All students' },
-            { value: 'covered', label: 'Covered' },
-            { value: 'not_covered', label: 'Not covered' },
+            { value: 'all', label: t('All students') },
+            { value: 'covered', label: t('Covered') },
+            { value: 'not_covered', label: t('Not covered') },
           ]}
           activeFilter={coverageFilter}
           onFilterChange={(value) => {
@@ -216,7 +220,7 @@ export default function AdminLicensesPage() {
             setCurrentPage(1)
           }}
           rowKey="studentId"
-          emptyMessage="No student license records available for the current school."
+          emptyMessage={t('No student license records available for the current school.')}
         />
       </div>
     </DashboardLayout>
