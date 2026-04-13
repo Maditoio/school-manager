@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -21,13 +21,6 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f5f6f8' },
-    { media: '(prefers-color-scheme: dark)', color: '#0f1720' },
-  ],
-};
-
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -36,15 +29,25 @@ export default async function RootLayout({
   const session = await auth();
   const cookieStore = await cookies();
   const localeCookie = cookieStore.get('NEXT_LOCALE')?.value;
+  const themeCookie = cookieStore.get('ui-theme')?.value;
   const htmlLang = localeCookie === 'fr' || localeCookie === 'sw' || localeCookie === 'en'
     ? localeCookie
     : 'en';
+  const initialTheme = themeCookie === 'dark' || themeCookie === 'calm' || themeCookie === 'light'
+    ? themeCookie
+    : 'light'
+  const initialThemeColor = initialTheme === 'dark'
+    ? '#0f1720'
+    : initialTheme === 'calm'
+      ? '#f5f8f5'
+      : '#f5f6f8'
   
   return (
-    <html lang={htmlLang} data-theme="light">
+    <html lang={htmlLang} data-theme={initialTheme} style={{ colorScheme: initialTheme === 'dark' ? 'dark' : 'light' }}>
       <head>
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
+        <meta name="theme-color" content={initialThemeColor} />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -57,10 +60,10 @@ export default async function RootLayout({
                 };
                 document.documentElement.setAttribute('data-theme', theme);
                 document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
-                const metaTheme = document.querySelector('meta[name="theme-color"]');
-                if (metaTheme) {
+                document.cookie = 'ui-theme=' + encodeURIComponent(theme) + '; path=/; max-age=31536000; SameSite=Lax';
+                document.querySelectorAll('meta[name="theme-color"]').forEach((metaTheme) => {
                   metaTheme.setAttribute('content', themeColorMap[theme] || themeColorMap.light);
-                }
+                });
                 document.documentElement.classList.add('theme-transition');
               } catch {}
             `,

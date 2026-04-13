@@ -114,9 +114,13 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
       dark: '#0f1720',
       calm: '#f5f8f5',
     }
-    const metaTheme = document.querySelector('meta[name="theme-color"]')
-    if (metaTheme) {
+    document.querySelectorAll('meta[name="theme-color"]').forEach((metaTheme) => {
       metaTheme.setAttribute('content', themeColorMap[theme] ?? themeColorMap.light)
+    })
+    try {
+      document.cookie = `ui-theme=${encodeURIComponent(theme)}; path=/; max-age=31536000; SameSite=Lax`
+    } catch {
+      // ignore cookie write errors
     }
   }, [theme])
 
@@ -161,6 +165,11 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
     } catch {
       // ignore storage errors
     }
+    try {
+      document.cookie = `ui-theme=${encodeURIComponent(nextTheme)}; path=/; max-age=31536000; SameSite=Lax`
+    } catch {
+      // ignore cookie write errors
+    }
     document.documentElement.setAttribute('data-theme', nextTheme)
     document.documentElement.style.colorScheme = nextTheme === 'dark' ? 'dark' : 'light'
     const themeColorMap: Record<string, string> = {
@@ -168,10 +177,9 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
       dark: '#0f1720',
       calm: '#f5f8f5',
     }
-    const metaTheme = document.querySelector('meta[name="theme-color"]')
-    if (metaTheme) {
+    document.querySelectorAll('meta[name="theme-color"]').forEach((metaTheme) => {
       metaTheme.setAttribute('content', themeColorMap[nextTheme] ?? themeColorMap.light)
-    }
+    })
   }
 
   const handleThemeToggle = () => {
