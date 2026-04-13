@@ -2,6 +2,24 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
 
+const LICENSE_RESTRICTED_PAGE_PATHS = [
+  '/parent/announcements',
+  '/parent/attendance',
+  '/parent/results',
+  '/student/communications',
+]
+
+const LICENSE_RESTRICTED_API_PATHS = [
+  '/api/announcements',
+  '/api/attendance',
+  '/api/student/announcements',
+  '/api/students/assessments',
+]
+
+function isLicenseRestrictedFeaturePath(pathname: string) {
+  return [...LICENSE_RESTRICTED_PAGE_PATHS, ...LICENSE_RESTRICTED_API_PATHS].some((path) => pathname.startsWith(path))
+}
+
 export async function middleware(request: NextRequest) {
   const session = await auth()
 
@@ -33,22 +51,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  if (session.user.paymentAccessBlocked) {
-    const allowedBlockedRoutes =
-      pathname.startsWith('/payment-required') ||
-      pathname.startsWith('/api/auth')
-
-    if (!allowedBlockedRoutes) {
-      if (pathname.startsWith('/api/')) {
-        return NextResponse.json(
-          { error: session.user.paymentAccessReason || 'Payment required before access is restored.' },
-          { status: 403 }
-        )
-      }
-
-      return NextResponse.redirect(new URL('/payment-required', request.url))
+  if (session.user.paymentAccessBlocked && isLicenseRestrictedFeaturePath(pathname)) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json(
+        { error: session.user.paymentAccessReason || 'License coverage is required before this feature can be used.' },
+        { status: 403 }
+      )
     }
-  } else if (pathname.startsWith('/payment-required')) {
+
+    return NextResponse.redirect(new URL('/payment-required', request.url))
+  } else if (!session.user.paymentAccessBlocked && pathname.startsWith('/payment-required')) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 

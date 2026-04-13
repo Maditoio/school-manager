@@ -123,12 +123,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           userId: user.id,
         })
 
-        if (portalAccess.blocked) {
-          const err = new CredentialsSignin('payment_required')
-          err.code = 'payment_required'
-          throw err
-        }
-
         return {
           id: user.id,
           email: user.email,
@@ -139,8 +133,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           firstName: user.firstName,
           lastName: user.lastName,
           studentId: user.studentId ?? null,
-          paymentAccessBlocked: false,
-          paymentAccessReason: null,
+          paymentAccessBlocked: portalAccess.blocked,
+          paymentAccessReason: portalAccess.reason,
         }
       },
     }),

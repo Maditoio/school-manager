@@ -373,6 +373,7 @@ export default async function ParentDashboard() {
   const messages = await getMessages()
   const t = createTranslator(messages)
   const data = await getDashboardData(session.user.id, session.user.schoolId)
+  const restrictedFeaturesBlocked = Boolean(session.user.paymentAccessBlocked)
 
   const navItems = [
     { label: 'Dashboard', href: '/parent/dashboard', icon: '🏠' },
@@ -487,51 +488,59 @@ export default async function ParentDashboard() {
             </span>
           </div>
 
-          <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
-            {data?.attendanceRecords.length ? (
-              [...data.attendanceRecords]
-                .reverse()
-                .map((record) => (
-                  <div
-                    key={record.date.toISOString()}
-                    className="flex min-w-18 flex-col items-center rounded-2xl bg-linear-to-b from-slate-50 to-slate-100 px-3 py-2 border border-slate-200 shadow-xs"
-                  >
-                    <span className="text-xs font-semibold text-slate-600">
-                      {formatDay(record.date)}
-                    </span>
-                    <span className="mt-2 text-[10px] text-slate-400">
-                      {formatDate(record.date)}
-                    </span>
-                    <span
-                      className={`mt-2 h-3 w-3 rounded-full ${statusDotStyles[record.status]}`}
-                      aria-label={record.status}
-                    />
-                  </div>
-                ))
-            ) : (
-              <div className="w-full rounded-xl bg-linear-to-r from-slate-50 to-slate-100 px-4 py-5 text-center text-sm text-slate-500 border border-slate-200">
-                {t('parent.dashboard.attendanceEmpty')}
-              </div>
-            )}
-          </div>
-
-          <div className="mt-4 flex items-end justify-between">
-            <div>
-              <p className="text-xs text-slate-500">{t('parent.dashboard.termAttendance')}</p>
-              <p className="text-4xl font-bold bg-linear-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent">
-                {data?.attendanceRate || 0}%
-              </p>
+          {restrictedFeaturesBlocked ? (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-5 text-sm text-amber-800">
+              {session.user.paymentAccessReason || 'Attendance is unavailable until the school records license coverage for this student.'}
             </div>
-            <a
-              href="/parent/attendance"
-              className="rounded-full bg-linear-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-md hover:shadow-lg transition-shadow"
-            >
-              {t('parent.dashboard.viewAttendance')}
-            </a>
-          </div>
+          ) : (
+            <>
+              <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
+                {data?.attendanceRecords.length ? (
+                  [...data.attendanceRecords]
+                    .reverse()
+                    .map((record) => (
+                      <div
+                        key={record.date.toISOString()}
+                        className="flex min-w-18 flex-col items-center rounded-2xl bg-linear-to-b from-slate-50 to-slate-100 px-3 py-2 border border-slate-200 shadow-xs"
+                      >
+                        <span className="text-xs font-semibold text-slate-600">
+                          {formatDay(record.date)}
+                        </span>
+                        <span className="mt-2 text-[10px] text-slate-400">
+                          {formatDate(record.date)}
+                        </span>
+                        <span
+                          className={`mt-2 h-3 w-3 rounded-full ${statusDotStyles[record.status]}`}
+                          aria-label={record.status}
+                        />
+                      </div>
+                    ))
+                ) : (
+                  <div className="w-full rounded-xl bg-linear-to-r from-slate-50 to-slate-100 px-4 py-5 text-center text-sm text-slate-500 border border-slate-200">
+                    {t('parent.dashboard.attendanceEmpty')}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 flex items-end justify-between">
+                <div>
+                  <p className="text-xs text-slate-500">{t('parent.dashboard.termAttendance')}</p>
+                  <p className="text-4xl font-bold bg-linear-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent">
+                    {data?.attendanceRate || 0}%
+                  </p>
+                </div>
+                <a
+                  href="/parent/attendance"
+                  className="rounded-full bg-linear-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-md hover:shadow-lg transition-shadow"
+                >
+                  {t('parent.dashboard.viewAttendance')}
+                </a>
+              </div>
+            </>
+          )}
         </section>
 
-        {data?.attendanceRecords.length ? (
+        {!restrictedFeaturesBlocked && data?.attendanceRecords.length ? (
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             {data.attendanceRecords[data.attendanceRecords.length - 1]?.status !== 'PRESENT' && (
               <div className={`rounded-2xl p-4 border-2 ${
@@ -623,7 +632,18 @@ export default async function ParentDashboard() {
           </div>
         </section>
 
-        {data?.announcements.length ? (
+        {restrictedFeaturesBlocked ? (
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">
+                {t('parent.dashboard.announcementsTitle')}
+              </h2>
+            </div>
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-5 text-sm text-amber-800">
+              {session.user.paymentAccessReason || 'Announcements are unavailable until the school records license coverage for this student.'}
+            </div>
+          </section>
+        ) : data?.announcements.length ? (
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-slate-900">
@@ -696,33 +716,41 @@ export default async function ParentDashboard() {
             </a>
           </div>
 
-          <div className="mt-4 rounded-2xl bg-linear-to-br from-slate-50 to-slate-100 p-4 border border-slate-200">
-            <p className="text-xs text-slate-500">{t('parent.dashboard.overallAverage')}</p>
-            <p className="mt-2 text-4xl font-bold bg-linear-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent">
-              {data?.overallAverage || 0}%
-            </p>
-          </div>
-
-          <div className="mt-4">
-            <p className="text-xs font-semibold text-slate-500">{t('parent.dashboard.topSubjects')}</p>
-            {data?.topSubjects.length ? (
-              <div className="mt-3 space-y-2">
-                {data.topSubjects.map((subject) => (
-                  <div
-                    key={subject.name}
-                    className="flex items-center justify-between rounded-xl bg-white px-3 py-2 shadow-xs border border-slate-100 hover:shadow-sm transition-shadow"
-                  >
-                    <span className="text-sm text-slate-700">{subject.name}</span>
-                    <span className="text-sm font-bold text-emerald-600">
-                      {subject.percentage}%
-                    </span>
-                  </div>
-                ))}
+          {restrictedFeaturesBlocked ? (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-5 text-sm text-amber-800">
+              {session.user.paymentAccessReason || 'Results are unavailable until the school records license coverage for this student.'}
+            </div>
+          ) : (
+            <>
+              <div className="mt-4 rounded-2xl bg-linear-to-br from-slate-50 to-slate-100 p-4 border border-slate-200">
+                <p className="text-xs text-slate-500">{t('parent.dashboard.overallAverage')}</p>
+                <p className="mt-2 text-4xl font-bold bg-linear-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent">
+                  {data?.overallAverage || 0}%
+                </p>
               </div>
-            ) : (
-              <p className="mt-2 text-sm text-slate-500">{t('parent.dashboard.noResults')}</p>
-            )}
-          </div>
+
+              <div className="mt-4">
+                <p className="text-xs font-semibold text-slate-500">{t('parent.dashboard.topSubjects')}</p>
+                {data?.topSubjects.length ? (
+                  <div className="mt-3 space-y-2">
+                    {data.topSubjects.map((subject) => (
+                      <div
+                        key={subject.name}
+                        className="flex items-center justify-between rounded-xl bg-white px-3 py-2 shadow-xs border border-slate-100 hover:shadow-sm transition-shadow"
+                      >
+                        <span className="text-sm text-slate-700">{subject.name}</span>
+                        <span className="text-sm font-bold text-emerald-600">
+                          {subject.percentage}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm text-slate-500">{t('parent.dashboard.noResults')}</p>
+                )}
+              </div>
+            </>
+          )}
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -736,12 +764,18 @@ export default async function ParentDashboard() {
             >
               💬 {t('parent.dashboard.messageTeacher')}
             </a>
-            <a
-              href="/parent/results"
-              className="flex items-center justify-center gap-2 rounded-2xl bg-linear-to-br from-slate-100 to-slate-200 px-3 py-3 text-sm font-semibold text-slate-700 border border-slate-300 hover:shadow-sm transition-shadow"
-            >
-              📄 {t('parent.dashboard.downloadReport')}
-            </a>
+            {restrictedFeaturesBlocked ? (
+              <div className="flex items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm font-semibold text-amber-700">
+                📄 Report Locked
+              </div>
+            ) : (
+              <a
+                href="/parent/results"
+                className="flex items-center justify-center gap-2 rounded-2xl bg-linear-to-br from-slate-100 to-slate-200 px-3 py-3 text-sm font-semibold text-slate-700 border border-slate-300 hover:shadow-sm transition-shadow"
+              >
+                📄 {t('parent.dashboard.downloadReport')}
+              </a>
+            )}
           </div>
         </section>
         </div>

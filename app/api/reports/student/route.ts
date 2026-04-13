@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { getStudentFeeAccessStatus } from '@/lib/access-control'
 import { prisma } from '@/lib/prisma'
 
 /**
@@ -28,6 +29,14 @@ export async function GET(request: NextRequest) {
 
     if (!studentId) {
       return NextResponse.json({ error: 'studentId is required' }, { status: 400 })
+    }
+
+    const accessStatus = await getStudentFeeAccessStatus(studentId)
+    if (accessStatus.blocked) {
+      return NextResponse.json(
+        { error: accessStatus.reason || 'Student report generation is blocked until license coverage is restored.' },
+        { status: 403 }
+      )
     }
 
     const schoolId = session.user.schoolId

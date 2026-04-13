@@ -142,6 +142,7 @@ export default function StudentDashboardPage() {
   const t = (text: string) => translateText(text, locale)
   const isFr = locale === 'fr'
   const isSw = locale === 'sw'
+  const restrictedFeaturesBlocked = Boolean(session.user.paymentAccessBlocked)
 
   const typeLabels: Record<string, string> = {
     QUIZ: isFr ? 'Interro' : isSw ? 'Jaribio Fupi' : 'Quiz',
@@ -253,42 +254,50 @@ export default function StudentDashboardPage() {
                 <p className="text-xs font-semibold uppercase tracking-wider ui-text-secondary mb-3">
                   {t('Attendance')}
                 </p>
-                <div className="flex gap-3 overflow-x-auto pb-2">
-                  {recentAttendance.length > 0 ? (
-                    [...recentAttendance].reverse().map((record) => (
-                      <div
-                        key={`${record.date}-${record.status}`}
-                        className="flex min-w-18 flex-col items-center rounded-2xl border px-3 py-2"
-                        style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}
-                      >
-                        <span className="text-xs font-semibold ui-text-primary">{formatDay(record.date)}</span>
-                        <span className="mt-2 text-[10px] ui-text-secondary">{formatDate(record.date)}</span>
-                        <span
-                          className={`mt-2 h-3 w-3 rounded-full ${statusDotStyles[record.status] || 'bg-slate-500'}`}
-                          title={t(statusTextLabels[record.status] || record.status)}
-                        />
-                      </div>
-                    ))
-                  ) : (
-                    <div className="w-full rounded-xl border px-4 py-5 text-center text-sm ui-text-secondary" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
-                      {t('No attendance records yet')}
+                {restrictedFeaturesBlocked ? (
+                  <div className="rounded-xl border px-4 py-5 text-sm text-amber-700" style={{ borderColor: '#fcd34d', background: '#fffbeb' }}>
+                    {session.user.paymentAccessReason || 'Attendance is unavailable until the school records license coverage for this student.'}
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex gap-3 overflow-x-auto pb-2">
+                      {recentAttendance.length > 0 ? (
+                        [...recentAttendance].reverse().map((record) => (
+                          <div
+                            key={`${record.date}-${record.status}`}
+                            className="flex min-w-18 flex-col items-center rounded-2xl border px-3 py-2"
+                            style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}
+                          >
+                            <span className="text-xs font-semibold ui-text-primary">{formatDay(record.date)}</span>
+                            <span className="mt-2 text-[10px] ui-text-secondary">{formatDate(record.date)}</span>
+                            <span
+                              className={`mt-2 h-3 w-3 rounded-full ${statusDotStyles[record.status] || 'bg-slate-500'}`}
+                              title={t(statusTextLabels[record.status] || record.status)}
+                            />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="w-full rounded-xl border px-4 py-5 text-center text-sm ui-text-secondary" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
+                          {t('No attendance records yet')}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="rounded-lg border border-(--border-subtle) bg-green-50 px-3 py-1.5 text-center">
-                    <span className="block text-base font-bold text-green-700">{s.attendanceSummary.present}</span>
-                    <span className="text-[10px] text-green-600">{t('Present')}</span>
-                  </span>
-                  <span className="rounded-lg border border-(--border-subtle) bg-red-50 px-3 py-1.5 text-center">
-                    <span className="block text-base font-bold text-red-700">{s.attendanceSummary.absent}</span>
-                    <span className="text-[10px] text-red-600">{t('Absent')}</span>
-                  </span>
-                  <span className="rounded-lg border border-(--border-subtle) px-3 py-1.5 text-center" style={{ background: 'var(--surface-soft)' }}>
-                    <span className="block text-base font-bold" style={{ color: 'var(--accent)' }}>{s.attendanceSummary.rate}%</span>
-                    <span className="text-[10px] ui-text-secondary">{t('Rate')}</span>
-                  </span>
-                </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <span className="rounded-lg border border-(--border-subtle) bg-green-50 px-3 py-1.5 text-center">
+                        <span className="block text-base font-bold text-green-700">{s.attendanceSummary.present}</span>
+                        <span className="text-[10px] text-green-600">{t('Present')}</span>
+                      </span>
+                      <span className="rounded-lg border border-(--border-subtle) bg-red-50 px-3 py-1.5 text-center">
+                        <span className="block text-base font-bold text-red-700">{s.attendanceSummary.absent}</span>
+                        <span className="text-[10px] text-red-600">{t('Absent')}</span>
+                      </span>
+                      <span className="rounded-lg border border-(--border-subtle) px-3 py-1.5 text-center" style={{ background: 'var(--surface-soft)' }}>
+                        <span className="block text-base font-bold" style={{ color: 'var(--accent)' }}>{s.attendanceSummary.rate}%</span>
+                        <span className="text-[10px] ui-text-secondary">{t('Rate')}</span>
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Parent */}
@@ -330,12 +339,13 @@ export default function StudentDashboardPage() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="text-sm font-semibold ui-text-primary">{t('Assessment Results')}</p>
-                  {avgScore !== null && (
+                  {!restrictedFeaturesBlocked && avgScore !== null && (
                     <p className="text-xs ui-text-secondary mt-0.5">
                       <span className="font-semibold" style={{ color: 'var(--accent)' }}>{averageSummaryText}</span>
                     </p>
                   )}
                 </div>
+                {!restrictedFeaturesBlocked ? (
                 <div className="flex flex-wrap gap-1">
                   {['ALL', 'EXAM', 'TEST', 'QUIZ', 'ASSIGNMENT'].map(t => (
                     <button
@@ -352,9 +362,14 @@ export default function StudentDashboardPage() {
                     </button>
                   ))}
                 </div>
+                ) : null}
               </div>
 
-              {results.length === 0 ? (
+              {restrictedFeaturesBlocked ? (
+                <div className="rounded-xl border px-4 py-5 text-sm text-amber-700" style={{ borderColor: '#fcd34d', background: '#fffbeb' }}>
+                  {session.user.paymentAccessReason || 'Assessment results are unavailable until the school records license coverage for this student.'}
+                </div>
+              ) : results.length === 0 ? (
                 <p className="py-8 text-center text-sm ui-text-secondary">{t('No assessments yet.')}</p>
               ) : filteredResults.length === 0 ? (
                 <p className="py-8 text-center text-sm ui-text-secondary">

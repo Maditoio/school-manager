@@ -61,14 +61,20 @@ export async function GET() {
     ? Math.round((presentCount / totalAttendance) * 100)
     : 0
 
+  const restrictedFeaturesBlocked = Boolean(session.user.paymentAccessBlocked)
+  const attendance = restrictedFeaturesBlocked ? [] : student.attendance
+  const studentAssessments = restrictedFeaturesBlocked ? [] : student.studentAssessments
+
   return NextResponse.json({
     student: {
       ...student,
+      attendance,
+      studentAssessments,
       attendanceSummary: {
-        total: totalAttendance,
-        present: presentCount,
-        absent: student.attendance.filter(a => a.status === 'ABSENT').length,
-        rate: attendanceRate,
+        total: restrictedFeaturesBlocked ? 0 : totalAttendance,
+        present: restrictedFeaturesBlocked ? 0 : presentCount,
+        absent: restrictedFeaturesBlocked ? 0 : student.attendance.filter(a => a.status === 'ABSENT').length,
+        rate: restrictedFeaturesBlocked ? 0 : attendanceRate,
       },
     },
   })
