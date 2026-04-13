@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Users, ShieldCheck, ShieldAlert, Banknote, Clock } from 'lucide-react'
+import { useCurrency } from '@/lib/currency-context'
 
 interface LicenseStatus {
   configured: boolean
@@ -51,6 +52,7 @@ function Skeleton() {
 }
 
 export default function LicenseCoverageWidget({ feesHref = '/admin/licenses', className = '' }: Props) {
+  const { formatCurrency } = useCurrency()
   const [status, setStatus] = useState<LicenseStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [todayMs] = useState(() => Date.now())
@@ -170,7 +172,7 @@ export default function LicenseCoverageWidget({ feesHref = '/admin/licenses', cl
         <div className="flex items-center justify-between gap-3 text-slate-500">
           <div className="flex items-center gap-1.5">
             <Banknote className="h-3.5 w-3.5" />
-            <span>{(status.requiredAmountPerStudent ?? status.annualPricePerStudent).toLocaleString()} / student/year</span>
+            <span>{formatCurrency(status.requiredAmountPerStudent ?? status.annualPricePerStudent)} / student/year</span>
           </div>
           <span
             className="px-2 py-0.5 rounded-full text-xs font-medium"
@@ -180,7 +182,7 @@ export default function LicenseCoverageWidget({ feesHref = '/admin/licenses', cl
           </span>
         </div>
         <p className="mt-2 text-sm font-medium" style={{ color: hasBlockedStudents ? '#fecaca' : '#cbd5e1' }}>
-          {withoutAccess} student(s) are currently outside available seat coverage. Estimated additional amount to fully cover all active students: {(status.extraLicenseCost ?? 0).toLocaleString()}.
+          {withoutAccess} student(s) are currently outside available seat coverage. Estimated additional amount to fully cover all active students: {formatCurrency(status.extraLicenseCost ?? 0)}.
         </p>
       </div>
     </div>

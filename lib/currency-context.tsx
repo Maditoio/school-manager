@@ -45,23 +45,32 @@ const CurrencyContext = createContext<CurrencyContextValue | undefined>(undefine
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession()
   const [currency, setCurrencyState] = useState<CurrencyCode>('ZAR')
-  const [loaded, setLoaded] = useState(false)
+  const [loadedForUserKey, setLoadedForUserKey] = useState<string | null>(null)
 
-  // Fetch currency from school settings once the session is available
+  // Fetch currency from school settings per authenticated user/school context.
   useEffect(() => {
-    if (!session?.user || loaded) return
+    const userId = session?.user?.id || ''
+    const schoolId = session?.user?.schoolId || ''
 
-    fetch('/api/schools/settings')
+    if (!session?.user) {
+      setLoadedForUserKey(null)
+      return
+    }
+
+    const userKey = `${userId}:${schoolId}`
+    if (loadedForUserKey === userKey) return
+
+    fetch('/api/schools/settings', { cache: 'no-store', credentials: 'include' })
       .then(res => (res.ok ? res.json() : null))
       .then(data => {
         if (data?.currency && VALID_CODES.includes(data.currency)) {
           setCurrencyState(data.currency as CurrencyCode)
         }
-        setLoaded(true)
+        setLoadedForUserKey(userKey)
       })
-      .catch(() => setLoaded(true))
+      .catch(() => setLoadedForUserKey(userKey))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.schoolId])
+  }, [session?.user?.id, session?.user?.schoolId, loadedForUserKey])
 
   const setCurrency = useCallback((code: CurrencyCode) => {
     if (VALID_CODES.includes(code)) {
