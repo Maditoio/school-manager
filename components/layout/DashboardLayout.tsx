@@ -25,6 +25,14 @@ interface LayoutProps {
   }>
 }
 
+const LICENSE_RESTRICTED_NAV_PATHS = [
+  '/parent/announcements',
+  '/parent/attendance',
+  '/parent/assessments',
+  '/parent/results',
+  '/student/communications',
+]
+
 export function DashboardLayout({ children, user, navItems }: LayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -188,8 +196,16 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
       }
     }
 
-    return enhancedNavItems.map((item) => ({ ...item, label: translateText(item.label, locale) }))
-  }, [navItems, locale, session?.user?.role, user.role])
+    const shouldHideRestrictedNav =
+      Boolean(session?.user?.paymentAccessBlocked) &&
+      (session?.user?.role === 'PARENT' || session?.user?.role === 'STUDENT')
+
+    const filteredNavItems = shouldHideRestrictedNav
+      ? enhancedNavItems.filter((item) => !LICENSE_RESTRICTED_NAV_PATHS.some((path) => item.href.startsWith(path)))
+      : enhancedNavItems
+
+    return filteredNavItems.map((item) => ({ ...item, label: translateText(item.label, locale) }))
+  }, [navItems, locale, session?.user?.role, session?.user?.paymentAccessBlocked, user.role])
 
   const translatedUser = useMemo(
     () => ({

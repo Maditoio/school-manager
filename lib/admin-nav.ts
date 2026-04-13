@@ -52,6 +52,7 @@ export const DEPUTY_ADMIN_NAV_ITEMS: NavItem[] = ADMIN_NAV_ITEMS.filter(
 /** Finance-role navigation (FINANCE, FINANCE_MANAGER) */
 export const FINANCE_NAV_ITEMS: NavItem[] = [
   { label: 'Fees',           href: '/finance/fees' },
+  { label: 'Licenses',       href: '/finance/licenses' },
   { label: 'Expenses',       href: '/finance/expenses' },
   { label: 'Fund Requests',  href: '/finance/fund-requests' },
   { label: 'Meeting Agenda', href: '/admin/meeting-agenda' },
@@ -60,6 +61,7 @@ export const FINANCE_NAV_ITEMS: NavItem[] = [
 /** Finance Manager navigation (superset of FINANCE_NAV_ITEMS with salary management) */
 export const FINANCE_MANAGER_NAV_ITEMS: NavItem[] = [
   { label: 'Fees',             href: '/finance/fees' },
+  { label: 'Licenses',         href: '/finance/licenses' },
   { label: 'Expenses',         href: '/finance/expenses' },
   { label: 'Fund Requests',    href: '/finance/fund-requests' },
   { label: 'Teacher Salaries', href: '/finance/salaries' },

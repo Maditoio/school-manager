@@ -581,55 +581,63 @@ export default async function ParentDashboard() {
             <h2 className="text-lg font-semibold text-slate-900">
               {t('parent.dashboard.assessmentsTitle')}
             </h2>
-            <a href="/parent/assessments" className="text-xs font-semibold text-emerald-600 hover:text-emerald-700">
-              {t('parent.dashboard.viewAssessments')}
-            </a>
+            {!restrictedFeaturesBlocked ? (
+              <a href="/parent/assessments" className="text-xs font-semibold text-emerald-600 hover:text-emerald-700">
+                {t('parent.dashboard.viewAssessments')}
+              </a>
+            ) : null}
           </div>
 
-          <div className="mt-4 space-y-3">
-            {data?.assessmentNotifications.length ? (
-              data.assessmentNotifications.map((assessment) => {
-                const isNew = assessment.createdAt >= announcementCutoff
-                return (
-                  <TrackedInteractionLink
-                    key={assessment.id}
-                    href="/parent/assessments"
-                    resourceType="assessment"
-                    resourceId={assessment.id}
-                    childId={data?.child?.id}
-                    metadata={{ section: 'parent-dashboard' }}
-                    className="block rounded-2xl border border-indigo-200 bg-linear-to-br from-indigo-50 to-white p-4 shadow-xs"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-sm font-semibold text-slate-900 line-clamp-1">
-                        {assessment.title}
-                      </h3>
-                      {isNew ? (
-                        <span className="shrink-0 rounded-full bg-linear-to-r from-indigo-100 to-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 border border-indigo-200">
-                          {t('parent.dashboard.newBadge')}
-                        </span>
-                      ) : null}
-                    </div>
+          {restrictedFeaturesBlocked ? (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-5 text-sm text-amber-800">
+              {session.user.paymentAccessReason || 'Assessments are unavailable until the school records license coverage for this student.'}
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {data?.assessmentNotifications.length ? (
+                data.assessmentNotifications.map((assessment) => {
+                  const isNew = assessment.createdAt >= announcementCutoff
+                  return (
+                    <TrackedInteractionLink
+                      key={assessment.id}
+                      href="/parent/assessments"
+                      resourceType="assessment"
+                      resourceId={assessment.id}
+                      childId={data?.child?.id}
+                      metadata={{ section: 'parent-dashboard' }}
+                      className="block rounded-2xl border border-indigo-200 bg-linear-to-br from-indigo-50 to-white p-4 shadow-xs"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-sm font-semibold text-slate-900 line-clamp-1">
+                          {assessment.title}
+                        </h3>
+                        {isNew ? (
+                          <span className="shrink-0 rounded-full bg-linear-to-r from-indigo-100 to-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 border border-indigo-200">
+                            {t('parent.dashboard.newBadge')}
+                          </span>
+                        ) : null}
+                      </div>
 
-                    <p className="mt-2 text-xs text-slate-600">
-                      {assessment.subjectName} • {assessment.term} • {assessment.totalMarks} marks
-                    </p>
+                      <p className="mt-2 text-xs text-slate-600">
+                        {assessment.subjectName} • {assessment.term} • {assessment.totalMarks} marks
+                      </p>
 
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      {assessment.dueDate
-                        ? `${t('parent.dashboard.dueDateLabel')}: ${formatDate(assessment.dueDate)}`
-                        : t('parent.dashboard.noDueDate')}
-                    </p>
-                  </TrackedInteractionLink>
-                )
-              })
-            ) : (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-linear-to-br from-slate-50 to-slate-100 p-4 text-center text-sm text-slate-500">
-                <div className="text-2xl">📋</div>
-                <p className="mt-2">{t('parent.dashboard.assessmentsEmpty')}</p>
-              </div>
-            )}
-          </div>
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        {assessment.dueDate
+                          ? `${t('parent.dashboard.dueDateLabel')}: ${formatDate(assessment.dueDate)}`
+                          : t('parent.dashboard.noDueDate')}
+                      </p>
+                    </TrackedInteractionLink>
+                  )
+                })
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-linear-to-br from-slate-50 to-slate-100 p-4 text-center text-sm text-slate-500">
+                  <div className="text-2xl">📋</div>
+                  <p className="mt-2">{t('parent.dashboard.assessmentsEmpty')}</p>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {restrictedFeaturesBlocked ? (

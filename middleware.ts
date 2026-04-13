@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth"
 const LICENSE_RESTRICTED_PAGE_PATHS = [
   '/parent/announcements',
   '/parent/attendance',
+  '/parent/assessments',
   '/parent/results',
   '/student/communications',
 ]
