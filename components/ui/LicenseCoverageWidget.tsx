@@ -10,12 +10,17 @@ interface LicenseStatus {
   onboardingFee: number
   annualPricePerStudent: number
   licensedStudentCount: number
+  bulkLicensedStudentCount?: number
   activeStudents: number
   coveredStudents: number
   uncoveredStudents: number
+  bulkCoveredStudents?: number
+  extraCoveredStudents?: number
   studentsWithAccess?: number
   studentsWithoutAccess?: number
+  studentsNeedingExtraLicensePayment?: number
   requiredAmountPerStudent?: number
+  extraLicenseCost?: number
   licenseYear?: number
   billingYear: number
   licenseStartDate: string | null
@@ -48,6 +53,7 @@ function Skeleton() {
 export default function LicenseCoverageWidget({ feesHref = '/admin/fees', className = '' }: Props) {
   const [status, setStatus] = useState<LicenseStatus | null>(null)
   const [loading, setLoading] = useState(true)
+  const [todayMs] = useState(() => Date.now())
 
   useEffect(() => {
     let active = true
@@ -67,6 +73,7 @@ export default function LicenseCoverageWidget({ feesHref = '/admin/fees', classN
 
   const withAccess = status.studentsWithAccess ?? status.coveredStudents
   const withoutAccess = status.studentsWithoutAccess ?? status.uncoveredStudents
+  const bulkSeats = status.bulkLicensedStudentCount ?? status.licensedStudentCount
 
   const coveragePercent =
     status.activeStudents > 0
@@ -77,7 +84,7 @@ export default function LicenseCoverageWidget({ feesHref = '/admin/fees', classN
   const isExpiringSoon = (() => {
     if (!status.licenseEndDate) return false
     const end = new Date(status.licenseEndDate)
-    const diff = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    const diff = Math.ceil((end.getTime() - todayMs) / (1000 * 60 * 60 * 24))
     return diff >= 0 && diff <= 30
   })()
 
@@ -116,27 +123,27 @@ export default function LicenseCoverageWidget({ feesHref = '/admin/fees', classN
       {/* Stat tiles */}
       <div className="grid grid-cols-3 gap-3 mb-3">
         <StatTile
-          label="With Access"
-          value={withAccess}
+          label="Bulk Seats"
+          value={bulkSeats}
           icon={<ShieldCheck className="h-4 w-4" style={{ color: '#34d399' }} />}
           accent="#34d399"
           sub={`${status.licenseYear ?? status.billingYear ?? '—'}`}
         />
         <StatTile
-          label="Active"
-          value={status.activeStudents}
+          label="Covered"
+          value={withAccess}
           icon={<Users className="h-4 w-4" style={{ color: '#6366f1' }} />}
           accent="#6366f1"
-          sub="students"
+          sub={`${status.bulkCoveredStudents ?? 0} bulk · ${status.extraCoveredStudents ?? 0} extra`}
         />
         <StatTile
-          label={hasBlockedStudents ? 'No Access' : 'No Access'}
+          label="Uncovered"
           value={withoutAccess}
           icon={hasBlockedStudents
             ? <ShieldAlert className="h-4 w-4" style={{ color: '#f87171' }} />
             : <ShieldCheck className="h-4 w-4" style={{ color: '#34d399' }} />}
           accent={hasBlockedStudents ? '#f87171' : '#34d399'}
-          sub={hasBlockedStudents ? 'students blocked' : 'all active have access'}
+          sub={hasBlockedStudents ? 'need extra licenses' : 'all active covered'}
         />
       </div>
 
@@ -158,17 +165,23 @@ export default function LicenseCoverageWidget({ feesHref = '/admin/fees', classN
       </div>
 
       {/* Footer row */}
-      <div className="flex items-center justify-between text-xs text-slate-500">
-        <div className="flex items-center gap-1.5">
-          <Banknote className="h-3.5 w-3.5" />
-          <span>{(status.requiredAmountPerStudent ?? status.annualPricePerStudent).toLocaleString()} / student/year</span>
+      <div className="rounded-xl border px-3 py-2 text-xs"
+        style={{ borderColor: hasBlockedStudents ? '#f8717130' : 'rgba(255,255,255,0.08)', background: hasBlockedStudents ? '#f8717110' : 'rgba(255,255,255,0.03)' }}>
+        <div className="flex items-center justify-between gap-3 text-slate-500">
+          <div className="flex items-center gap-1.5">
+            <Banknote className="h-3.5 w-3.5" />
+            <span>{(status.requiredAmountPerStudent ?? status.annualPricePerStudent).toLocaleString()} / student/year</span>
+          </div>
+          <span
+            className="px-2 py-0.5 rounded-full text-xs font-medium"
+            style={{ background: onboardingBadge.bg, color: onboardingBadge.color }}
+          >
+            Onboarding: {onboardingBadge.label}
+          </span>
         </div>
-        <span
-          className="px-2 py-0.5 rounded-full text-xs font-medium"
-          style={{ background: onboardingBadge.bg, color: onboardingBadge.color }}
-        >
-          Onboarding: {onboardingBadge.label}
-        </span>
+        <p className="mt-2 text-sm font-medium" style={{ color: hasBlockedStudents ? '#fecaca' : '#cbd5e1' }}>
+          {withoutAccess} student(s) are not covered by the current license. Cost to cover: {(status.extraLicenseCost ?? 0).toLocaleString()}.
+        </p>
       </div>
     </div>
   )

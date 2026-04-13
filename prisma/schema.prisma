@@ -31,6 +31,7 @@ model School {
   expenses                     Expense[]
   fundRequests                 FundRequest[]
   feePayments                  FeePayment[]
+  studentLicenses              StudentLicense[]
   studentLicensePayments       StudentLicensePayment[]
   feeSchedules                 FeeSchedule[]
   messages                     Message[]
@@ -94,6 +95,11 @@ enum BillingPaymentType {
   ONBOARDING
   ANNUAL
   ADJUSTMENT
+}
+
+enum StudentLicenseSource {
+  BULK
+  EXTRA_PAYMENT
 }
 
 model SchoolBillingPayment {
@@ -329,6 +335,7 @@ model Student {
   studentAssessments    StudentAssessment[]
   attendance            Attendance[]
   feePayments           FeePayment[]
+  studentLicenses       StudentLicense[]
   studentLicensePayments StudentLicensePayment[]
   complaints            ParentComplaint[]
   results               Result[]
@@ -785,6 +792,26 @@ model StudentLicensePayment {
   @@index([licenseYear])
   @@index([schoolId, studentId, licenseYear])
   @@map("student_license_payments")
+}
+
+model StudentLicense {
+  id          String               @id @default(uuid())
+  schoolId    String               @map("school_id")
+  studentId   String               @map("student_id")
+  licenseYear Int                  @map("license_year")
+  source      StudentLicenseSource @default(BULK)
+  assignedAt  DateTime             @default(now()) @map("assigned_at")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  school      School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student     Student              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, licenseYear])
+  @@index([schoolId])
+  @@index([studentId])
+  @@index([licenseYear])
+  @@index([schoolId, licenseYear])
+  @@map("student_licenses")
 }
 
 model Expense {

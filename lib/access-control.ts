@@ -1,90 +1,33 @@
 import { prisma } from '@/lib/prisma'
-
-function toDateOnly(value: Date | null | undefined) {
-  if (!value) return null
-  return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()))
-}
-
-function isLicenseActive(startDate: Date | null, endDate: Date | null) {
-  const today = toDateOnly(new Date())
-  const start = toDateOnly(startDate)
-  const end = toDateOnly(endDate)
-
-  if (!today) return false
-  if (start && today < start) return false
-  if (end && today > end) return false
-  return true
-}
+import { getStudentLicenseCoverageSnapshot } from '@/lib/student-licenses'
 
 export async function getSchoolLicenseStatus(schoolId: string) {
-  const [billing, activeStudents] = await Promise.all([
-    prisma.schoolBilling.findUnique({ where: { schoolId } }),
-    prisma.student.findMany({
-      where: { schoolId, status: 'ACTIVE' },
-      select: { id: true },
-    }),
-  ])
-
-  const activeStudentCount = activeStudents.length
-  const licenseYear = billing?.billingYear && billing.billingYear > 0 ? billing.billingYear : new Date().getFullYear()
-  const requiredAmountPerStudent = Number(billing?.annualPricePerStudent ?? 0)
-
-  const licensedStudentCount = billing && isLicenseActive(billing.licenseStartDate, billing.licenseEndDate)
-    ? billing.licensedStudentCount
-    : 0
-
-  const coverageCapacity = Math.min(activeStudentCount, licensedStudentCount)
-  const uncoveredCapacity = Math.max(activeStudentCount - licensedStudentCount, 0)
-
-  const activeStudentIds = activeStudents.map((student) => student.id)
-  const payments = activeStudentIds.length
-    ? await prisma.studentLicensePayment.findMany({
-        where: {
-          schoolId,
-          licenseYear,
-          studentId: { in: activeStudentIds },
-        },
-        select: {
-          studentId: true,
-          amountPaid: true,
-        },
-      })
-    : []
-
-  const paidByStudent = new Map<string, number>()
-  for (const payment of payments) {
-    paidByStudent.set(payment.studentId, (paidByStudent.get(payment.studentId) ?? 0) + Number(payment.amountPaid))
-  }
-
-  const hasAccess = (paidAmount: number) =>
-    requiredAmountPerStudent > 0 ? paidAmount >= requiredAmountPerStudent : paidAmount > 0
-
-  const studentsWithAccess = activeStudentIds.reduce((count, studentId) => {
-    const paidAmount = paidByStudent.get(studentId) ?? 0
-    return hasAccess(paidAmount) ? count + 1 : count
-  }, 0)
-  const studentsWithoutAccess = Math.max(activeStudentCount - studentsWithAccess, 0)
+  const snapshot = await getStudentLicenseCoverageSnapshot(schoolId)
 
   return {
-    configured: Boolean(billing),
-    onboardingFee: billing?.onboardingFee ?? 0,
-    onboardingStatus: billing?.onboardingStatus ?? 'PENDING',
-    annualPricePerStudent: billing?.annualPricePerStudent ?? 0,
-    licensedStudentCount,
-    activeStudents: activeStudentCount,
-    coveredStudents: studentsWithAccess,
-    uncoveredStudents: studentsWithoutAccess,
-    coverageCapacity,
-    uncoveredCapacity,
-    studentsWithAccess,
-    studentsWithoutAccess,
-    requiredAmountPerStudent,
-    licenseYear,
-    billingYear: billing?.billingYear ?? 0,
-    licenseStartDate: billing?.licenseStartDate ?? null,
-    licenseEndDate: billing?.licenseEndDate ?? null,
-    enabledModules: billing?.enabledModules ?? [],
-    notes: billing?.notes ?? null,
+    configured: snapshot.configured,
+    onboardingFee: snapshot.onboardingFee,
+    onboardingStatus: snapshot.onboardingStatus,
+    annualPricePerStudent: snapshot.annualPricePerStudent,
+    licensedStudentCount: snapshot.licensedStudentCount,
+    activeStudents: snapshot.activeStudents,
+    coveredStudents: snapshot.coveredStudents,
+    uncoveredStudents: snapshot.uncoveredStudents,
+    coverageCapacity: snapshot.licensedStudentCount,
+    uncoveredCapacity: Math.max(snapshot.activeStudents - snapshot.licensedStudentCount, 0),
+    studentsWithAccess: snapshot.studentsWithAccess,
+    studentsWithoutAccess: snapshot.studentsWithoutAccess,
+    requiredAmountPerStudent: snapshot.requiredAmountPerStudent,
+    bulkCoveredStudents: snapshot.bulkCoveredStudents,
+    extraCoveredStudents: snapshot.extraCoveredStudents,
+    studentsNeedingExtraLicensePayment: snapshot.studentsNeedingExtraLicensePayment,
+    extraLicenseCost: snapshot.extraLicenseCost,
+    licenseYear: snapshot.licenseYear,
+    billingYear: snapshot.billingYear,
+    licenseStartDate: snapshot.licenseStartDate,
+    licenseEndDate: snapshot.licenseEndDate,
+    enabledModules: snapshot.enabledModules,
+    notes: snapshot.notes,
   }
 }
 
@@ -122,33 +65,12 @@ export async function getStudentFeeAccessStatus(studentId: string) {
     }
   }
 
-  const billing = await prisma.schoolBilling.findUnique({
-    where: { schoolId: student.schoolId },
-    select: {
-      annualPricePerStudent: true,
-      billingYear: true,
-    },
-  })
-
-  const licenseYear = billing?.billingYear && billing.billingYear > 0 ? billing.billingYear : new Date().getFullYear()
-  const requiredAmount = Number(billing?.annualPricePerStudent ?? 0)
-
-  const payments = await prisma.studentLicensePayment.findMany({
-    where: {
-      studentId,
-      schoolId: student.schoolId,
-      licenseYear,
-    },
-    select: {
-      amountPaid: true,
-    },
-  })
-
-  const totalPaid = payments.reduce((sum, payment) => sum + Number(payment.amountPaid), 0)
-  const outstandingBalance = requiredAmount > 0
-    ? Number(Math.max(requiredAmount - totalPaid, 0).toFixed(2))
-    : 0
-  const hasAccess = requiredAmount > 0 ? totalPaid >= requiredAmount : totalPaid > 0
+  const licenseSnapshot = await getStudentLicenseCoverageSnapshot(student.schoolId)
+  const totalPaid = Number((licenseSnapshot.paymentTotalsByStudentId.get(studentId) ?? 0).toFixed(2))
+  const hasAccess = licenseSnapshot.licenseByStudentId.has(studentId)
+  const outstandingBalance = hasAccess
+    ? 0
+    : Number(licenseSnapshot.requiredAmountPerStudent.toFixed(2))
   const unpaidScheduleCount = hasAccess ? 0 : 1
 
   const blocked = !hasAccess
@@ -158,14 +80,15 @@ export async function getStudentFeeAccessStatus(studentId: string) {
     allowed: !blocked,
     blocked,
     reason: blocked
-      ? `Portal access is blocked until the student license payment is completed for ${licenseYear}. Remaining amount: ${outstandingBalance.toFixed(2)}.`
+      ? `Portal access is blocked because no active student license is assigned for ${licenseSnapshot.licenseYear}. Amount required to cover this student: ${outstandingBalance.toFixed(2)}.`
       : null,
     outstandingBalance,
     unpaidScheduleCount,
     studentName,
-    licenseYear,
-    requiredAmount,
-    totalPaid: Number(totalPaid.toFixed(2)),
+    licenseYear: licenseSnapshot.licenseYear,
+    requiredAmount: licenseSnapshot.requiredAmountPerStudent,
+    totalPaid,
+    coverageSource: licenseSnapshot.licenseByStudentId.get(studentId)?.source ?? null,
   }
 }
 
@@ -212,7 +135,7 @@ export async function getParentFeeAccessStatus(parentUserId: string) {
     allowed: !blocked,
     blocked,
     reason: blocked
-      ? `Portal access is blocked because ${unpaidStudents[0].studentName} has not completed the student license payment.`
+      ? `Portal access is blocked because ${unpaidStudents[0].studentName} is not covered by the current student license.`
       : null,
     unpaidStudents,
   }
