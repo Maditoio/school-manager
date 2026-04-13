@@ -38,6 +38,12 @@ async function ensureSystemTemplates() {
   }
 }
 
+function getAllowedSystemTemplateIds() {
+  return SYSTEM_TEMPLATE_SEEDS.map((seed) =>
+    Buffer.from(`system:${seed.name}`).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 36).padEnd(36, '0')
+  )
+}
+
 // GET /api/report-templates — list all available templates for the school
 export async function GET() {
   try {
@@ -52,6 +58,7 @@ export async function GET() {
     }
 
     await ensureSystemTemplates()
+    const allowedSystemTemplateIds = getAllowedSystemTemplateIds()
 
     const schoolId = session.user.schoolId ?? null
 
@@ -65,11 +72,11 @@ export async function GET() {
       activeTemplateId = settings?.activeTemplateId ?? null
     }
 
-    // System templates (visible to all) + this school's custom templates
+    // Official seeded system templates + this school's custom templates
     const templates = await prisma.reportTemplate.findMany({
       where: {
         OR: [
-          { isSystem: true },
+          { id: { in: allowedSystemTemplateIds } },
           ...(schoolId ? [{ schoolId }] : []),
         ],
       },

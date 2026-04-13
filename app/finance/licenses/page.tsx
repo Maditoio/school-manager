@@ -39,7 +39,7 @@ export default function FinanceLicensesPage() {
   const [loading, setLoading] = useState(true)
   const [summary, setSummary] = useState<LicenseSummary | null>(null)
   const [students, setStudents] = useState<StudentCoverage[]>([])
-  const [consequences, setConsequences] = useState<string[]>([])
+  const [licenseDetails, setLicenseDetails] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [coverageFilter, setCoverageFilter] = useState<'all' | 'covered' | 'not_covered'>('all')
   const [currentPage, setCurrentPage] = useState(1)
@@ -69,12 +69,18 @@ export default function FinanceLicensesPage() {
 
         setSummary(data.summary)
         setStudents(Array.isArray(data.students) ? data.students : [])
-        setConsequences(Array.isArray(data.consequences) ? data.consequences : [])
+        setLicenseDetails(
+          Array.isArray(data.licenseDetails)
+            ? data.licenseDetails
+            : Array.isArray(data.consequences)
+              ? data.consequences
+              : [],
+        )
       } catch (error) {
         console.error('Failed to load finance licenses page:', error)
         setSummary(null)
         setStudents([])
-        setConsequences([])
+        setLicenseDetails([])
       } finally {
         setLoading(false)
       }
@@ -175,9 +181,9 @@ export default function FinanceLicensesPage() {
           </div>
         </Card>
 
-        <Card title="Consequences for Not Covered Students">
+        <Card title="License Details">
           <ul className="space-y-2 text-sm ui-text-secondary">
-            {consequences.map((item) => (
+            {licenseDetails.map((item) => (
               <li key={item} className="rounded-[10px] border px-3 py-2" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
                 {item}
               </li>

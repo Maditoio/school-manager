@@ -180,7 +180,7 @@ export default function LicenseCoverageWidget({ feesHref = '/admin/fees', classN
           </span>
         </div>
         <p className="mt-2 text-sm font-medium" style={{ color: hasBlockedStudents ? '#fecaca' : '#cbd5e1' }}>
-          {withoutAccess} student(s) are not covered by the current license. Cost to cover: {(status.extraLicenseCost ?? 0).toLocaleString()}.
+          {withoutAccess} student(s) are currently outside available seat coverage. Estimated additional amount to fully cover all active students: {(status.extraLicenseCost ?? 0).toLocaleString()}.
         </p>
       </div>
     </div>

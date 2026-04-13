@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { SYSTEM_TEMPLATE_SEEDS } from '@/lib/report-template-seeds'
+
+function getAllowedSystemTemplateIds() {
+  return SYSTEM_TEMPLATE_SEEDS.map((seed) =>
+    Buffer.from(`system:${seed.name}`).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 36).padEnd(36, '0')
+  )
+}
 
 // GET /api/report-templates/[id] — fetch a single template (with full HTML/CSS)
 export async function GET(
@@ -20,12 +27,13 @@ export async function GET(
 
     const { id } = await params
     const schoolId = session.user.schoolId ?? null
+    const allowedSystemTemplateIds = getAllowedSystemTemplateIds()
 
     const template = await prisma.reportTemplate.findFirst({
       where: {
         id,
         OR: [
-          { isSystem: true },
+          { id: { in: allowedSystemTemplateIds } },
           ...(schoolId ? [{ schoolId }] : []),
         ],
       },
