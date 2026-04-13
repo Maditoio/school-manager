@@ -498,7 +498,7 @@ export default function Table<T extends RowData = RowData>({
                           ? 'color-mix(in srgb, var(--accent-soft) 85%, transparent)'
                           : striped
                             ? 'color-mix(in srgb, var(--surface-soft) 65%, transparent)'
-                            : 'transparent',
+                            : 'color-mix(in srgb, var(--surface-soft) 35%, transparent)',
                         boxShadow: isSelected
                           ? 'inset 3px 0 0 var(--accent), inset 0 0 12px color-mix(in srgb, var(--accent) 16%, transparent)'
                           : 'none',
@@ -513,7 +513,7 @@ export default function Table<T extends RowData = RowData>({
                         if (!isSelected) {
                           event.currentTarget.style.background = striped
                             ? 'color-mix(in srgb, var(--surface-soft) 65%, transparent)'
-                            : 'transparent'
+                            : 'color-mix(in srgb, var(--surface-soft) 35%, transparent)'
                           event.currentTarget.style.boxShadow = 'none'
                         }
                       }}

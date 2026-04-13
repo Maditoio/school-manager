@@ -8,6 +8,8 @@ import { Card, StatCard } from '@/components/ui/Card'
 import { Select } from '@/components/ui/Form'
 import Table from '@/components/ui/Table'
 import { useCurrency } from '@/lib/currency-context'
+import { useLocale } from '@/lib/locale-context'
+import { translateText } from '@/lib/client-i18n'
 import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
 import { Coins, Wallet, TrendingDown, CheckCircle2 } from 'lucide-react'
 
@@ -41,6 +43,8 @@ const MONTHS: Record<number, string> = {
 export default function TeacherSalaryPage() {
   const { data: session, status } = useSession()
   const { formatCurrency } = useCurrency()
+  const { locale } = useLocale()
+  const t = (text: string) => translateText(text, locale)
   const [loading, setLoading] = useState(true)
   const [records, setRecords] = useState<SalaryRecord[]>([])
   const [filterYear, setFilterYear] = useState<string>('')
@@ -111,45 +115,45 @@ export default function TeacherSalaryPage() {
   const columns = [
     {
       key: 'period',
-      label: 'Period',
+      label: t('Period'),
       renderCell: (r: SalaryRecord) => (
         <span className="font-medium ui-text-primary">{MONTHS[r.month] ?? `Month ${r.month}`} {r.year}</span>
       ),
     },
     {
       key: 'amount',
-      label: 'Expected',
+      label: t('Expected'),
       renderCell: (r: SalaryRecord) => formatCurrency(r.amount),
     },
     {
       key: 'paidAmount',
-      label: 'Actual Paid',
+      label: t('Actual Paid'),
       renderCell: (r: SalaryRecord) => formatCurrency(r.paidAmount ?? 0),
     },
     {
       key: 'outstanding',
-      label: 'Outstanding',
+      label: t('Outstanding'),
       renderCell: (r: SalaryRecord) => formatCurrency(Math.max(r.amount - (r.paidAmount ?? 0), 0)),
     },
     {
       key: 'status',
-      label: 'Status',
+      label: t('Status'),
       renderCell: (r: SalaryRecord) => {
         const paid = r.paidAmount ?? 0
         const outstanding = Math.max(r.amount - paid, 0)
-        if (outstanding <= 0) return <span className="text-emerald-500 font-medium">Paid</span>
-        if (paid > 0) return <span className="text-blue-500 font-medium">Partially Paid</span>
-        return <span className="text-amber-500 font-medium">Pending</span>
+        if (outstanding <= 0) return <span className="text-emerald-500 font-medium">{t('Paid')}</span>
+        if (paid > 0) return <span className="text-blue-500 font-medium">{t('Partially Paid')}</span>
+        return <span className="text-amber-500 font-medium">{t('Pending')}</span>
       },
     },
     {
       key: 'paymentDate',
-      label: 'Payment Date',
+      label: t('Payment Date'),
       renderCell: (r: SalaryRecord) => (r.paymentDate ? new Date(r.paymentDate).toLocaleDateString() : '—'),
     },
     {
       key: 'notes',
-      label: 'Notes',
+      label: t('Notes'),
       renderCell: (r: SalaryRecord) => (
         <span className="text-xs ui-text-secondary">{r.notes || '—'}</span>
       ),
@@ -167,36 +171,36 @@ export default function TeacherSalaryPage() {
     >
       <div className="space-y-5">
         <div>
-          <h1 className="text-2xl font-bold ui-text-primary">My Salary</h1>
-          <p className="mt-1 ui-text-secondary">Track expected salary, payments received, and any remaining unpaid balances.</p>
+          <h1 className="text-2xl font-bold ui-text-primary">{t('My Salary')}</h1>
+          <p className="mt-1 ui-text-secondary">{t('Track expected salary, payments received, and any remaining unpaid balances.')}</p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard title="Expected" value={formatCurrency(totals.expected)} icon={<Coins className="h-4 w-4" />} />
-          <StatCard title="Paid" value={formatCurrency(totals.paid)} icon={<Wallet className="h-4 w-4" />} />
-          <StatCard title="Outstanding" value={formatCurrency(totals.outstanding)} icon={<TrendingDown className="h-4 w-4" />} />
-          <StatCard title="Settled Months" value={totals.settledMonths} icon={<CheckCircle2 className="h-4 w-4" />} />
+          <StatCard title={t('Expected')} value={formatCurrency(totals.expected)} icon={<Coins className="h-4 w-4" />} />
+          <StatCard title={t('Paid')} value={formatCurrency(totals.paid)} icon={<Wallet className="h-4 w-4" />} />
+          <StatCard title={t('Outstanding')} value={formatCurrency(totals.outstanding)} icon={<TrendingDown className="h-4 w-4" />} />
+          <StatCard title={t('Settled Months')} value={totals.settledMonths} icon={<CheckCircle2 className="h-4 w-4" />} />
         </div>
 
-        <Card title="Filters" className="p-4">
+        <Card title={t('Filters')} className="p-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Select label="Year" value={filterYear} onChange={(e) => { setFilterYear(e.target.value); setPage(1) }}>
-              <option value="">All years</option>
+            <Select label={t('Year')} value={filterYear} onChange={(e) => { setFilterYear(e.target.value); setPage(1) }}>
+              <option value="">{t('All years')}</option>
               {availableYears.map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </Select>
-            <Select label="Status" value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value as 'all' | 'paid' | 'partial' | 'pending'); setPage(1) }}>
-              <option value="all">All</option>
-              <option value="paid">Paid</option>
-              <option value="partial">Partially Paid</option>
-              <option value="pending">Pending</option>
+            <Select label={t('Status')} value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value as 'all' | 'paid' | 'partial' | 'pending'); setPage(1) }}>
+              <option value="all">{t('All')}</option>
+              <option value="paid">{t('Paid')}</option>
+              <option value="partial">{t('Partially Paid')}</option>
+              <option value="pending">{t('Pending')}</option>
             </Select>
           </div>
         </Card>
 
         <Table
-          title="Salary History"
+          title={t('Salary History')}
           columns={columns}
           data={paginatedRows}
           loading={loading}
@@ -205,7 +209,7 @@ export default function TeacherSalaryPage() {
           pageSize={pageSize}
           onPageChange={setPage}
           rowKey="id"
-          emptyMessage="No salary records found."
+          emptyMessage={t('No salary records found.')}
         />
       </div>
     </DashboardLayout>

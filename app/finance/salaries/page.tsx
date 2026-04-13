@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Form'
 import { useToast } from '@/components/ui/Toast'
 import { useCurrency } from '@/lib/currency-context'
+import { useLocale } from '@/lib/locale-context'
+import { translateText } from '@/lib/client-i18n'
 import { FINANCE_MANAGER_NAV_ITEMS } from '@/lib/admin-nav'
 
 const MONTHS = [
@@ -71,6 +73,8 @@ export default function TeacherSalariesPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
   const { formatCurrency } = useCurrency()
+  const { locale } = useLocale()
+  const t = useCallback((text: string) => translateText(text, locale), [locale])
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -121,18 +125,18 @@ export default function TeacherSalariesPage() {
       const res = await fetch(`/api/teacher-salaries?${params}`)
       const data = await res.json()
       if (!res.ok) {
-        showToast(data.error || 'Failed to load salaries', 'error')
+        showToast(data.error || t('Failed to load salaries'), 'error')
         return
       }
       setSalaries(Array.isArray(data.salaries) ? data.salaries : [])
       if (Array.isArray(data.teachers) && data.teachers.length > 0) setTeachers(data.teachers)
       if (Array.isArray(data.configs)) setConfigs(data.configs)
     } catch {
-      showToast('Failed to load salaries', 'error')
+      showToast(t('Failed to load salaries'), 'error')
     } finally {
       setLoading(false)
     }
-  }, [filterMonth, filterYear, showToast])
+  }, [filterMonth, filterYear, showToast, t])
 
   useEffect(() => {
     if (session?.user?.role === 'FINANCE_MANAGER') fetchSalaries()
@@ -162,21 +166,21 @@ export default function TeacherSalariesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingId && !formData.teacherId) {
-      showToast('Please select a teacher', 'warning')
+      showToast(t('Please select a teacher'), 'warning')
       return
     }
     if (!formData.amount) {
-      showToast('Please enter an amount', 'warning')
+      showToast(t('Please enter an amount'), 'warning')
       return
     }
     const amount = Number(formData.amount)
     const paidAmount = Number(formData.paidAmount || 0)
     if (!Number.isFinite(paidAmount) || paidAmount < 0) {
-      showToast('Paid amount must be 0 or more', 'warning')
+      showToast(t('Paid amount must be 0 or more'), 'warning')
       return
     }
     if (paidAmount > amount) {
-      showToast('Paid amount cannot be greater than expected amount', 'warning')
+      showToast(t('Paid amount cannot be greater than expected amount'), 'warning')
       return
     }
     try {
@@ -190,14 +194,14 @@ export default function TeacherSalariesPage() {
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = await res.json()
       if (!res.ok) {
-        showToast(data.error || 'Failed to save salary', 'error')
+        showToast(data.error || t('Failed to save salary'), 'error')
         return
       }
-      showToast('Salary record saved', 'success')
+      showToast(t('Salary record saved'), 'success')
       closeForm()
       await fetchSalaries()
     } catch {
-      showToast('Failed to save salary', 'error')
+      showToast(t('Failed to save salary'), 'error')
     } finally {
       setSaving(false)
     }
@@ -214,36 +218,36 @@ export default function TeacherSalariesPage() {
       })
       if (!res.ok) {
         const data = await res.json()
-        showToast(data.error || 'Failed to update status', 'error')
+        showToast(data.error || t('Failed to update status'), 'error')
         return
       }
-      showToast(newStatus === 'PAID' ? 'Marked as paid' : 'Marked as pending', 'success')
+      showToast(newStatus === 'PAID' ? t('Marked as paid') : t('Marked as pending'), 'success')
       await fetchSalaries()
     } catch {
-      showToast('Failed to update status', 'error')
+      showToast(t('Failed to update status'), 'error')
     }
   }
 
   const deleteSalary = async (id: string) => {
-    if (!confirm('Delete this salary record?')) return
+    if (!confirm(t('Delete this salary record?'))) return
     try {
       const res = await fetch(`/api/teacher-salaries/${id}`, { method: 'DELETE' })
       if (!res.ok) {
         const data = await res.json()
-        showToast(data.error || 'Failed to delete', 'error')
+        showToast(data.error || t('Failed to delete'), 'error')
         return
       }
-      showToast('Salary record deleted', 'success')
+      showToast(t('Salary record deleted'), 'success')
       await fetchSalaries()
     } catch {
-      showToast('Failed to delete', 'error')
+      showToast(t('Failed to delete'), 'error')
     }
   }
 
   // ── Generate from base salaries ─────────────────────────────────────────
   const generateMonth = async () => {
     if (configs.length === 0) {
-      showToast('Set base salaries for teachers first', 'warning')
+      showToast(t('Set base salaries for teachers first'), 'warning')
       openBaseModal()
       return
     }
@@ -260,17 +264,17 @@ export default function TeacherSalariesPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        showToast(data.error || 'Failed to generate', 'error')
+        showToast(data.error || t('Failed to generate'), 'error')
         return
       }
       if (data.generated === 0) {
-        showToast(data.message || 'All teachers already have records for this period', 'info')
+        showToast(data.message || t('All teachers already have records for this period'), 'info')
       } else {
         showToast(`Generated ${data.generated} salary record${data.generated !== 1 ? 's' : ''}`, 'success')
         await fetchSalaries()
       }
     } catch {
-      showToast('Failed to generate salaries', 'error')
+      showToast(t('Failed to generate salaries'), 'error')
     } finally {
       setGenerating(false)
     }
@@ -290,7 +294,7 @@ export default function TeacherSalariesPage() {
   const saveBase = async (teacherId: string) => {
     const amount = Number(baseInputs[teacherId])
     if (!amount || amount <= 0) {
-      showToast('Enter a valid monthly amount', 'warning')
+      showToast(t('Enter a valid monthly amount'), 'warning')
       return
     }
     try {
@@ -302,16 +306,16 @@ export default function TeacherSalariesPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        showToast(data.error || 'Failed to save', 'error')
+        showToast(data.error || t('Failed to save'), 'error')
         return
       }
       setConfigs(prev => {
         const next = prev.filter(c => c.teacherId !== teacherId)
         return [...next, { teacherId, baseAmount: amount, notes: null }]
       })
-      showToast('Base salary saved', 'success')
+      showToast(t('Base salary saved'), 'success')
     } catch {
-      showToast('Failed to save', 'error')
+      showToast(t('Failed to save'), 'error')
     } finally {
       setSavingBase(null)
     }
@@ -336,7 +340,7 @@ export default function TeacherSalariesPage() {
     return filterMonth && filterYear ? `${mo} ${filterYear}` : (filterYear ?? 'All')
   })()
 
-  if (status === 'loading' || !session?.user) return <div>Loading…</div>
+  if (status === 'loading' || !session?.user) return <div>{t('Loading…')}</div>
 
   return (
     <DashboardLayout
@@ -351,9 +355,9 @@ export default function TeacherSalariesPage() {
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold ui-text-primary">Teacher Salaries</h1>
+            <h1 className="text-2xl font-bold ui-text-primary">{t('Teacher Salaries')}</h1>
             <p className="mt-1 ui-text-secondary text-sm">
-              Configure base salaries once, then generate records each month in one click.
+              {t('Configure base salaries once, then generate records each month in one click.')}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -361,65 +365,65 @@ export default function TeacherSalariesPage() {
               onClick={openBaseModal}
               className="rounded-lg border ui-border px-3 py-1.5 text-sm font-medium ui-text-primary hover:ui-bg-hover"
             >
-              Base Salaries
+              {t('Base Salaries')}
             </button>
             <button
               onClick={generateMonth}
               disabled={generating}
               className="rounded-lg border ui-border px-3 py-1.5 text-sm font-medium ui-text-primary hover:ui-bg-hover disabled:opacity-50"
             >
-              {generating ? 'Generating…' : `Generate ${periodLabel}`}
+              {generating ? t('Generating…') : `${t('Generate')} ${periodLabel}`}
             </button>
-            <Button onClick={() => setShowForm(true)}>+ Add Salary</Button>
+            <Button onClick={() => setShowForm(true)}>{t('+ Add Salary')}</Button>
           </div>
         </div>
 
         {/* Summary cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Card className="p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide ui-text-secondary">Total This Period</p>
+            <p className="text-xs font-semibold uppercase tracking-wide ui-text-secondary">{t('Total This Period')}</p>
             <p className="mt-1 text-2xl font-bold ui-text-primary">{formatCurrency(totalExpected)}</p>
             <p className="text-xs ui-text-secondary">{salaries.length} record{salaries.length !== 1 ? 's' : ''}</p>
           </Card>
           <Card className="p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-green-600 dark:text-green-400">Actually Paid</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-green-600 dark:text-green-400">{t('Actually Paid')}</p>
             <p className="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(totalActuallyPaid)}</p>
-            <p className="text-xs ui-text-secondary">Includes partial salary payments</p>
+            <p className="text-xs ui-text-secondary">{t('Includes partial salary payments')}</p>
           </Card>
           <Card className="p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">Outstanding</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">{t('Outstanding')}</p>
             <p className="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{formatCurrency(totalOutstanding)}</p>
-            <p className="text-xs ui-text-secondary">Remaining unpaid salary balance</p>
+            <p className="text-xs ui-text-secondary">{t('Remaining unpaid salary balance')}</p>
           </Card>
         </div>
 
         {/* Compact filter row */}
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-37.5">
-            <Select label="Month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}>
-              <option value="">All months</option>
+            <Select label={t('Month')} value={filterMonth} onChange={e => setFilterMonth(e.target.value)}>
+              <option value="">{t('All months')}</option>
               {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
             </Select>
           </div>
           <div className="w-28">
-            <Select label="Year" value={filterYear} onChange={e => setFilterYear(e.target.value)}>
-              <option value="">All years</option>
+            <Select label={t('Year')} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+              <option value="">{t('All years')}</option>
               {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
             </Select>
           </div>
-          <Button onClick={fetchSalaries}>Apply</Button>
+          <Button onClick={fetchSalaries}>{t('Apply')}</Button>
         </div>
 
         {/* Table */}
         <Card className="overflow-hidden p-0">
           {loading ? (
-            <div className="px-6 py-12 text-center ui-text-secondary text-sm">Loading…</div>
+            <div className="px-6 py-12 text-center ui-text-secondary text-sm">{t('Loading…')}</div>
           ) : salaries.length === 0 ? (
             <div className="px-6 py-12 text-center ui-text-secondary text-sm">
-              No salary records for this period.{' '}
+              {t('No salary records for this period.')} {' '}
               {configs.length > 0
-                ? <button onClick={generateMonth} className="underline text-blue-500">Generate from base salaries</button>
-                : <button onClick={openBaseModal} className="underline text-blue-500">Configure base salaries to get started</button>
+                ? <button onClick={generateMonth} className="underline text-blue-500">{t('Generate from base salaries')}</button>
+                : <button onClick={openBaseModal} className="underline text-blue-500">{t('Configure base salaries to get started')}</button>
               }
             </div>
           ) : (
@@ -427,21 +431,29 @@ export default function TeacherSalariesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b ui-border text-xs ui-text-secondary uppercase tracking-wide">
-                    <th className="px-4 py-3 text-left font-medium">Teacher</th>
-                    <th className="px-4 py-3 text-center font-medium">Period</th>
-                    <th className="px-4 py-3 text-center font-medium">Pay Date</th>
-                    <th className="px-4 py-3 text-right font-medium">Expected Amount</th>
-                    <th className="px-4 py-3 text-right font-medium">Actual Paid</th>
-                    <th className="px-4 py-3 text-center font-medium">Status</th>
-                    <th className="px-4 py-3 text-left font-medium">Notes</th>
-                    <th className="px-4 py-3 text-right font-medium">Actions</th>
+                    <th className="px-4 py-3 text-left font-medium">{t('Teacher')}</th>
+                    <th className="px-4 py-3 text-center font-medium">{t('Period')}</th>
+                    <th className="px-4 py-3 text-center font-medium">{t('Pay Date')}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t('Expected Amount')}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t('Actual Paid')}</th>
+                    <th className="px-4 py-3 text-center font-medium">{t('Status')}</th>
+                    <th className="px-4 py-3 text-left font-medium">{t('Notes')}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t('Actions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y ui-border">
-                  {salaries.map(sal => {
+                  {salaries.map((sal, index) => {
                     const monthLabel = MONTHS.find(m => m.value === sal.month)?.label ?? sal.month
                     return (
-                      <tr key={sal.id} className="hover:ui-bg-hover">
+                      <tr
+                        key={sal.id}
+                        className="hover:ui-bg-hover"
+                        style={{
+                          background: index % 2 === 0
+                            ? 'color-mix(in srgb, var(--surface-soft) 35%, transparent)'
+                            : 'color-mix(in srgb, var(--surface-soft) 65%, transparent)',
+                        }}
+                      >
                         <td className="px-4 py-3">
                           <div className="font-medium ui-text-primary">
                             {sal.teacher.firstName} {sal.teacher.lastName}
@@ -476,11 +488,11 @@ export default function TeacherSalariesPage() {
                             return (
                               <>
                                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusClass}`}>
-                                  {isPaid ? 'Paid' : isPartial ? 'Partially Paid' : 'Pending'}
+                                  {isPaid ? t('Paid') : isPartial ? t('Partially Paid') : t('Pending')}
                                 </span>
                                 {remaining > 0 && (
                                   <div className="mt-0.5 text-xs ui-text-secondary">
-                                    Remaining: {formatCurrency(remaining)}
+                                    {t('Remaining:')} {formatCurrency(remaining)}
                                   </div>
                                 )}
                               </>
@@ -488,7 +500,7 @@ export default function TeacherSalariesPage() {
                           })()}
                           {sal.paidAt && (
                             <div className="mt-0.5 text-xs ui-text-secondary">
-                              Fully settled: {new Date(sal.paidAt).toLocaleDateString()}
+                              {t('Fully settled:')} {new Date(sal.paidAt).toLocaleDateString()}
                             </div>
                           )}
                         </td>
@@ -501,19 +513,19 @@ export default function TeacherSalariesPage() {
                               onClick={() => openEdit(sal)}
                               className="text-xs font-medium text-blue-500 hover:underline"
                             >
-                              Edit
+                              {t('Edit')}
                             </button>
                             <button
                               onClick={() => markPaid(sal.id, sal.status)}
                               className={`text-xs font-medium hover:underline ${sal.status === 'PAID' ? 'text-amber-500' : 'text-green-500'}`}
                             >
-                              {sal.status === 'PAID' ? 'Unmark' : 'Mark Paid'}
+                              {sal.status === 'PAID' ? t('Unmark') : t('Mark Paid')}
                             </button>
                             <button
                               onClick={() => deleteSalary(sal.id)}
                               className="text-xs font-medium text-rose-500 hover:underline"
                             >
-                              Delete
+                              {t('Delete')}
                             </button>
                           </div>
                         </td>
@@ -530,16 +542,16 @@ export default function TeacherSalariesPage() {
       {/* ── Add / Edit Salary Modal ───────────────────────────────────────── */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--overlay) p-4">
-          <Card title={editingId ? 'Edit Salary Record' : 'Add Salary Record'} className="w-full max-w-lg p-6">
+          <Card title={editingId ? t('Edit Salary Record') : t('Add Salary Record')} className="w-full max-w-lg p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               {!editingId && (
                 <Select
-                  label="Teacher *"
+                  label={t('Teacher *')}
                   value={formData.teacherId}
                   onChange={e => setFormData(p => ({ ...p, teacherId: e.target.value }))}
                   required
                 >
-                  <option value="">— Select teacher —</option>
+                  <option value="">{t('— Select teacher —')}</option>
                   {teachers.map(t => (
                     <option key={t.id} value={t.id}>
                       {t.firstName} {t.lastName} ({t.email})
@@ -549,7 +561,7 @@ export default function TeacherSalariesPage() {
               )}
 
               <Input
-                label="Amount *"
+                label={t('Amount *')}
                 type="number"
                 min="1"
                 step="0.01"
@@ -560,7 +572,7 @@ export default function TeacherSalariesPage() {
               />
 
               <Input
-                label="Actual Amount Paid"
+                label={t('Actual Amount Paid')}
                 type="number"
                 min="0"
                 step="0.01"
@@ -572,7 +584,7 @@ export default function TeacherSalariesPage() {
               {!editingId && (
                 <div className="grid grid-cols-2 gap-3">
                   <Select
-                    label="Month *"
+                    label={t('Month *')}
                     value={formData.month}
                     onChange={e => setFormData(p => ({ ...p, month: e.target.value }))}
                     required
@@ -580,7 +592,7 @@ export default function TeacherSalariesPage() {
                     {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                   </Select>
                   <Select
-                    label="Year *"
+                    label={t('Year *')}
                     value={formData.year}
                     onChange={e => setFormData(p => ({ ...p, year: e.target.value }))}
                     required
@@ -591,17 +603,17 @@ export default function TeacherSalariesPage() {
               )}
 
               <Input
-                label="Payment Date"
+                label={t('Payment Date')}
                 type="date"
                 value={formData.paymentDate}
                 onChange={e => setFormData(p => ({ ...p, paymentDate: e.target.value }))}
               />
 
               <Input
-                label="Notes"
+                label={t('Notes')}
                 value={formData.notes}
                 onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))}
-                placeholder="Optional notes"
+                placeholder={t('Optional notes')}
               />
 
               <div className="flex gap-3 justify-end pt-2">
@@ -611,9 +623,9 @@ export default function TeacherSalariesPage() {
                   className="bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200"
                   disabled={saving}
                 >
-                  Cancel
+                  {t('Cancel')}
                 </Button>
-                <Button type="submit" isLoading={saving}>Save</Button>
+                <Button type="submit" isLoading={saving}>{t('Save')}</Button>
               </div>
             </form>
           </Card>
@@ -623,39 +635,39 @@ export default function TeacherSalariesPage() {
       {/* ── Base Salary Config Modal ──────────────────────────────────────── */}
       {showBaseModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--overlay) p-4">
-          <Card title="Configure Base Salaries" className="w-full max-w-lg p-6">
+          <Card title={t('Base Salaries')} className="w-full max-w-lg p-6">
             <p className="text-sm ui-text-secondary mb-4">
-              Set the default monthly salary for each teacher. Use &quot;Generate&quot; to auto-create salary records for a month.
+              {t('Set a monthly base salary for each teacher.')}
             </p>
             {teachers.length === 0 ? (
-              <p className="text-sm ui-text-secondary py-4 text-center">No teachers found in this school.</p>
+              <p className="text-sm ui-text-secondary py-4 text-center">{t('No teachers found.')}</p>
             ) : (
               <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-                {teachers.map(t => {
-                  const existing = configs.find(c => c.teacherId === t.id)
+                {teachers.map(teacher => {
+                  const existing = configs.find(c => c.teacherId === teacher.id)
                   return (
-                    <div key={t.id} className="flex items-center gap-3">
+                    <div key={teacher.id} className="flex items-center gap-3">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium ui-text-primary truncate">
-                          {t.firstName} {t.lastName}
+                          {teacher.firstName} {teacher.lastName}
                         </p>
-                        <p className="text-xs ui-text-secondary truncate">{t.email}</p>
+                        <p className="text-xs ui-text-secondary truncate">{teacher.email}</p>
                       </div>
                       <input
                         type="number"
                         min="1"
                         step="0.01"
-                        value={baseInputs[t.id] ?? (existing ? String(existing.baseAmount) : '')}
-                        onChange={e => setBaseInputs(prev => ({ ...prev, [t.id]: e.target.value }))}
-                        placeholder="Amount"
+                        value={baseInputs[teacher.id] ?? (existing ? String(existing.baseAmount) : '')}
+                        onChange={e => setBaseInputs(prev => ({ ...prev, [teacher.id]: e.target.value }))}
+                        placeholder={t('Enter monthly amount')}
                         className="w-32 rounded-lg border ui-border bg-(--bg-input) px-3 py-1.5 text-sm ui-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       <button
-                        onClick={() => saveBase(t.id)}
-                        disabled={savingBase === t.id}
+                        onClick={() => saveBase(teacher.id)}
+                        disabled={savingBase === teacher.id}
                         className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                       >
-                        {savingBase === t.id ? '…' : 'Save'}
+                        {savingBase === teacher.id ? t('Setting…') : t('Save')}
                       </button>
                     </div>
                   )
@@ -667,7 +679,7 @@ export default function TeacherSalariesPage() {
                 onClick={() => setShowBaseModal(false)}
                 className="bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200"
               >
-                Done
+                {t('Done')}
               </Button>
             </div>
           </Card>
