@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
@@ -79,7 +79,7 @@ function PreviewModal({ templateId, onClose }: { templateId: string; onClose: ()
         style={{ width: '860px', maxWidth: '95vw', height: '90vh', display: 'flex', flexDirection: 'column' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 bg-gray-50 shrink-0">
           <span className="text-sm font-semibold text-gray-800">Template Preview</span>
           <button
             onClick={onClose}
@@ -111,7 +111,7 @@ function PreviewModal({ templateId, onClose }: { templateId: string; onClose: ()
           />
         </div>
 
-        <div className="px-5 py-3 border-t border-gray-200 bg-gray-50 flex justify-end flex-shrink-0">
+        <div className="px-5 py-3 border-t border-gray-200 bg-gray-50 flex justify-end shrink-0">
           <Button variant="secondary" size="sm" onClick={onClose}>Close Preview</Button>
         </div>
       </div>
@@ -173,7 +173,7 @@ function TemplateFormModal({
         style={{ width: '760px', maxWidth: '95vw', maxHeight: '90vh' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 bg-gray-50 shrink-0">
           <span className="text-sm font-semibold text-gray-800">
             {isEdit ? 'Edit Template' : 'Upload New Template'}
           </span>
@@ -287,7 +287,7 @@ function TemplateFormModal({
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-gray-200 bg-gray-50 shrink-0">
           <Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
           <Button size="sm" onClick={handleSave} isLoading={saving}>
             {isEdit ? 'Save Changes' : 'Create Template'}
@@ -333,19 +333,19 @@ function TemplateCard({
 
   return (
     <div
-      className={`bg-white rounded-xl border shadow-sm overflow-hidden flex flex-col transition-shadow hover:shadow-md ${
-        template.isActive ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-200'
+      className={`bg-white rounded-xl border-[0.5px] shadow-sm overflow-hidden flex flex-col transition-shadow hover:shadow-md ${
+        template.isActive ? 'border-blue-300' : 'border-gray-200'
       }`}
     >
       {/* Mini visual preview */}
       <div
-        className="h-28 relative flex-shrink-0 overflow-hidden"
+        className="h-28 relative shrink-0 overflow-hidden"
         style={{ background: '#f8fafc' }}
       >
         {/* Simulate a tiny report card */}
         <div className="absolute inset-0 m-3 rounded-lg shadow-sm overflow-hidden" style={{ background: '#fff' }}>
           <div className="h-6 w-full flex items-center px-2 gap-1.5" style={{ background: bg, borderBottom: `2px solid ${acc}` }}>
-            <div className="w-4 h-4 rounded-full border flex-shrink-0" style={{ borderColor: acc, background: 'rgba(255,255,255,.1)' }} />
+            <div className="w-4 h-4 rounded-full border shrink-0" style={{ borderColor: acc, background: 'rgba(255,255,255,.1)' }} />
             <div className="flex flex-col gap-0.5 flex-1">
               <div className="h-1 rounded" style={{ width: '55%', background: 'rgba(255,255,255,.7)' }} />
               <div className="h-0.5 rounded" style={{ width: '35%', background: acc, opacity: .7 }} />
@@ -440,6 +440,10 @@ export default function ReportTemplatesPage() {
   const [editTemplate, setEditTemplate] = useState<(Template & { htmlContent?: string; cssContent?: string }) | null>(null)
   const [activating, setActivating] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const pageSize = 9
 
   if (status === 'loading') return null
   if (!session) redirect('/login')
@@ -479,6 +483,7 @@ export default function ReportTemplatesPage() {
       setTemplates((prev) =>
         prev.map((t) => ({ ...t, isActive: t.id === id })),
       )
+      setCurrentPage(1)
     } catch (err: unknown) {
       showToast((err as Error).message ?? 'Activation failed', 'error')
     } finally {
@@ -519,9 +524,35 @@ export default function ReportTemplatesPage() {
     }
   }, [showToast])
 
-  const activeTemplate = templates.find((t) => t.isActive)
-  const systemTemplates = templates.filter((t) => t.isSystem)
-  const customTemplates = templates.filter((t) => !t.isSystem)
+  const orderedTemplates = useMemo(() => {
+    return [...templates].sort((a, b) => {
+      if (a.isActive !== b.isActive) return a.isActive ? -1 : 1
+      if (a.isSystem !== b.isSystem) return a.isSystem ? -1 : 1
+      if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder
+      return a.name.localeCompare(b.name)
+    })
+  }, [templates])
+
+  const filteredTemplates = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase()
+    if (!query) return orderedTemplates
+    return orderedTemplates.filter((t) => t.name.toLowerCase().includes(query))
+  }, [orderedTemplates, searchTerm])
+
+  const totalPages = Math.max(1, Math.ceil(filteredTemplates.length / pageSize))
+
+  const paginatedTemplates = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return filteredTemplates.slice(start, start + pageSize)
+  }, [filteredTemplates, currentPage, pageSize])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm])
+
+  useEffect(() => {
+    setCurrentPage((prev) => Math.min(prev, totalPages))
+  }, [totalPages])
 
   return (
     <DashboardLayout
@@ -546,33 +577,11 @@ export default function ReportTemplatesPage() {
           </div>
         </div>
 
-        <div className="p-6 space-y-8">
+        <div className="p-6 space-y-6">
 
-          {/* Active template banner */}
-          {activeTemplate && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg px-5 py-4 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-blue-800">Active Template: {activeTemplate.name}</p>
-                <p className="text-xs text-blue-600 mt-0.5">
-                  This template will be used when generating report cards from the Reports page.
-                </p>
-              </div>
-              <div className="ml-auto">
-                <Button size="sm" variant="secondary" onClick={() => setPreviewId(activeTemplate.id)}>
-                  Preview
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {!activeTemplate && !loading && (
+          {!templates.some((t) => t.isActive) && !loading && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-5 py-4 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center shrink-0">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -583,11 +592,32 @@ export default function ReportTemplatesPage() {
             </div>
           )}
 
+          {!loading && (
+            <section className="bg-white rounded-xl border border-gray-200 p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Templates</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Active template appears first. {filteredTemplates.length} result{filteredTemplates.length === 1 ? '' : 's'}.
+                  </p>
+                </div>
+                <div className="w-full sm:w-80">
+                  <input
+                    className="ui-input w-full"
+                    placeholder="Search template by name"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Loading skeleton */}
           {loading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-pulse">
+                <div key={i} className="bg-white rounded-xl border-[0.5px] border-gray-200 shadow-sm overflow-hidden animate-pulse">
                   <div className="h-28 bg-gray-100" />
                   <div className="p-4 space-y-2">
                     <div className="h-4 bg-gray-200 rounded w-2/3" />
@@ -599,53 +629,18 @@ export default function ReportTemplatesPage() {
             </div>
           )}
 
-          {/* System Templates */}
-          {!loading && systemTemplates.length > 0 && (
-            <section>
-              <div className="flex items-center gap-3 mb-4">
-                <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Built-in Templates</h2>
-                <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs font-medium">
-                  {systemTemplates.length}
-                </span>
-                <div className="flex-1 h-px bg-gray-200" />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {systemTemplates.map((tpl) => (
-                  <TemplateCard
-                    key={tpl.id}
-                    template={tpl}
-                    onPreview={setPreviewId}
-                    onActivate={handleActivate}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    activating={activating}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Custom Templates */}
           {!loading && (
             <section>
-              <div className="flex items-center gap-3 mb-4">
-                <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Custom Templates</h2>
-                <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs font-medium">
-                  {customTemplates.length}
-                </span>
-                <div className="flex-1 h-px bg-gray-200" />
-              </div>
-
-              {customTemplates.length === 0 ? (
+              {filteredTemplates.length === 0 ? (
                 <div className="bg-white rounded-xl border border-dashed border-gray-300 p-8 text-center">
                   <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
                     <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">No custom templates yet</p>
+                  <p className="text-sm font-medium text-gray-600 mb-1">No templates found</p>
                   <p className="text-xs text-gray-400 mb-4">
-                    Create a custom template using HTML and CSS with {'{{variable}}'} placeholders.
+                    Try another name in search or create a new custom template.
                   </p>
                   {isAdmin && (
                     <Button size="sm" onClick={() => setShowUploadModal(true)}>
@@ -654,19 +649,47 @@ export default function ReportTemplatesPage() {
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {customTemplates.map((tpl) => (
-                    <TemplateCard
-                      key={tpl.id}
-                      template={tpl}
-                      onPreview={setPreviewId}
-                      onActivate={handleActivate}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                      activating={activating}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {paginatedTemplates.map((tpl) => (
+                      <TemplateCard
+                        key={tpl.id}
+                        template={tpl}
+                        onPreview={setPreviewId}
+                        onActivate={handleActivate}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        activating={activating}
+                      />
+                    ))}
+                  </div>
+
+                  {totalPages > 1 && (
+                    <div className="mt-5 flex items-center justify-between bg-white rounded-xl border border-gray-200 px-4 py-3">
+                      <p className="text-xs text-gray-500">
+                        Page {currentPage} of {totalPages}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </section>
           )}
@@ -676,7 +699,7 @@ export default function ReportTemplatesPage() {
             <section className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                  <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
                     <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
                         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -693,7 +716,7 @@ export default function ReportTemplatesPage() {
                   href="/admin/report-templates/variables"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors flex-shrink-0 ml-4"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors shrink-0 ml-4"
                 >
                   View variable reference
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
