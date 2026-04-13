@@ -30,8 +30,9 @@ const LICENSE_RESTRICTED_NAV_PATHS = [
   '/parent/attendance',
   '/parent/assessments',
   '/parent/results',
-  '/student/communications',
 ]
+
+const STUDENT_FEES_ALLOWED_NAV_PATHS = ['/student/fees']
 
 export function DashboardLayout({ children, user, navItems }: LayoutProps) {
   const router = useRouter()
@@ -224,13 +225,19 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
       }
     }
 
-    const shouldHideRestrictedNav =
-      Boolean(session?.user?.paymentAccessBlocked) &&
-      (session?.user?.role === 'PARENT' || session?.user?.role === 'STUDENT')
+    const isPaymentBlocked = Boolean(session?.user?.paymentAccessBlocked)
+    const isBlockedStudent = isPaymentBlocked && session?.user?.role === 'STUDENT'
+    const isBlockedParent = isPaymentBlocked && session?.user?.role === 'PARENT'
 
-    const filteredNavItems = shouldHideRestrictedNav
-      ? enhancedNavItems.filter((item) => !LICENSE_RESTRICTED_NAV_PATHS.some((path) => item.href.startsWith(path)))
-      : enhancedNavItems
+    let filteredNavItems = enhancedNavItems
+
+    if (isBlockedStudent) {
+      filteredNavItems = enhancedNavItems.filter((item) =>
+        STUDENT_FEES_ALLOWED_NAV_PATHS.some((path) => item.href.startsWith(path))
+      )
+    } else if (isBlockedParent) {
+      filteredNavItems = enhancedNavItems.filter((item) => !LICENSE_RESTRICTED_NAV_PATHS.some((path) => item.href.startsWith(path)))
+    }
 
     return filteredNavItems.map((item) => ({ ...item, label: translateText(item.label, locale) }))
   }, [navItems, locale, session?.user?.role, session?.user?.paymentAccessBlocked, user.role])
