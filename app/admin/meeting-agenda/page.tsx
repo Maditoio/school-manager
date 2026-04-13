@@ -68,6 +68,8 @@ type AgendaData = {
   talkingPoints: AgendaSection[]
 }
 
+type ScreenTab = 'overview' | 'agenda' | 'actions'
+
 const priorityConfig: Record<string, { bg: string; border: string; icon: React.ReactNode; label: string }> = {
   high: {
     bg: 'bg-red-500/10',
@@ -106,6 +108,7 @@ export default function MeetingAgendaPage() {
   const [agenda, setAgenda] = useState<AgendaData | null>(null)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [activeTab, setActiveTab] = useState<ScreenTab>('overview')
 
   useEffect(() => {
     if (status === 'unauthenticated') redirect('/login')
@@ -199,126 +202,185 @@ export default function MeetingAgendaPage() {
 
         {!loading && agenda && (
           <>
-            {/* Summary bar */}
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              {[
-                { label: 'Total Requests', value: agenda.summary.total, color: 'text-slate-300' },
-                { label: 'Pending Review', value: agenda.summary.pending, color: 'text-amber-400' },
-                { label: 'Approved', value: agenda.summary.approved, color: 'text-emerald-400' },
-                { label: 'Total Value', value: formatCurrency(agenda.summary.totalRequested), color: 'text-blue-400' },
-              ].map(({ label, value, color }) => (
-                <div key={label} className="rounded-xl border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
-                  <p className="text-xs uppercase tracking-wide ui-text-secondary">{label}</p>
-                  <p className={`mt-1 text-xl font-bold ${color}`}>{value}</p>
-                </div>
-              ))}
-            </div>
-
-            {agenda.talkingPoints.length === 0 ? (
-              <Card className="p-8 text-center">
-                <Info className="mx-auto mb-3 h-8 w-8 ui-text-secondary" />
-                <p className="ui-text-secondary">No fund requests found for this period. Nothing to report.</p>
-              </Card>
-            ) : (
-              agenda.talkingPoints.map((section, si) => {
-                const cfg = priorityConfig[section.priority] ?? priorityConfig.info
-                return (
-                  <div
-                    key={si}
-                    className={`rounded-xl border p-5 ${cfg.bg} ${cfg.border}`}
+            <Card className="p-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {[
+                  { id: 'overview', label: 'Overview', count: 4 },
+                  { id: 'agenda', label: 'Agenda Items', count: agenda.talkingPoints.length },
+                  { id: 'actions', label: 'Actions', count: agenda.summary.pending },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id as ScreenTab)}
+                    className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+                    style={{
+                      borderColor: activeTab === tab.id ? 'var(--accent)' : 'var(--border-subtle)',
+                      background: activeTab === tab.id ? 'var(--accent-soft)' : 'var(--surface-soft)',
+                      color: 'var(--text-primary)',
+                    }}
                   >
-                    <div className="mb-4 flex items-center gap-2">
-                      {cfg.icon}
-                      <h2 className="font-semibold ui-text-primary">{section.section}</h2>
-                      <span className="ml-auto rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: 'var(--surface-soft)' }}>
-                        {cfg.label}
-                      </span>
+                    <span>{tab.label}</span>
+                    <span className="rounded-full px-2 py-0.5 text-xs" style={{ background: 'var(--surface)' }}>
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </Card>
+
+            {activeTab === 'overview' && (
+              <>
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  {[
+                    { label: 'Total Requests', value: agenda.summary.total, color: 'text-slate-300' },
+                    { label: 'Pending Review', value: agenda.summary.pending, color: 'text-amber-400' },
+                    { label: 'Approved', value: agenda.summary.approved, color: 'text-emerald-400' },
+                    { label: 'Total Value', value: formatCurrency(agenda.summary.totalRequested), color: 'text-blue-400' },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} className="rounded-xl border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
+                      <p className="text-xs uppercase tracking-wide ui-text-secondary">{label}</p>
+                      <p className={`mt-1 text-xl font-bold ${color}`}>{value}</p>
                     </div>
+                  ))}
+                </div>
 
-                    {section.note && (
-                      <p className="mb-3 rounded-lg bg-white/5 px-3 py-2 text-sm ui-text-secondary">
-                        {section.note}
-                      </p>
-                    )}
-
-                    {section.priority === 'info' ? (
-                      <div className="grid gap-2 md:grid-cols-2">
-                        {section.points.map((p, pi) => (
-                          <div
-                            key={pi}
-                            className="flex items-center justify-between rounded-lg px-3 py-2"
-                            style={{ background: 'var(--surface-soft)' }}
-                          >
-                            <span className="text-sm font-medium ui-text-primary">
-                              {categoryLabels[p.category ?? ''] ?? p.category}
-                            </span>
-                            <span className="text-right text-sm">
-                              <span className="ui-text-primary font-semibold">{formatCurrency(p.total ?? 0)}</span>
-                              <span className="ml-2 ui-text-secondary">({p.count} req)</span>
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <ol className="space-y-3">
-                        {section.points.map((p, pi) => (
-                          <li
-                            key={p.id || pi}
-                            className="rounded-xl px-4 py-3"
-                            style={{ background: 'var(--surface-soft)', borderLeft: '3px solid var(--border-subtle)' }}
-                          >
-                            <div className="flex flex-wrap items-start justify-between gap-2">
-                              <div>
-                                <span className="mr-2 text-xs font-bold ui-text-secondary">{pi + 1}.</span>
-                                <span className="font-semibold ui-text-primary">{p.title}</span>
-                                {p.requiresAdminApproval && (
-                                  <span className="ml-2 rounded-full bg-red-500/20 px-2 py-0.5 text-xs text-red-400">
-                                    Needs Admin Approval
-                                  </span>
-                                )}
-                              </div>
-                              {p.amount !== undefined && (
-                                <span className="font-bold ui-text-primary">{formatCurrency(p.amount)}</span>
-                              )}
-                            </div>
-                            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs ui-text-secondary">
-                              {p.requestedBy && (
-                                <span>From: <span className="ui-text-primary">{p.requestedBy}</span></span>
-                              )}
-                              {p.requestedByRole && (
-                                <span>{p.requestedByRole.replace(/_/g, ' ').toLowerCase()}</span>
-                              )}
-                              {p.category && (
-                                <span>Category: <span className="ui-text-primary">{categoryLabels[p.category] ?? p.category}</span></span>
-                              )}
-                              {p.reviewedBy && (
-                                <span>Reviewed by: <span className="ui-text-primary">{p.reviewedBy}</span></span>
-                              )}
-                              {p.date && (
-                                <span>{new Date(p.date).toLocaleDateString()}</span>
-                              )}
-                            </div>
-                            {p.description && (
-                              <p className="mt-1.5 text-sm ui-text-secondary">{p.description}</p>
-                            )}
-                          </li>
-                        ))}
-                      </ol>
-                    )}
-                  </div>
-                )
-              })
+                <Card className="p-4">
+                  <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide ui-text-secondary">Category Breakdown</h2>
+                  {agenda.talkingPoints.find((section) => section.priority === 'info')?.points?.length ? (
+                    <div className="grid gap-2 md:grid-cols-2">
+                      {(agenda.talkingPoints.find((section) => section.priority === 'info')?.points ?? []).map((p, pi) => (
+                        <div
+                          key={pi}
+                          className="flex items-center justify-between rounded-lg px-3 py-2"
+                          style={{ background: 'var(--surface-soft)' }}
+                        >
+                          <span className="text-sm font-medium ui-text-primary">
+                            {categoryLabels[p.category ?? ''] ?? p.category}
+                          </span>
+                          <span className="text-right text-sm">
+                            <span className="ui-text-primary font-semibold">{formatCurrency(p.total ?? 0)}</span>
+                            <span className="ml-2 ui-text-secondary">({p.count} req)</span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm ui-text-secondary">No category breakdown available for this period.</p>
+                  )}
+                </Card>
+              </>
             )}
 
-            {isAdmin && agenda.summary.pending > 0 && (
-              <Card className="p-4 border-l-4 border-amber-500">
-                <p className="font-medium ui-text-primary">
-                  Total pending approval: <span className="text-amber-500">{formatCurrency(agenda.summary.totalPending)}</span> across {agenda.summary.pending} request{agenda.summary.pending !== 1 ? 's' : ''}
-                </p>
-                <p className="mt-1 text-sm ui-text-secondary">
-                  Approve or reject these requests from the Fund Requests page.
-                </p>
-              </Card>
+            {activeTab === 'agenda' && (
+              <>
+                {agenda.talkingPoints.length === 0 ? (
+                  <Card className="p-8 text-center">
+                    <Info className="mx-auto mb-3 h-8 w-8 ui-text-secondary" />
+                    <p className="ui-text-secondary">No fund requests found for this period. Nothing to report.</p>
+                  </Card>
+                ) : (
+                  agenda.talkingPoints
+                    .filter((section) => section.priority !== 'info')
+                    .map((section, si) => {
+                      const cfg = priorityConfig[section.priority] ?? priorityConfig.info
+                      return (
+                        <div
+                          key={si}
+                          className={`rounded-xl border p-5 ${cfg.bg} ${cfg.border}`}
+                        >
+                          <div className="mb-4 flex items-center gap-2">
+                            {cfg.icon}
+                            <h2 className="font-semibold ui-text-primary">{section.section}</h2>
+                            <span className="ml-auto rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: 'var(--surface-soft)' }}>
+                              {cfg.label}
+                            </span>
+                          </div>
+
+                          {section.note && (
+                            <p className="mb-3 rounded-lg bg-white/5 px-3 py-2 text-sm ui-text-secondary">
+                              {section.note}
+                            </p>
+                          )}
+
+                          <ol className="space-y-3">
+                            {section.points.map((p, pi) => (
+                              <li
+                                key={p.id || pi}
+                                className="rounded-xl px-4 py-3"
+                                style={{ background: 'var(--surface-soft)', borderLeft: '3px solid var(--border-subtle)' }}
+                              >
+                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                  <div>
+                                    <span className="mr-2 text-xs font-bold ui-text-secondary">{pi + 1}.</span>
+                                    <span className="font-semibold ui-text-primary">{p.title}</span>
+                                    {p.requiresAdminApproval && (
+                                      <span className="ml-2 rounded-full bg-red-500/20 px-2 py-0.5 text-xs text-red-400">
+                                        Needs Admin Approval
+                                      </span>
+                                    )}
+                                  </div>
+                                  {p.amount !== undefined && (
+                                    <span className="font-bold ui-text-primary">{formatCurrency(p.amount)}</span>
+                                  )}
+                                </div>
+                                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs ui-text-secondary">
+                                  {p.requestedBy && (
+                                    <span>From: <span className="ui-text-primary">{p.requestedBy}</span></span>
+                                  )}
+                                  {p.requestedByRole && (
+                                    <span>{p.requestedByRole.replace(/_/g, ' ').toLowerCase()}</span>
+                                  )}
+                                  {p.category && (
+                                    <span>Category: <span className="ui-text-primary">{categoryLabels[p.category] ?? p.category}</span></span>
+                                  )}
+                                  {p.reviewedBy && (
+                                    <span>Reviewed by: <span className="ui-text-primary">{p.reviewedBy}</span></span>
+                                  )}
+                                  {p.date && (
+                                    <span>{new Date(p.date).toLocaleDateString()}</span>
+                                  )}
+                                </div>
+                                {p.description && (
+                                  <p className="mt-1.5 text-sm ui-text-secondary">{p.description}</p>
+                                )}
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                      )
+                    })
+                )}
+              </>
+            )}
+
+            {activeTab === 'actions' && (
+              <>
+                {isAdmin && agenda.summary.pending > 0 ? (
+                  <Card className="p-4 border-l-4 border-amber-500">
+                    <p className="font-medium ui-text-primary">
+                      Total pending approval: <span className="text-amber-500">{formatCurrency(agenda.summary.totalPending)}</span> across {agenda.summary.pending} request{agenda.summary.pending !== 1 ? 's' : ''}
+                    </p>
+                    <p className="mt-1 text-sm ui-text-secondary">
+                      Approve or reject these requests from the Fund Requests page.
+                    </p>
+                  </Card>
+                ) : (
+                  <Card className="p-8 text-center">
+                    <CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-emerald-400" />
+                    <p className="ui-text-secondary">No pending actions for this period.</p>
+                  </Card>
+                )}
+
+                <Card className="p-4">
+                  <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide ui-text-secondary">Quick Notes</h2>
+                  <ul className="space-y-1.5 text-sm ui-text-secondary">
+                    <li>Use Refresh after approving or rejecting requests to update this agenda.</li>
+                    <li>Use Print / Export PDF for meetings and sharing.</li>
+                    <li>Set a shorter date range to focus on urgent request batches.</li>
+                  </ul>
+                </Card>
+              </>
             )}
           </>
         )}
