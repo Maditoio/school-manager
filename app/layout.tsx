@@ -22,7 +22,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#2563eb",
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f5f6f8' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f1720' },
+  ],
 };
 
 export default async function RootLayout({
@@ -47,7 +50,17 @@ export default async function RootLayout({
             __html: `
               try {
                 const theme = localStorage.getItem('ui-theme') || 'light';
+                const themeColorMap = {
+                  light: '#f5f6f8',
+                  dark: '#0f1720',
+                  calm: '#f5f8f5',
+                };
                 document.documentElement.setAttribute('data-theme', theme);
+                document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
+                const metaTheme = document.querySelector('meta[name="theme-color"]');
+                if (metaTheme) {
+                  metaTheme.setAttribute('content', themeColorMap[theme] || themeColorMap.light);
+                }
                 document.documentElement.classList.add('theme-transition');
               } catch {}
             `,

@@ -108,6 +108,16 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
   }, [locale, session?.user?.role, session?.user?.schoolId])
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
+    document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light'
+    const themeColorMap: Record<string, string> = {
+      light: '#f5f6f8',
+      dark: '#0f1720',
+      calm: '#f5f8f5',
+    }
+    const metaTheme = document.querySelector('meta[name="theme-color"]')
+    if (metaTheme) {
+      metaTheme.setAttribute('content', themeColorMap[theme] ?? themeColorMap.light)
+    }
   }, [theme])
 
   const handleLogout = async () => {
@@ -152,6 +162,16 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
       // ignore storage errors
     }
     document.documentElement.setAttribute('data-theme', nextTheme)
+    document.documentElement.style.colorScheme = nextTheme === 'dark' ? 'dark' : 'light'
+    const themeColorMap: Record<string, string> = {
+      light: '#f5f6f8',
+      dark: '#0f1720',
+      calm: '#f5f8f5',
+    }
+    const metaTheme = document.querySelector('meta[name="theme-color"]')
+    if (metaTheme) {
+      metaTheme.setAttribute('content', themeColorMap[nextTheme] ?? themeColorMap.light)
+    }
   }
 
   const handleThemeToggle = () => {
