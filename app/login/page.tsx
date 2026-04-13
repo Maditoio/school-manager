@@ -26,11 +26,23 @@ export default function LoginPage() {
         redirect: false,
       })
 
-      if (result?.error) {
-        if (result.code === 'account_suspended') {
+      if (!result || result.error || result.ok === false) {
+        const url = result?.url || ''
+        let errorCode = ''
+
+        if (url) {
+          try {
+            const parsed = new URL(url, window.location.origin)
+            errorCode = parsed.searchParams.get('code') || ''
+          } catch {
+            errorCode = ''
+          }
+        }
+
+        if (errorCode === 'account_suspended') {
           setError('Your account has been suspended. Please contact the administrator.')
-        } else if (result.code === 'payment_required') {
-          setError('Access is blocked until the school records license coverage for this student.')
+        } else if (errorCode === 'school_inactive') {
+          setError('Your school account is currently inactive. Please contact the administrator.')
         } else {
           setError('Invalid email or password')
         }

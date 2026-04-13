@@ -75,6 +75,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             OR: [
               { email: { equals: normalizedEmail, mode: 'insensitive' } },
               { username: { equals: normalizedEmail, mode: 'insensitive' } },
+              {
+                linkedStudent: {
+                  is: {
+                    admissionNumber: { equals: normalizedEmail, mode: 'insensitive' },
+                  },
+                },
+              },
             ],
           },
           include: { school: true },
@@ -93,7 +100,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         // Check if school is active (except for super admin)
         if (user.role !== 'SUPER_ADMIN' && user.school && !user.school.active) {
-          return null
+          const err = new CredentialsSignin('school_inactive')
+          err.code = 'school_inactive'
+          throw err
         }
 
         let isPasswordValid = false
