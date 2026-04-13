@@ -76,6 +76,7 @@ export const TEACHER_NAV_ITEMS: NavItem[] = [
   { label: 'Students',     href: '/teacher/students',     icon: '👨‍🎓' },
   { label: 'Assessments',  href: '/teacher/assessments',  icon: '📋' },
   { label: 'Attendance',   href: '/teacher/attendance',   icon: '📅' },
+  { label: 'My Salary',    href: '/teacher/salary',       icon: '💵' },
   { label: 'Off Days',     href: '/teacher/off-days',     icon: '🛌' },
   { label: 'Results',      href: '/teacher/results',      icon: '📝' },
   { label: 'Announcements',href: '/teacher/announcements',icon: '📢' },

@@ -5,23 +5,32 @@ import { prisma } from '@/lib/prisma'
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user || session.user.role !== 'FINANCE_MANAGER') {
+    if (!session?.user || !['FINANCE_MANAGER', 'TEACHER'].includes(session.user.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
     const month = searchParams.get('month') ? Number(searchParams.get('month')) : undefined
     const year = searchParams.get('year') ? Number(searchParams.get('year')) : undefined
-    const teacherId = searchParams.get('teacherId') ?? undefined
+    const teacherIdParam = searchParams.get('teacherId') ?? undefined
     // ?meta=1 skips the salary query and only returns teachers + configs (for initial page load)
     const metaOnly = searchParams.get('meta') === '1'
 
+    const isTeacher = session.user.role === 'TEACHER'
+    const teacherScopeId = isTeacher ? session.user.id : teacherIdParam
+
     const [teachers, configs] = await Promise.all([
-      prisma.user.findMany({
-        where: { schoolId: session.user.schoolId!, role: 'TEACHER' },
-        select: { id: true, firstName: true, lastName: true, email: true },
-        orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
-      }),
+      isTeacher
+        ? prisma.user.findMany({
+            where: { id: session.user.id, schoolId: session.user.schoolId!, role: 'TEACHER' },
+            select: { id: true, firstName: true, lastName: true, email: true },
+            orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+          })
+        : prisma.user.findMany({
+            where: { schoolId: session.user.schoolId!, role: 'TEACHER' },
+            select: { id: true, firstName: true, lastName: true, email: true },
+            orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+          }),
       prisma.teacherSalaryConfig.findMany({
         where: { schoolId: session.user.schoolId! },
         select: { teacherId: true, baseAmount: true, notes: true },
@@ -37,7 +46,7 @@ export async function GET(request: NextRequest) {
         schoolId: session.user.schoolId!,
         ...(month !== undefined && { month }),
         ...(year !== undefined && { year }),
-        ...(teacherId && { teacherId }),
+        ...(teacherScopeId && { teacherId: teacherScopeId }),
       },
       include: {
         teacher: { select: { id: true, firstName: true, lastName: true, email: true } },
@@ -144,6 +153,7 @@ export async function POST(request: NextRequest) {
     // ── Create / update a single salary record ────────────────────────────
     const teacherId = typeof body.teacherId === 'string' ? body.teacherId.trim() : ''
     const amount = Number(body.amount)
+    const paidAmountInput = body.paidAmount !== undefined ? Number(body.paidAmount) : 0
     const month = Number(body.month)
     const year = Number(body.year)
     const notes = typeof body.notes === 'string' ? body.notes.trim() || null : null
@@ -151,6 +161,12 @@ export async function POST(request: NextRequest) {
 
     if (!teacherId || !Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json({ error: 'teacherId and a positive amount are required' }, { status: 400 })
+    }
+    if (!Number.isFinite(paidAmountInput) || paidAmountInput < 0) {
+      return NextResponse.json({ error: 'paidAmount must be a non-negative number' }, { status: 400 })
+    }
+    if (paidAmountInput > amount) {
+      return NextResponse.json({ error: 'paidAmount cannot be greater than salary amount' }, { status: 400 })
     }
     if (!Number.isInteger(month) || month < 1 || month > 12) {
       return NextResponse.json({ error: 'month must be 1–12' }, { status: 400 })
@@ -168,25 +184,31 @@ export async function POST(request: NextRequest) {
     })
     if (!teacher) return NextResponse.json({ error: 'Teacher not found' }, { status: 404 })
 
+    const salaryStatus = paidAmountInput >= amount ? 'PAID' : 'PENDING'
+
     const salary = await prisma.teacherSalary.upsert({
       where: { teacherId_month_year: { teacherId, month, year } },
       create: {
         schoolId: session.user.schoolId!,
         teacherId,
         amount,
+        paidAmount: paidAmountInput,
         month,
         year,
         paymentDate,
+        status: salaryStatus,
+        paidAt: salaryStatus === 'PAID' ? new Date() : null,
         notes,
         recordedBy: session.user.id,
       },
       update: {
         amount,
+        paidAmount: paidAmountInput,
         paymentDate,
         notes,
         recordedBy: session.user.id,
-        status: 'PENDING',
-        paidAt: null,
+        status: salaryStatus,
+        paidAt: salaryStatus === 'PAID' ? new Date() : null,
       },
       include: {
         teacher: { select: { id: true, firstName: true, lastName: true, email: true } },

@@ -248,6 +248,7 @@ model TeacherSalary {
   schoolId    String              @map("school_id")
   teacherId   String              @map("teacher_id")
   amount      Float
+  paidAmount  Float               @default(0) @map("paid_amount")
   month       Int
   year        Int
   paymentDate DateTime?           @map("payment_date") @db.Date

@@ -43,6 +43,7 @@ interface SalaryRecord {
   id: string
   teacherId: string
   amount: number
+  paidAmount: number
   month: number
   year: number
   paymentDate: string | null
@@ -59,6 +60,7 @@ const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i)
 const emptyForm = () => ({
   teacherId: '',
   amount: '',
+  paidAmount: '0',
   month: String(new Date().getMonth() + 1),
   year: String(currentYear),
   paymentDate: '',
@@ -147,6 +149,7 @@ export default function TeacherSalariesPage() {
     setFormData({
       teacherId: sal.teacherId,
       amount: String(sal.amount),
+      paidAmount: String(sal.paidAmount ?? 0),
       month: String(sal.month),
       year: String(sal.year),
       paymentDate: sal.paymentDate ? sal.paymentDate.split('T')[0] : '',
@@ -166,13 +169,23 @@ export default function TeacherSalariesPage() {
       showToast('Please enter an amount', 'warning')
       return
     }
+    const amount = Number(formData.amount)
+    const paidAmount = Number(formData.paidAmount || 0)
+    if (!Number.isFinite(paidAmount) || paidAmount < 0) {
+      showToast('Paid amount must be 0 or more', 'warning')
+      return
+    }
+    if (paidAmount > amount) {
+      showToast('Paid amount cannot be greater than expected amount', 'warning')
+      return
+    }
     try {
       setSaving(true)
       const url = editingId ? `/api/teacher-salaries/${editingId}` : '/api/teacher-salaries'
       const method = editingId ? 'PATCH' : 'POST'
       const body = editingId
-        ? { amount: Number(formData.amount), paymentDate: formData.paymentDate || null, notes: formData.notes || null }
-        : { teacherId: formData.teacherId, amount: Number(formData.amount), month: Number(formData.month), year: Number(formData.year), paymentDate: formData.paymentDate || null, notes: formData.notes || null }
+        ? { amount, paidAmount, paymentDate: formData.paymentDate || null, notes: formData.notes || null }
+        : { teacherId: formData.teacherId, amount, paidAmount, month: Number(formData.month), year: Number(formData.year), paymentDate: formData.paymentDate || null, notes: formData.notes || null }
 
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = await res.json()
@@ -305,12 +318,16 @@ export default function TeacherSalariesPage() {
   }
 
   // ── Totals ──────────────────────────────────────────────────────────────
-  const totalPaid = useMemo(
-    () => salaries.filter(s => s.status === 'PAID').reduce((sum, s) => sum + s.amount, 0),
+  const totalExpected = useMemo(
+    () => salaries.reduce((sum, s) => sum + s.amount, 0),
     [salaries]
   )
-  const totalPending = useMemo(
-    () => salaries.filter(s => s.status === 'PENDING').reduce((sum, s) => sum + s.amount, 0),
+  const totalActuallyPaid = useMemo(
+    () => salaries.reduce((sum, s) => sum + (s.paidAmount ?? 0), 0),
+    [salaries]
+  )
+  const totalOutstanding = useMemo(
+    () => salaries.reduce((sum, s) => sum + Math.max((s.amount ?? 0) - (s.paidAmount ?? 0), 0), 0),
     [salaries]
   )
 
@@ -361,24 +378,24 @@ export default function TeacherSalariesPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Card className="p-4">
             <p className="text-xs font-semibold uppercase tracking-wide ui-text-secondary">Total This Period</p>
-            <p className="mt-1 text-2xl font-bold ui-text-primary">{formatCurrency(totalPaid + totalPending)}</p>
+            <p className="mt-1 text-2xl font-bold ui-text-primary">{formatCurrency(totalExpected)}</p>
             <p className="text-xs ui-text-secondary">{salaries.length} record{salaries.length !== 1 ? 's' : ''}</p>
           </Card>
           <Card className="p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-green-600 dark:text-green-400">Paid</p>
-            <p className="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(totalPaid)}</p>
-            <p className="text-xs ui-text-secondary">{salaries.filter(s => s.status === 'PAID').length} teachers</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-green-600 dark:text-green-400">Actually Paid</p>
+            <p className="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(totalActuallyPaid)}</p>
+            <p className="text-xs ui-text-secondary">Includes partial salary payments</p>
           </Card>
           <Card className="p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">Pending</p>
-            <p className="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{formatCurrency(totalPending)}</p>
-            <p className="text-xs ui-text-secondary">{salaries.filter(s => s.status === 'PENDING').length} teachers</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">Outstanding</p>
+            <p className="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400">{formatCurrency(totalOutstanding)}</p>
+            <p className="text-xs ui-text-secondary">Remaining unpaid salary balance</p>
           </Card>
         </div>
 
         {/* Compact filter row */}
         <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-[150px]">
+          <div className="min-w-37.5">
             <Select label="Month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}>
               <option value="">All months</option>
               {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
@@ -413,7 +430,8 @@ export default function TeacherSalariesPage() {
                     <th className="px-4 py-3 text-left font-medium">Teacher</th>
                     <th className="px-4 py-3 text-center font-medium">Period</th>
                     <th className="px-4 py-3 text-center font-medium">Pay Date</th>
-                    <th className="px-4 py-3 text-right font-medium">Amount</th>
+                    <th className="px-4 py-3 text-right font-medium">Expected Amount</th>
+                    <th className="px-4 py-3 text-right font-medium">Actual Paid</th>
                     <th className="px-4 py-3 text-center font-medium">Status</th>
                     <th className="px-4 py-3 text-left font-medium">Notes</th>
                     <th className="px-4 py-3 text-right font-medium">Actions</th>
@@ -441,21 +459,40 @@ export default function TeacherSalariesPage() {
                         <td className="px-4 py-3 text-right font-semibold ui-text-primary">
                           {formatCurrency(sal.amount)}
                         </td>
+                        <td className="px-4 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">
+                          {formatCurrency(sal.paidAmount ?? 0)}
+                        </td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                            sal.status === 'PAID'
+                          {(() => {
+                            const paidAmount = sal.paidAmount ?? 0
+                            const remaining = Math.max(sal.amount - paidAmount, 0)
+                            const isPaid = remaining <= 0
+                            const isPartial = paidAmount > 0 && remaining > 0
+                            const statusClass = isPaid
                               ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                              : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-                          }`}>
-                            {sal.status === 'PAID' ? 'Paid' : 'Pending'}
-                          </span>
+                              : isPartial
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                            return (
+                              <>
+                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusClass}`}>
+                                  {isPaid ? 'Paid' : isPartial ? 'Partially Paid' : 'Pending'}
+                                </span>
+                                {remaining > 0 && (
+                                  <div className="mt-0.5 text-xs ui-text-secondary">
+                                    Remaining: {formatCurrency(remaining)}
+                                  </div>
+                                )}
+                              </>
+                            )
+                          })()}
                           {sal.paidAt && (
                             <div className="mt-0.5 text-xs ui-text-secondary">
-                              {new Date(sal.paidAt).toLocaleDateString()}
+                              Fully settled: {new Date(sal.paidAt).toLocaleDateString()}
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-3 ui-text-secondary max-w-[160px] truncate" title={sal.notes ?? ''}>
+                        <td className="px-4 py-3 ui-text-secondary max-w-40 truncate" title={sal.notes ?? ''}>
                           {sal.notes || '—'}
                         </td>
                         <td className="px-4 py-3 text-right">
@@ -520,6 +557,16 @@ export default function TeacherSalariesPage() {
                 onChange={e => setFormData(p => ({ ...p, amount: e.target.value }))}
                 placeholder="e.g. 5000"
                 required
+              />
+
+              <Input
+                label="Actual Amount Paid"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.paidAmount}
+                onChange={e => setFormData(p => ({ ...p, paidAmount: e.target.value }))}
+                placeholder="0.00"
               />
 
               {!editingId && (

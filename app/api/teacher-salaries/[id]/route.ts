@@ -17,7 +17,7 @@ export async function PATCH(
 
     const existing = await prisma.teacherSalary.findFirst({
       where: { id, schoolId: session.user.schoolId! },
-      select: { id: true, status: true },
+      select: { id: true, status: true, amount: true, paidAmount: true },
     })
     if (!existing) {
       return NextResponse.json({ error: 'Salary record not found' }, { status: 404 })
@@ -25,11 +25,16 @@ export async function PATCH(
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: Record<string, any> = {}
+    let nextAmount = Number(existing.amount)
+    let nextPaidAmount = Number((existing as unknown as { paidAmount?: number }).paidAmount ?? 0)
 
     if (body.status !== undefined) {
       const status = body.status === 'PAID' ? 'PAID' : 'PENDING'
-      updateData.status = status
-      updateData.paidAt = status === 'PAID' ? new Date() : null
+      if (status === 'PAID') {
+        nextPaidAmount = nextAmount
+      } else if (body.paidAmount === undefined) {
+        nextPaidAmount = 0
+      }
     }
 
     if (body.amount !== undefined) {
@@ -37,8 +42,26 @@ export async function PATCH(
       if (!Number.isFinite(amount) || amount <= 0) {
         return NextResponse.json({ error: 'amount must be a positive number' }, { status: 400 })
       }
+      nextAmount = amount
       updateData.amount = amount
     }
+
+    if (body.paidAmount !== undefined) {
+      const paidAmount = Number(body.paidAmount)
+      if (!Number.isFinite(paidAmount) || paidAmount < 0) {
+        return NextResponse.json({ error: 'paidAmount must be a non-negative number' }, { status: 400 })
+      }
+      nextPaidAmount = paidAmount
+    }
+
+    if (nextPaidAmount > nextAmount) {
+      return NextResponse.json({ error: 'paidAmount cannot be greater than salary amount' }, { status: 400 })
+    }
+
+    updateData.paidAmount = nextPaidAmount
+    const derivedStatus = nextPaidAmount >= nextAmount ? 'PAID' : 'PENDING'
+    updateData.status = derivedStatus
+    updateData.paidAt = derivedStatus === 'PAID' ? new Date() : null
 
     if (body.notes !== undefined) {
       updateData.notes = typeof body.notes === 'string' ? body.notes.trim() || null : null
