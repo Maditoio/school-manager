@@ -20,6 +20,7 @@ interface Assessment {
   dueDate: string | null
   published: boolean
   createdAt: string
+  termIsLocked?: boolean
   subject: {
     id: string
     name: string
@@ -520,7 +521,14 @@ export default function TeacherAssessmentsPage() {
                   {assessments.map((assessment) => (
                     <tr key={assessment.id} style={{ borderColor: 'var(--border-subtle)' }}>
                       <td className="px-4 py-3">
-                        <div className="font-medium ui-text-primary">{assessment.title}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium ui-text-primary">{assessment.title}</span>
+                          {assessment.termIsLocked && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700" title="Term is locked">
+                              🔒 Locked
+                            </span>
+                          )}
+                        </div>
                         {assessment.description && (
                           <div className="text-xs ui-text-secondary mt-0.5 max-w-xs truncate" title={assessment.description}>
                             {assessment.description}
@@ -551,6 +559,8 @@ export default function TeacherAssessmentsPage() {
                             size="sm"
                             variant="primary"
                             onClick={() => router.push(`/teacher/assessments/${assessment.id}/grade`)}
+                            disabled={assessment.termIsLocked}
+                            title={assessment.termIsLocked ? 'Term is locked – grading is not allowed' : undefined}
                           >
                             {t('grade')}
                           </Button>
@@ -558,7 +568,8 @@ export default function TeacherAssessmentsPage() {
                             size="sm"
                             variant={assessment.published ? 'secondary' : 'primary'}
                             onClick={() => handleTogglePublish(assessment)}
-                            disabled={publishLoadingId === assessment.id}
+                            disabled={publishLoadingId === assessment.id || (assessment.termIsLocked && assessment.published)}
+                            title={assessment.termIsLocked && assessment.published ? 'Term is locked – cannot unpublish' : undefined}
                           >
                             {publishLoadingId === assessment.id
                               ? t('saving')
@@ -570,6 +581,8 @@ export default function TeacherAssessmentsPage() {
                             size="sm"
                             variant="danger"
                             onClick={() => handleDelete(assessment.id)}
+                            disabled={assessment.termIsLocked}
+                            title={assessment.termIsLocked ? 'Term is locked – cannot delete assessment' : undefined}
                           >
                             {t('delete')}
                           </Button>

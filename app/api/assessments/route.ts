@@ -68,13 +68,17 @@ export async function GET(request: NextRequest) {
           where: { graded: true },
           select: { id: true },
         },
+        terms: {
+          select: { is_locked: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
-    }) as Array<Record<string, unknown> & { studentAssessments: { id: string }[] }>
+    }) as Array<Record<string, unknown> & { studentAssessments: { id: string }[]; terms: { is_locked: boolean } | null }>
 
-    const assessments = rawAssessments.map(({ studentAssessments: gradedRows, ...a }) => ({
+    const assessments = rawAssessments.map(({ studentAssessments: gradedRows, terms: termRecord, ...a }) => ({
       ...a,
       gradedCount: gradedRows.length,
+      termIsLocked: termRecord?.is_locked ?? false,
     }))
 
     return NextResponse.json({ assessments })

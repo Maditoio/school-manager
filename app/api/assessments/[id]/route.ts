@@ -27,6 +27,9 @@ export async function GET(
       },
       include: {
         subject: true,
+        terms: {
+          select: { is_locked: true },
+        },
         studentAssessments: {
           select: {
             id: true,
@@ -119,6 +122,7 @@ export async function GET(
     return NextResponse.json({
       assessment: {
         ...assessment,
+        termIsLocked: assessment.terms?.is_locked ?? false,
         studentAssessments: enrichedStudentAssessments,
       },
     })

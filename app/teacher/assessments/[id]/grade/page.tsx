@@ -31,6 +31,7 @@ interface Assessment {
   type: string
   totalMarks: number
   dueDate: string | null
+  termIsLocked?: boolean
   subject: {
     id: string
     name: string
@@ -268,6 +269,8 @@ export default function GradeAssessmentPage() {
             size="sm"
             variant="secondary"
             onClick={() => openGradeModal(row.source)}
+            disabled={assessment?.termIsLocked}
+            title={assessment?.termIsLocked ? 'Term is locked – grading is not allowed' : undefined}
           >
             {row.graded ? 'Edit Grade' : 'Add Grade'}
           </Button>
@@ -383,7 +386,16 @@ export default function GradeAssessmentPage() {
           />
         </Card>
 
-        {/* Grading Modal */}
+        {assessment.termIsLocked && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex items-center gap-3">
+            <span className="text-amber-600 text-lg">&#128274;</span>
+            <p className="text-sm text-amber-800 font-medium">
+              This term is locked. Grading, editing, and deleting assessments is not allowed.
+            </p>
+          </div>
+        )}
+
+      {/* Grading Modal */}
         {gradingStudent && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--overlay) p-4">
             <Card className="p-6 w-full max-w-md">
