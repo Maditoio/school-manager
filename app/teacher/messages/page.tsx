@@ -8,6 +8,7 @@ import { Select, TextArea } from '@/components/ui/Form'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
+import { useAlert } from '@/lib/useAlertDialog'
 
 interface Message {
   id: string
@@ -51,6 +52,7 @@ interface StudentSearchResult {
 
 export default function TeacherMessagesPage() {
   const { data: session, status } = useSession()
+  const { showAlert } = useAlert()
   const [messages, setMessages] = useState<Message[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -203,11 +205,11 @@ export default function TeacherMessagesPage() {
     return () => clearTimeout(timeout)
   }, [studentSearch, showModal])
 
-  const selectStudentParent = (student: StudentSearchResult) => {
+  const selectStudentParent = async (student: StudentSearchResult) => {
     const parentId = student.parentId || student.parent?.id || ''
 
     if (!parentId) {
-      alert('Selected student has no linked parent account.')
+      await showAlert({ title: 'No Parent Account', message: 'Selected student has no linked parent account.', variant: 'warning' })
       return
     }
 

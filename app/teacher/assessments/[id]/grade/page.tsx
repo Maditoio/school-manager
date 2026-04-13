@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Form'
 import Table from '@/components/ui/Table'
 import { useSession } from 'next-auth/react'
 import { redirect, useParams, useRouter } from 'next/navigation'
+import { useAlert } from '@/lib/useAlertDialog'
 
 interface Student {
   id: string
@@ -50,6 +51,7 @@ export default function GradeAssessmentPage() {
   const [gradesSearch, setGradesSearch] = useState('')
   const [gradesPage, setGradesPage] = useState(1)
   const [savingGrade, setSavingGrade] = useState(false)
+  const { showAlert } = useAlert()
   
   // Grading form state
   const [gradeForm, setGradeForm] = useState<{
@@ -73,7 +75,7 @@ export default function GradeAssessmentPage() {
 
   const fetchAssessment = useCallback(async () => {
     if (!assessmentId) {
-      alert('Invalid assessment ID')
+      await showAlert({ title: 'Error', message: 'Invalid assessment ID', variant: 'error' })
       router.push('/teacher/assessments')
       return
     }
@@ -84,12 +86,12 @@ export default function GradeAssessmentPage() {
         const data = await res.json()
         setAssessment(data.assessment)
       } else {
-        alert('Failed to load assessment')
+        await showAlert({ title: 'Error', message: 'Failed to load assessment', variant: 'error' })
         router.push('/teacher/assessments')
       }
     } catch (error) {
       console.error('Failed to fetch assessment:', error)
-      alert('Failed to load assessment')
+      await showAlert({ title: 'Error', message: 'Failed to load assessment', variant: 'error' })
       router.push('/teacher/assessments')
     } finally {
       setLoading(false)
@@ -128,13 +130,13 @@ export default function GradeAssessmentPage() {
     }
 
     if (!gradeForm.score) {
-      alert('Please enter a score')
+      await showAlert({ title: 'Missing Score', message: 'Please enter a score', variant: 'warning' })
       return
     }
 
     const score = parseFloat(gradeForm.score)
     if (isNaN(score) || score < 0 || score > (assessment?.totalMarks || 0)) {
-      alert(`Score must be between 0 and ${assessment?.totalMarks}`)
+      await showAlert({ title: 'Invalid Score', message: `Score must be between 0 and ${assessment?.totalMarks}`, variant: 'warning' })
       return
     }
 
@@ -154,11 +156,11 @@ export default function GradeAssessmentPage() {
         fetchAssessment()
       } else {
         const error = await res.json()
-        alert(error.error || 'Failed to save grade')
+        await showAlert({ title: 'Error', message: error.error || 'Failed to save grade', variant: 'error' })
       }
     } catch (error) {
       console.error('Error saving grade:', error)
-      alert('Failed to save grade')
+      await showAlert({ title: 'Error', message: 'Failed to save grade', variant: 'error' })
     } finally {
       setSavingGrade(false)
     }

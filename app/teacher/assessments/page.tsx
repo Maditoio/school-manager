@@ -10,6 +10,7 @@ import { redirect, useRouter } from 'next/navigation'
 import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
 import { translateText } from '@/lib/client-i18n'
 import { useLocale } from '@/lib/locale-context'
+import { useAlert } from '@/lib/useAlertDialog'
 
 interface Assessment {
   id: string
@@ -67,6 +68,7 @@ export default function TeacherAssessmentsPage() {
 
   const { locale } = useLocale()
   const t = useCallback((s: string) => translateText(s, locale), [locale])
+  const { showAlert } = useAlert()
 
   // Form state
   const [formData, setFormData] = useState({
@@ -189,11 +191,11 @@ export default function TeacherAssessmentsPage() {
         await fetchAssessments()
       } else {
         const error = await res.json()
-        alert(error.error || 'Failed to create assessment')
+        await showAlert({ title: 'Error', message: error.error || 'Failed to create assessment', variant: 'error' })
       }
     } catch (error) {
       console.error('Error creating assessment:', error)
-      alert('Failed to create assessment')
+      await showAlert({ title: 'Error', message: 'Failed to create assessment', variant: 'error' })
     } finally {
       setFormLoading(false)
     }
@@ -212,11 +214,11 @@ export default function TeacherAssessmentsPage() {
       if (res.ok) {
         await fetchAssessments()
       } else {
-        alert('Failed to delete assessment')
+        await showAlert({ title: 'Error', message: 'Failed to delete assessment', variant: 'error' })
       }
     } catch (error) {
       console.error('Error deleting assessment:', error)
-      alert('Failed to delete assessment')
+      await showAlert({ title: 'Error', message: 'Failed to delete assessment', variant: 'error' })
     }
   }
 
@@ -241,11 +243,11 @@ export default function TeacherAssessmentsPage() {
         await fetchAssessments()
       } else {
         const error = await res.json().catch(() => ({}))
-        alert(error.error || 'Failed to update publish status')
+        await showAlert({ title: 'Error', message: error.error || 'Failed to update publish status', variant: 'error' })
       }
     } catch (error) {
       console.error('Error updating publish status:', error)
-      alert('Failed to update publish status')
+      await showAlert({ title: 'Error', message: 'Failed to update publish status', variant: 'error' })
     } finally {
       setPublishLoadingId(null)
     }
