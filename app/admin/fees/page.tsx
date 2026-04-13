@@ -66,34 +66,6 @@ type Summary = {
   notPayingCount: number
   collectedAmount: number
   pendingAmount: number
-  studentsWithLicenseAccess?: number
-  studentsWithoutLicenseAccess?: number
-  extraLicenseCost?: number
-}
-
-type LicenseSummary = {
-  configured: boolean
-  onboardingFee: number
-  onboardingStatus: 'PENDING' | 'PAID' | 'WAIVED'
-  annualPricePerStudent: number
-  licensedStudentCount: number
-  bulkLicensedStudentCount?: number
-  activeStudents: number
-  coveredStudents: number
-  uncoveredStudents: number
-  bulkCoveredStudents?: number
-  extraCoveredStudents?: number
-  billingYear: number
-  licenseStartDate: string | null
-  licenseEndDate: string | null
-  enabledModules: string[]
-  notes: string | null
-  studentsWithAccess?: number
-  studentsWithoutAccess?: number
-  studentsNeedingExtraLicensePayment?: number
-  requiredAmountPerStudent?: number
-  extraLicenseCost?: number
-  licenseYear?: number
 }
 
 type StudentStatus = {
@@ -108,11 +80,6 @@ type StudentStatus = {
   balance: number
   status: FeeStatus
   lastPaymentDate: string | null
-  licensePaidAmount: number
-  hasLicenseAccess: boolean
-  licenseCoverageSource: 'BULK' | 'EXTRA_PAYMENT' | null
-  licenseShortfallAmount: number
-  licenseYear: number
 }
 
 type RecentPayment = {
@@ -149,7 +116,6 @@ export default function AdminFeesPage({
     collectedAmount: 0,
     pendingAmount: 0,
   })
-  const [licenseSummary, setLicenseSummary] = useState<LicenseSummary | null>(null)
   const [studentStatuses, setStudentStatuses] = useState<StudentStatus[]>([])
   const [recentPayments, setRecentPayments] = useState<RecentPayment[]>([])
 
@@ -193,11 +159,6 @@ export default function AdminFeesPage({
 
   const isAdmin = session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'DEPUTY_ADMIN'
   const canRecordFeePayment = session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'FINANCE'
-  const canRecordLicensePayment =
-    session?.user?.role === 'SCHOOL_ADMIN' ||
-    session?.user?.role === 'DEPUTY_ADMIN' ||
-    session?.user?.role === 'FINANCE' ||
-    session?.user?.role === 'FINANCE_MANAGER'
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -272,109 +233,6 @@ export default function AdminFeesPage({
     return filteredRecentPayments.slice(start, start + pageSize)
   }, [filteredRecentPayments, recentPaymentsPage])
 
-  const handleRecordStudentLicensePayment = async (student: StudentStatus) => {
-    if (student.hasLicenseAccess) {
-      showToast('This student is already covered by the current license', 'warning')
-      return
-    }
-
-    const defaultAmount = String(
-      Number(student.licenseShortfallAmount || licenseSummary?.requiredAmountPerStudent || licenseSummary?.annualPricePerStudent || 0)
-    )
-    const amountInput = window.prompt(
-      `Record license payment for ${student.studentName}. Enter amount paid:`,
-      defaultAmount
-    )
-
-    if (amountInput === null) return
-    const amountPaid = Number(amountInput)
-    if (!Number.isFinite(amountPaid) || amountPaid <= 0) {
-      showToast('Enter a valid positive amount', 'warning')
-      return
-    }
-
-    const paymentMethodInput = window.prompt('Payment method (CASH, BANK_TRANSFER, M_PESA, ORANGE_MONEY, OTHER):', 'CASH')
-    if (paymentMethodInput === null) return
-    const paymentMethod = paymentMethodInput.trim().toUpperCase() as PaymentMethod
-    if (!['CASH', 'BANK_TRANSFER', 'M_PESA', 'ORANGE_MONEY', 'OTHER'].includes(paymentMethod)) {
-      showToast('Invalid payment method', 'warning')
-      return
-    }
-
-    const res = await fetch('/api/fees', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        action: 'recordStudentLicensePayment',
-        studentId: student.studentId,
-        amountPaid,
-        paymentMethod,
-        paymentDate: new Date().toISOString().slice(0, 10),
-        licenseYear: student.licenseYear,
-      }),
-    })
-
-    const data = await res.json()
-    if (!res.ok) {
-      showToast(data?.error || 'Failed to record student license payment', 'error')
-      return
-    }
-
-    showToast('Student license payment recorded', 'success')
-    await fetchFeesData(selectedPeriodKey)
-  }
-
-  const handleRecordBulkStudentLicensePayment = async () => {
-    const uncoveredStudents = studentStatuses.filter((student) => !student.hasLicenseAccess)
-    if (uncoveredStudents.length === 0) {
-      showToast('All listed students are already covered by the current license', 'warning')
-      return
-    }
-
-    const totalAmount = Number(
-      (licenseSummary?.extraLicenseCost ?? uncoveredStudents.reduce((sum, student) => sum + student.licenseShortfallAmount, 0)).toFixed(2)
-    )
-    const shouldContinue = window.confirm(
-      `Record extra license payment for ${uncoveredStudents.length} student(s)? Total amount: ${formatCurrency(totalAmount)}.`
-    )
-
-    if (!shouldContinue) return
-
-    const paymentMethodInput = window.prompt('Payment method (CASH, BANK_TRANSFER, M_PESA, ORANGE_MONEY, OTHER):', 'CASH')
-    if (paymentMethodInput === null) return
-    const paymentMethod = paymentMethodInput.trim().toUpperCase() as PaymentMethod
-    if (!['CASH', 'BANK_TRANSFER', 'M_PESA', 'ORANGE_MONEY', 'OTHER'].includes(paymentMethod)) {
-      showToast('Invalid payment method', 'warning')
-      return
-    }
-
-    const referenceNumber = window.prompt('Reference number (optional):', '')
-
-    const res = await fetch('/api/fees', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        action: 'recordBulkStudentLicensePayment',
-        studentIds: uncoveredStudents.map((student) => student.studentId),
-        paymentMethod,
-        paymentDate: new Date().toISOString().slice(0, 10),
-        referenceNumber: referenceNumber || undefined,
-        licenseYear: licenseSummary?.licenseYear,
-      }),
-    })
-
-    const data = await res.json()
-    if (!res.ok) {
-      showToast(data?.error || 'Failed to record extra student licenses', 'error')
-      return
-    }
-
-    showToast(`Recorded ${data?.coveredCount ?? uncoveredStudents.length} extra student license(s)`, 'success')
-    await fetchFeesData(selectedPeriodKey)
-  }
-
   const statusColumns = useMemo(
     () => [
       {
@@ -446,56 +304,8 @@ export default function AdminFeesPage({
           return student.status === 'NOT_PAID' ? 'NOT PAID' : student.status
         },
       },
-      {
-        key: 'access',
-        label: 'Portal Access',
-        renderCell: (student: StudentStatus) => {
-          const blocked = !student.hasLicenseAccess
-          return (
-            <div className="flex flex-col">
-              <span className={blocked ? 'text-rose-400' : 'text-emerald-400'}>
-                {blocked ? 'LOCKED' : 'ACTIVE'}
-              </span>
-              {!blocked && student.licenseCoverageSource ? (
-                <span className="text-[11px] ui-text-secondary">
-                  {student.licenseCoverageSource === 'BULK' ? 'Bulk license' : 'Extra paid'}
-                </span>
-              ) : null}
-            </div>
-          )
-        },
-      },
-      {
-        key: 'licensePaidAmount',
-        label: 'License Paid',
-        sortable: true,
-        renderCell: (student: StudentStatus) => formatCurrency(student.licensePaidAmount),
-      },
-      {
-        key: 'licenseAction',
-        label: 'License Coverage',
-        renderCell: (student: StudentStatus) => {
-          if (!canRecordLicensePayment) return <span className="text-xs text-slate-500">—</span>
-          if (student.hasLicenseAccess) {
-            return (
-              <span className="text-xs text-emerald-400">
-                {student.licenseCoverageSource === 'BULK' ? 'Covered by school' : 'Extra paid'}
-              </span>
-            )
-          }
-          return (
-            <button
-              type="button"
-              onClick={() => void handleRecordStudentLicensePayment(student)}
-              className="text-xs text-indigo-300 hover:underline"
-            >
-              Pay {formatCurrency(student.licenseShortfallAmount)}
-            </button>
-          )
-        },
-      },
     ],
-    [canRecordLicensePayment, formatCurrency, handleRecordStudentLicensePayment]
+    [formatCurrency]
   )
 
   const recentColumns = useMemo(
@@ -622,7 +432,6 @@ export default function AdminFeesPage({
             extraLicenseCost: 0,
           }
         )
-        setLicenseSummary(data.licenseSummary || null)
         setStudentStatuses(Array.isArray(data.studentStatuses) ? data.studentStatuses : [])
         setRecentPayments(Array.isArray(data.recentPayments) ? data.recentPayments : [])
         setPendingSchedules(Array.isArray(data.pendingSchedules) ? data.pendingSchedules : [])
@@ -634,8 +443,7 @@ export default function AdminFeesPage({
         const message = error instanceof Error ? error.message : 'Failed to load fees data'
         showToast(message, 'error')
         setPeriods([])
-        setSummary({ studentsCount: 0, payingCount: 0, notPayingCount: 0, collectedAmount: 0, pendingAmount: 0, extraLicenseCost: 0 })
-        setLicenseSummary(null)
+        setSummary({ studentsCount: 0, payingCount: 0, notPayingCount: 0, collectedAmount: 0, pendingAmount: 0 })
         setStudentStatuses([])
         setRecentPayments([])
         setPendingSchedules([])
@@ -954,6 +762,13 @@ export default function AdminFeesPage({
             </p>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
+            <Link
+              href={`${routePrefix}/licenses`}
+              className="ui-button ui-button-secondary inline-flex items-center gap-2"
+            >
+              <Users className="h-4 w-4" />
+              School Licenses
+            </Link>
             {(isAdmin || session?.user?.role === 'FINANCE_MANAGER') && (
             <button
               onClick={() => setShowScheduleModal(true)}
@@ -1489,88 +1304,6 @@ export default function AdminFeesPage({
             icon={<Wallet className="h-4 w-4" />}
           />
         </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            title="Students With Access"
-            value={summary.studentsWithLicenseAccess ?? licenseSummary?.studentsWithAccess ?? 0}
-            icon={<Users className="h-4 w-4" />}
-          />
-          <StatCard
-            title="Students Without Access"
-            value={summary.studentsWithoutLicenseAccess ?? licenseSummary?.studentsWithoutAccess ?? 0}
-            icon={<AlertTriangle className="h-4 w-4" />}
-          />
-          <StatCard
-            title="Cost To Cover"
-            value={formatCurrency(summary.extraLicenseCost ?? licenseSummary?.extraLicenseCost ?? 0)}
-            icon={<Wallet className="h-4 w-4" />}
-          />
-          <StatCard
-            title="License Year"
-            value={licenseSummary?.licenseYear ?? licenseSummary?.billingYear ?? new Date().getFullYear()}
-            icon={<AlertTriangle className="h-4 w-4" />}
-          />
-        </div>
-
-        <Card title="School License Coverage">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div>
-              <p className="ui-text-secondary">Billing year</p>
-              <p className="font-semibold ui-text-primary">{licenseSummary?.billingYear || '-'}</p>
-            </div>
-            <div>
-              <p className="ui-text-secondary">Bulk seats paid by school</p>
-              <p className="font-semibold ui-text-primary">{licenseSummary?.licensedStudentCount ?? 0}</p>
-            </div>
-            <div>
-              <p className="ui-text-secondary">Covered by bulk license</p>
-              <p className="font-semibold ui-text-primary">{licenseSummary?.bulkCoveredStudents ?? 0}</p>
-            </div>
-            <div>
-              <p className="ui-text-secondary">Covered as extra students</p>
-              <p className="font-semibold ui-text-primary">{licenseSummary?.extraCoveredStudents ?? 0}</p>
-            </div>
-            <div>
-              <p className="ui-text-secondary">Students not covered</p>
-              <p className="font-semibold text-rose-400">{licenseSummary?.studentsWithoutAccess ?? 0}</p>
-            </div>
-            <div>
-              <p className="ui-text-secondary">Cost to cover uncovered students</p>
-              <p className="font-semibold ui-text-primary">{formatCurrency(licenseSummary?.extraLicenseCost ?? 0)}</p>
-            </div>
-            <div>
-              <p className="ui-text-secondary">Annual price per student</p>
-              <p className="font-semibold ui-text-primary">{formatCurrency(licenseSummary?.annualPricePerStudent ?? 0)}</p>
-            </div>
-            <div>
-              <p className="ui-text-secondary">Modules</p>
-              <p className="font-semibold ui-text-primary">
-                {licenseSummary?.enabledModules?.length ? licenseSummary.enabledModules.join(', ') : 'No modules configured'}
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[10px] border px-4 py-3"
-            style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
-            <div>
-              <p className="text-sm font-medium ui-text-primary">
-                {licenseSummary?.studentsWithoutAccess ?? 0} student(s) are not covered by the current license.
-              </p>
-              <p className="text-xs ui-text-secondary">
-                Total extra payment required: {formatCurrency(licenseSummary?.extraLicenseCost ?? 0)}
-              </p>
-            </div>
-            {canRecordLicensePayment && (licenseSummary?.studentsWithoutAccess ?? 0) > 0 ? (
-              <button
-                type="button"
-                onClick={() => void handleRecordBulkStudentLicensePayment()}
-                className="ui-button ui-button-primary"
-              >
-                Pay Extra Licenses
-              </button>
-            ) : null}
-          </div>
-        </Card>
 
         <Card title="Pending Collection">
           <div className="text-2xl font-semibold text-rose-500">

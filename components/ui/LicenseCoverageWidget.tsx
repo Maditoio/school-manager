@@ -50,7 +50,7 @@ function Skeleton() {
   )
 }
 
-export default function LicenseCoverageWidget({ feesHref = '/admin/fees', className = '' }: Props) {
+export default function LicenseCoverageWidget({ feesHref = '/admin/licenses', className = '' }: Props) {
   const [status, setStatus] = useState<LicenseStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [todayMs] = useState(() => Date.now())

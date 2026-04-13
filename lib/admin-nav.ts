@@ -31,6 +31,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
 
   // ── Finance ───────────────────────────────────────────────────────
   { label: 'Fees',          href: '/admin/fees' },
+  { label: 'Licenses',      href: '/admin/licenses' },
   { label: 'Expenses',      href: '/admin/expenses' },
   { label: 'Fund Requests', href: '/admin/fund-requests' },
   { label: 'Meeting Agenda',href: '/admin/meeting-agenda' },
