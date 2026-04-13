@@ -172,16 +172,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
       }
 
-      if (typeof token.id === 'string' && (token.role === 'STUDENT' || token.role === 'PARENT')) {
-        const portalAccess = await getPortalAccessState({
-          role: token.role as string,
-          studentId: (token.studentId as string | null) ?? null,
-          userId: token.id,
-        })
-        token.paymentAccessBlocked = portalAccess.blocked
-        token.paymentAccessReason = portalAccess.reason
-      } else {
+      if (token.paymentAccessBlocked === undefined || token.paymentAccessBlocked === null) {
         token.paymentAccessBlocked = false
+      }
+      if (token.paymentAccessReason === undefined) {
         token.paymentAccessReason = null
       }
 
