@@ -24,6 +24,7 @@ model School {
   classAnnouncements           ClassAnnouncement[]
   classSubjectTeachers         ClassSubjectTeacher[]
   classes                      Class[]
+  timetableSlots               TimetableSlot[]
   dashboard_academic_summaries dashboard_academic_summaries[]
   dashboard_aggregation_events dashboard_aggregation_events[]
   deletionRequests             DeletionRequest[]              @relation("DeletionRequests")
@@ -174,6 +175,7 @@ model User {
   reportTemplatesCreated   ReportTemplate[]       @relation("ReportTemplateCreator")
   settings                 UserSettings?
   linkedStudent            Student?               @relation("StudentUser")
+  timetableSlotsTeaching   TimetableSlot[]        @relation("TimetableSlots")
   school                   School?                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([schoolId])
@@ -214,6 +216,7 @@ model Class {
   feeSchedules       FeeSchedule[]       @relation("FeeScheduleClass")
   students           Student[]
   additionalEnrollments StudentAdditionalClass[]
+  timetableSlots     TimetableSlot[]
 
   @@unique([schoolId, name, academicYear])
   @@index([schoolId])
@@ -430,6 +433,7 @@ model Subject {
   assessments      Assessment[]
   classAssignments ClassSubjectTeacher[]
   results          Result[]
+  timetableSlots   TimetableSlot[]
   school           School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([schoolId])
@@ -1000,6 +1004,7 @@ model terms {
   dashboard_academic_summaries dashboard_academic_summaries?
   fee_payments                 FeePayment[]
   results                      Result[]
+  timetableSlots               TimetableSlot[]
   academic_years               academic_years                @relation(fields: [academic_year_id], references: [id], onDelete: Cascade)
   schools                      School                        @relation(fields: [school_id], references: [id], onDelete: Cascade)
 
@@ -1155,4 +1160,31 @@ model ReportTemplate {
   @@index([schoolId])
   @@index([isSystem])
   @@map("report_templates")
+}
+
+model TimetableSlot {
+  id          String   @id @default(uuid())
+  schoolId    String   @map("school_id")
+  classId     String   @map("class_id")
+  subjectId   String   @map("subject_id")
+  teacherId   String   @map("teacher_id")
+  termId      String?  @map("term_id")
+  dayOfWeek   Int      @map("day_of_week")
+  startTime   String   @map("start_time")
+  endTime     String   @map("end_time")
+  room        String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher     User     @relation("TimetableSlots", fields: [teacherId], references: [id])
+  term        terms?   @relation(fields: [termId], references: [id])
+
+  @@unique([classId, dayOfWeek, startTime])
+  @@index([schoolId])
+  @@index([classId])
+  @@index([teacherId])
+  @@index([termId])
+  @@map("timetable_slots")
 }

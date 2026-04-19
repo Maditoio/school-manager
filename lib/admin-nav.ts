@@ -21,6 +21,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: 'Students',          href: '/admin/students',          group: 'Academic' },
   { label: 'Teachers',          href: '/admin/teachers',          group: 'Academic' },
   { label: 'Classes',           href: '/admin/classes',           group: 'Academic' },
+  { label: 'Timetable',         href: '/admin/timetable',         group: 'Academic' },
   { label: 'Subjects',          href: '/admin/subjects',          group: 'Academic' },
   { label: 'Reports',           href: '/admin/reports',           group: 'Academic' },
   { label: 'Report Templates',  href: '/admin/report-templates',  group: 'Academic' },
@@ -76,6 +77,7 @@ export const TEACHER_NAV_ITEMS: NavItem[] = [
   { label: 'Students',     href: '/teacher/students',     icon: '👨‍🎓' },
   { label: 'Assessments',  href: '/teacher/assessments',  icon: '📋' },
   { label: 'Attendance',   href: '/teacher/attendance',   icon: '📅' },
+  { label: 'Timetable',    href: '/teacher/timetable',    icon: '🗓️' },
   { label: 'My Salary',    href: '/teacher/salary',       icon: '💵' },
   { label: 'Off Days',     href: '/teacher/off-days',     icon: '🛌' },
   { label: 'Results',      href: '/teacher/results',      icon: '📝' },
@@ -89,6 +91,7 @@ export const STUDENT_NAV_ITEMS: NavItem[] = [
   { label: 'My Profile',      href: '/student/dashboard',      icon: '👤' },
   { label: 'School Fees',     href: '/student/fees',           icon: '💰' },
   { label: 'Communications',  href: '/student/communications', icon: '📢' },
+  { label: 'Timetable',        href: '/student/timetable',      icon: '🗓️' },
   { label: 'Student Hub',     href: '/student/hub',            icon: '🚀' },
   { label: 'Library',         href: '/student/library',        icon: '📚' },
 ]
