@@ -257,6 +257,7 @@ export async function recomputeAcademicSummaryForTerm(params: { schoolId: string
   ])
 
   const schoolPassMark = schoolSettings?.minimumPassRatePerSubject ?? PASS_MARK_PERCENT
+  const validPercents: number[] = []
   let passCount = 0
   const classAcc = new Map<string, { sum: number; count: number }>()
   const gradeAcc = new Map<string, { sum: number; count: number; passCount: number }>()
