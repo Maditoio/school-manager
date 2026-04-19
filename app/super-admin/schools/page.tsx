@@ -76,6 +76,7 @@ export default function SchoolsPage() {
   const [ledgerPayments, setLedgerPayments] = useState<LedgerPayment[]>([])
   const [ledgerTotalPaid, setLedgerTotalPaid] = useState(0)
   const [ledgerLoading, setLedgerLoading] = useState(false)
+  const [ledgerOnboardingStatus, setLedgerOnboardingStatus] = useState<'PENDING' | 'PAID' | 'WAIVED'>('PENDING')
   const [paymentForm, setPaymentForm] = useState({
     amount: '',
     paymentType: 'ANNUAL',
@@ -281,6 +282,7 @@ export default function SchoolsPage() {
     setLedgerSchool(school)
     setLedgerPayments([])
     setLedgerTotalPaid(0)
+    setLedgerOnboardingStatus(school.schoolBilling?.onboardingStatus ?? 'PENDING')
     setShowLedgerModal(true)
     setLedgerLoading(true)
     setPaymentForm({
@@ -297,6 +299,8 @@ export default function SchoolsPage() {
         const data = await res.json()
         setLedgerPayments(Array.isArray(data.payments) ? data.payments : [])
         setLedgerTotalPaid(Number(data.totalPaid) || 0)
+        // Reflect reconciled status returned from server
+        if (data.onboardingStatus) setLedgerOnboardingStatus(data.onboardingStatus)
       }
     } catch (error) {
       console.error('Failed to fetch billing payments:', error)
@@ -326,6 +330,7 @@ export default function SchoolsPage() {
         const data = await res.json()
         setLedgerPayments((prev) => [data.payment, ...prev])
         setLedgerTotalPaid((prev) => prev + data.payment.amount)
+        if (data.onboardingStatus) setLedgerOnboardingStatus(data.onboardingStatus)
         setPaymentForm({
           amount: '',
           paymentType: 'ANNUAL',
@@ -667,10 +672,10 @@ export default function SchoolsPage() {
                     {(ledgerSchool.schoolBilling?.onboardingFee ?? 0).toLocaleString()}
                   </p>
                   <p className={`text-xs mt-0.5 font-medium ${
-                    ledgerSchool.schoolBilling?.onboardingStatus === 'PAID' ? 'text-green-600' :
-                    ledgerSchool.schoolBilling?.onboardingStatus === 'WAIVED' ? 'text-purple-600' : 'text-amber-600'
+                    ledgerOnboardingStatus === 'PAID' ? 'text-green-600' :
+                    ledgerOnboardingStatus === 'WAIVED' ? 'text-purple-600' : 'text-amber-600'
                   }`}>
-                    {ledgerSchool.schoolBilling?.onboardingStatus ?? 'PENDING'}
+                    {ledgerOnboardingStatus}
                   </p>
                 </div>
                 <div className="bg-green-50 rounded-lg p-3 text-center">

@@ -27,7 +27,7 @@ export async function GET(
 
     const billing = await prisma.schoolBilling.findUnique({
       where: { schoolId: id },
-      select: { id: true },
+      select: { id: true, onboardingFee: true, onboardingStatus: true },
     })
 
     if (!billing) {
@@ -46,7 +46,22 @@ export async function GET(
 
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
 
-    return NextResponse.json({ payments, totalPaid })
+    // Auto-reconcile: if ONBOARDING payments cover the fee but status is still PENDING, fix it
+    let finalOnboardingStatus = billing.onboardingStatus
+    if (billing.onboardingStatus === 'PENDING' && billing.onboardingFee > 0) {
+      const onboardingTotal = payments
+        .filter((p) => p.paymentType === 'ONBOARDING')
+        .reduce((sum, p) => sum + p.amount, 0)
+      if (onboardingTotal >= billing.onboardingFee) {
+        await prisma.schoolBilling.update({
+          where: { id: billing.id },
+          data: { onboardingStatus: 'PAID' },
+        })
+        finalOnboardingStatus = 'PAID'
+      }
+    }
+
+    return NextResponse.json({ payments, totalPaid, onboardingStatus: finalOnboardingStatus })
   } catch (error) {
     console.error('Error fetching billing payments:', error)
     return NextResponse.json({ error: 'Failed to fetch billing payments' }, { status: 500 })
@@ -79,6 +94,13 @@ export async function POST(
       where: { schoolId: id },
       create: { schoolId: id },
       update: {},
+      select: {
+        id: true,
+        onboardingFee: true,
+        onboardingStatus: true,
+        annualPricePerStudent: true,
+        licensedStudentCount: true,
+      },
     })
 
     const payment = await prisma.schoolBillingPayment.create({
@@ -99,7 +121,24 @@ export async function POST(
       },
     })
 
-    return NextResponse.json({ payment }, { status: 201 })
+    // Auto-update onboardingStatus when ONBOARDING payments cover the fee
+    let finalOnboardingStatus = billing.onboardingStatus
+    if (paymentType === 'ONBOARDING' && billing.onboardingStatus === 'PENDING') {
+      const onboardingTotal = await prisma.schoolBillingPayment.aggregate({
+        where: { billingId: billing.id, paymentType: 'ONBOARDING' },
+        _sum: { amount: true },
+      })
+      const totalOnboardingPaid = onboardingTotal._sum.amount ?? 0
+      if (totalOnboardingPaid >= billing.onboardingFee && billing.onboardingFee > 0) {
+        await prisma.schoolBilling.update({
+          where: { id: billing.id },
+          data: { onboardingStatus: 'PAID' },
+        })
+        finalOnboardingStatus = 'PAID'
+      }
+    }
+
+    return NextResponse.json({ payment, onboardingStatus: finalOnboardingStatus }, { status: 201 })
   } catch (error) {
     console.error('Error creating billing payment:', error)
     return NextResponse.json({ error: 'Failed to create billing payment' }, { status: 500 })
