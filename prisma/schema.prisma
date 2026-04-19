@@ -61,6 +61,7 @@ model SchoolSettings {
   minimumPassRatePerSubject Float           @default(50) @map("minimum_pass_rate_per_subject")
   currency                  String          @default("ZAR") @map("currency")
   logoUrl                   String?         @map("logo_url")
+  slogan                    String?         @map("slogan")
   reportTemplate            Int             @default(1) @map("report_template")
   activeTemplateId          String?         @map("active_template_id")
   createdAt                 DateTime        @default(now()) @map("created_at")

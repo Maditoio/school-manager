@@ -100,6 +100,12 @@ export async function PATCH(
             },
           },
         },
+        schoolSettings: {
+          upsert: {
+            create: { slogan: typeof body.slogan === 'string' ? body.slogan.trim() || null : null },
+            update: { slogan: typeof body.slogan === 'string' ? body.slogan.trim() || null : null },
+          },
+        },
       },
       include: {
         schoolBilling: true,

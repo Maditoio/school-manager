@@ -36,6 +36,7 @@ export const createSchoolSchema = z.object({
   licenseEndDate: z.string().optional().or(z.literal('')),
   enabledModules: z.array(z.string().min(1)).optional(),
   billingNotes: z.string().optional(),
+  slogan: z.string().optional(),
 })
 
 export const createStudentSchema = z.object({

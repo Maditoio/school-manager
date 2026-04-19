@@ -26,6 +26,9 @@ interface School {
   suspended: boolean
   suspensionReason?: string
   suspendedAt?: string
+  schoolSettings?: {
+    slogan: string | null
+  } | null
   schoolBilling?: {
     id: string
     onboardingFee: number
@@ -102,6 +105,7 @@ export default function SchoolsPage() {
     licenseEndDate: '',
     enabledModules: '',
     billingNotes: '',
+    slogan: '',
   })
 
   useEffect(() => {
@@ -156,6 +160,7 @@ export default function SchoolsPage() {
             licenseEndDate: formData.licenseEndDate || null,
             enabledModules: formData.enabledModules.split(',').map((item) => item.trim()).filter(Boolean),
             billingNotes: formData.billingNotes,
+            slogan: formData.slogan,
           }),
         })
 
@@ -217,6 +222,7 @@ export default function SchoolsPage() {
       licenseEndDate: school.schoolBilling?.licenseEndDate?.slice(0, 10) ?? '',
       enabledModules: school.schoolBilling?.enabledModules?.join(', ') ?? '',
       billingNotes: school.schoolBilling?.notes ?? '',
+      slogan: school.schoolSettings?.slogan ?? '',
     })
     setShowModal(true)
   }
@@ -386,6 +392,7 @@ export default function SchoolsPage() {
       licenseEndDate: '',
       enabledModules: '',
       billingNotes: '',
+      slogan: '',
     })
     setEditingSchool(null)
   }
@@ -519,6 +526,12 @@ export default function SchoolsPage() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
+                />
+                <Input
+                  label="School Slogan"
+                  value={formData.slogan}
+                  onChange={(e) => setFormData({ ...formData, slogan: e.target.value })}
+                  placeholder="e.g. Excellence · Integrity · Growth"
                 />
                 <Select
                   label={t('school.schools.subscriptionPlan')}

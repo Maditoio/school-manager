@@ -246,7 +246,7 @@ export interface ReportDataInput {
       grade: string | null
       formTeacher: { name: string } | null
     }
-    school: { name: string }
+    school: { name: string; slogan?: string | null }
   }
   term: { name: string; academicYearName: string } | null
   subjects: {
@@ -341,7 +341,8 @@ export function buildReportVariables(data: ReportDataInput): ReportVariables {
 
   return {
     school_name: student.school.name,
-    school_motto: 'Excellence · Integrity · Growth',
+    school_motto: student.school.slogan ?? '',
+
     school_initials: schoolInitials,
     logo_url: logoUrl,
     report_title: reportTitle,

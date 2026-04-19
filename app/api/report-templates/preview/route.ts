@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
           // Fetch school settings for logo
           const settings = await prisma.schoolSettings.findUnique({
             where: { schoolId },
-            select: { logoUrl: true, minimumPassRatePerSubject: true },
+            select: { logoUrl: true, minimumPassRatePerSubject: true, slogan: true },
           })
 
           // Fetch results for the given term or all
@@ -200,7 +200,7 @@ export async function GET(request: NextRequest) {
                     }
                   : null,
               },
-              school: { name: student.school.name },
+              school: { name: student.school.name, slogan: settings?.slogan ?? null },
             },
             term: termInfo,
             subjects: subjectVarInputs,

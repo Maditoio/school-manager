@@ -23,6 +23,9 @@ export async function GET() {
             },
           },
         },
+        schoolSettings: {
+          select: { slogan: true },
+        },
         _count: {
           select: {
             users: true,
@@ -68,6 +71,7 @@ export async function POST(request: NextRequest) {
     const enabledModules = Array.isArray(validation.data.enabledModules)
       ? validation.data.enabledModules.map((item) => item.trim()).filter(Boolean)
       : []
+    const slogan = validation.data.slogan?.trim() || null
 
     // Check if admin email already exists
     const existingUser = await prisma.user.findUnique({
@@ -102,6 +106,11 @@ export async function POST(request: NextRequest) {
             licenseEndDate: validation.data.licenseEndDate ? new Date(validation.data.licenseEndDate) : null,
             enabledModules,
             notes: validation.data.billingNotes?.trim() || null,
+          },
+        },
+        schoolSettings: {
+          create: {
+            slogan,
           },
         },
         users: {
