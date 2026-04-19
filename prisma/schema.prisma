@@ -197,6 +197,7 @@ model Class {
   schoolId           String                @map("school_id")
   name               String
   academicYear       Int                   @map("academic_year")
+  academicYearId     String?               @map("academic_year_id")
   teacherId          String?               @map("teacher_id")
   grade              String?
   createdAt          DateTime              @default(now()) @map("created_at")
@@ -207,6 +208,7 @@ model Class {
   subjectAssignments ClassSubjectTeacher[]
   school             School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   teacher            User?                 @relation("TeacherClasses", fields: [teacherId], references: [id])
+  academicYearRecord academic_years?       @relation(fields: [academicYearId], references: [id])
   classHistoryFrom   StudentClassHistory[] @relation("ClassHistoryFrom")
   classHistoryTo     StudentClassHistory[] @relation("ClassHistoryTo")
   feeSchedules       FeeSchedule[]       @relation("FeeScheduleClass")
@@ -217,6 +219,7 @@ model Class {
   @@index([schoolId])
   @@index([teacherId])
   @@index([academicYear])
+  @@index([academicYearId])
   @@map("classes")
 }
 
@@ -915,6 +918,7 @@ model academic_years {
   updated_at DateTime
   schools    School   @relation(fields: [school_id], references: [id], onDelete: Cascade)
   terms      terms[]
+  classes    Class[]
 
   @@unique([school_id, year])
   @@index([is_current])

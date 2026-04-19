@@ -94,7 +94,18 @@ export async function POST(request: NextRequest) {
       select: { id: true, email: true },
     })
 
+    const academicYears = await prisma.academic_years.findMany({
+      where: {
+        school_id: session.user.schoolId,
+      },
+      select: {
+        id: true,
+        year: true,
+      },
+    })
+
     const teacherByEmail = new Map(teachers.map((t) => [t.email.toLowerCase(), t.id]))
+    const academicYearByYear = new Map(academicYears.map((y) => [y.year, y.id]))
 
     const createdIds: string[] = []
     const errors: Array<{ row: number; error: string }> = []
@@ -111,6 +122,12 @@ export async function POST(request: NextRequest) {
       const academicYear = parseInt(row.academicYear, 10)
       if (isNaN(academicYear)) {
         errors.push({ row: rowNumber, error: 'Academic year must be a valid number' })
+        continue
+      }
+
+      const academicYearId = academicYearByYear.get(academicYear)
+      if (!academicYearId) {
+        errors.push({ row: rowNumber, error: `Academic year ${academicYear} does not exist. Create it first in Terms settings.` })
         continue
       }
 
@@ -140,6 +157,7 @@ export async function POST(request: NextRequest) {
             schoolId: session.user.schoolId,
             name: row.name.trim(),
             academicYear,
+            academicYearId,
             teacherId,
             capacity,
           } as Prisma.ClassUncheckedCreateInput,

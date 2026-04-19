@@ -18,10 +18,18 @@ interface Class {
   id: string
   name: string
   academicYear: number
+  academicYearId: string | null
   teacherId: string | null
   capacity?: number | null
   teacher?: { firstName: string; lastName: string }
   _count?: { students: number }
+}
+
+interface AcademicYear {
+  id: string
+  year: number
+  name: string
+  isCurrent: boolean
 }
 
 interface Teacher {
@@ -36,6 +44,8 @@ export default function ClassesPage() {
 
   const [classes, setClasses] = useState<Class[]>([])
   const [teachers, setTeachers] = useState<Teacher[]>([])
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([])
+  const [defaultAcademicYearId, setDefaultAcademicYearId] = useState('')
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [showBulkModal, setShowBulkModal] = useState(false)
@@ -46,7 +56,7 @@ export default function ClassesPage() {
   const [editingClass, setEditingClass] = useState<Class | null>(null)
   const [formData, setFormData] = useState({
     name: '',
-    academicYear: new Date().getFullYear().toString(),
+    academicYearId: '',
     teacherId: '',
     capacity: '',
   })
@@ -89,8 +99,38 @@ export default function ClassesPage() {
     if (session) {
       fetchClasses()
       fetchTeachers()
+      fetchAcademicYears()
     }
   }, [session])
+
+  const fetchAcademicYears = async () => {
+    try {
+      const res = await fetch('/api/terms')
+      if (!res.ok) {
+        setAcademicYears([])
+        setDefaultAcademicYearId('')
+        return
+      }
+
+      const data = await res.json()
+      const years = Array.isArray(data.academicYears) ? data.academicYears : []
+      setAcademicYears(years)
+
+      const currentYear = years.find((year: AcademicYear) => year.isCurrent)
+      const fallbackYear = years[0]
+      const selectedId = currentYear?.id ?? fallbackYear?.id ?? ''
+      setDefaultAcademicYearId(selectedId)
+
+      setFormData((prev) => ({
+        ...prev,
+        academicYearId: prev.academicYearId || selectedId,
+      }))
+    } catch (error) {
+      console.error('Failed to fetch academic years:', error)
+      setAcademicYears([])
+      setDefaultAcademicYearId('')
+    }
+  }
 
   const fetchClasses = async () => {
     try {
@@ -132,9 +172,14 @@ export default function ClassesPage() {
 
       const payload = {
         name: formData.name,
-        academicYear: formData.academicYear,
+        academicYearId: formData.academicYearId,
         teacherId: formData.teacherId || undefined,
         capacity: formData.capacity || undefined,
+      }
+
+      if (!payload.academicYearId) {
+        showToast(tAdmin('selectAcademicYear', 'Please select an academic year'), 'error')
+        return
       }
 
       const res = await fetch(url, {
@@ -165,10 +210,15 @@ export default function ClassesPage() {
   }
 
   const handleEdit = (cls: Class) => {
+    const resolvedAcademicYearId =
+      cls.academicYearId ||
+      academicYears.find((year) => year.year === cls.academicYear)?.id ||
+      defaultAcademicYearId
+
     setEditingClass(cls)
     setFormData({
       name: cls.name,
-      academicYear: cls.academicYear.toString(),
+      academicYearId: resolvedAcademicYearId,
       teacherId: cls.teacherId || '',
       capacity: cls.capacity ? cls.capacity.toString() : '',
     })
@@ -259,7 +309,7 @@ export default function ClassesPage() {
   const resetForm = () => {
     setFormData({
       name: '',
-      academicYear: new Date().getFullYear().toString(),
+      academicYearId: defaultAcademicYearId,
       teacherId: '',
       capacity: '',
     })
@@ -441,15 +491,19 @@ export default function ClassesPage() {
                   required
                   placeholder={tAdmin('egGrade', 'e.g., Grade 5A')}
                 />
-                <Input
+                <Select
                   label={tAdmin('academicYear', 'Academic Year')}
-                  type="number"
-                  value={formData.academicYear}
-                  onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
+                  value={formData.academicYearId}
+                  onChange={(e) => setFormData({ ...formData, academicYearId: e.target.value })}
                   required
-                  min={new Date().getFullYear() - 5}
-                  max={new Date().getFullYear() + 5}
-                />
+                >
+                  <option value="">{tAdmin('selectAcademicYear', 'Select academic year')}</option>
+                  {academicYears.map((year) => (
+                    <option key={year.id} value={year.id}>
+                      {year.name} ({year.year})
+                    </option>
+                  ))}
+                </Select>
                 <Select
                   label={tAdmin('classTeacher', 'Class Teacher')}
                   value={formData.teacherId}

@@ -56,7 +56,7 @@ export const createStudentSchema = z.object({
 
 export const createClassSchema = z.object({
   name: z.string().min(1, 'Class name is required'),
-  academicYear: z.coerce.number().int().min(2000).max(2100).default(new Date().getFullYear()),
+  academicYearId: z.string().uuid('Invalid academic year').optional(),
   teacherId: z.preprocess(
     (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
     z.string().uuid('Invalid teacher ID').optional()

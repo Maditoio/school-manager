@@ -41,7 +41,7 @@ export async function GET() {
     const instructions = [
       ['Required columns:', 'name, academicYear'],
       ['Optional columns:', 'teacherEmail, capacity (leave blank to assign later)'],
-      ['Academic year:', 'Must be a valid year number (e.g., 2024, 2025)'],
+      ['Academic year:', 'Must match an existing Academic Year in Terms settings (e.g., 2024, 2025)'],
       ['Teacher email:', 'Email must match an existing teacher in the system'],
       ['Teacher not required:', 'You can leave teacherEmail blank and assign later'],
       ['Capacity:', 'If provided, must be between 1 and 500'],

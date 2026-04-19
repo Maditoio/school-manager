@@ -22,6 +22,12 @@ export async function GET(
     const classData = await prisma.class.findUnique({
       where: { id: classId },
       include: {
+        academicYearRecord: {
+          select: {
+            id: true,
+            year: true,
+          },
+        },
         teacher: {
           select: {
             id: true,
@@ -41,7 +47,13 @@ export async function GET(
       return NextResponse.json({ error: 'Class not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ class: classData })
+    const normalizedClass = {
+      ...classData,
+      academicYearId: classData.academicYearRecord?.id ?? classData.academicYearId ?? null,
+      academicYear: classData.academicYearRecord?.year ?? classData.academicYear,
+    }
+
+    return NextResponse.json({ class: normalizedClass })
   } catch (error) {
     console.error('Error fetching class:', error)
     return NextResponse.json(
@@ -85,6 +97,7 @@ export async function PUT(
     const normalizedBody = {
       ...body,
       name: typeof body.name === 'string' ? body.name.trim() : body.name,
+      academicYearId: body.academicYearId,
       teacherId:
         typeof body.teacherId === 'string' && body.teacherId.trim() === ''
           ? undefined
@@ -101,7 +114,26 @@ export async function PUT(
       return NextResponse.json({ error: validation.error.issues }, { status: 400 })
     }
 
-    const { name, academicYear, teacherId, grade, capacity } = validation.data
+    const { name, academicYearId, teacherId, grade, capacity } = validation.data
+
+    if (!academicYearId) {
+      return NextResponse.json({ error: 'Academic year is required' }, { status: 400 })
+    }
+
+    const academicYearRecord = await prisma.academic_years.findFirst({
+      where: {
+        id: academicYearId,
+        school_id: session.user.schoolId,
+      },
+      select: {
+        id: true,
+        year: true,
+      },
+    })
+
+    if (!academicYearRecord) {
+      return NextResponse.json({ error: 'Selected academic year is invalid for this school.' }, { status: 400 })
+    }
 
     if (teacherId) {
       const teacher = await prisma.user.findFirst({
@@ -122,7 +154,8 @@ export async function PUT(
       UPDATE classes
       SET
         name = ${name},
-        academic_year = ${academicYear},
+        academic_year_id = ${academicYearRecord.id},
+        academic_year = ${academicYearRecord.year},
         grade = ${grade ?? null},
         capacity = ${capacity ?? null},
         teacher_id = ${teacherId ?? null},
@@ -134,6 +167,12 @@ export async function PUT(
     const classData = await prisma.class.findUnique({
       where: { id: classId },
       include: {
+        academicYearRecord: {
+          select: {
+            id: true,
+            year: true,
+          },
+        },
         teacher: {
           select: {
             id: true,
@@ -149,7 +188,15 @@ export async function PUT(
       },
     })
 
-    return NextResponse.json({ class: classData })
+    const normalizedClass = classData
+      ? {
+          ...classData,
+          academicYearId: classData.academicYearRecord?.id ?? classData.academicYearId ?? null,
+          academicYear: classData.academicYearRecord?.year ?? classData.academicYear,
+        }
+      : null
+
+    return NextResponse.json({ class: normalizedClass })
   } catch (error) {
     console.error('Error updating class:', error)
     if (error instanceof Prisma.PrismaClientKnownRequestError) {

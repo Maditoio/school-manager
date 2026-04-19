@@ -46,6 +46,12 @@ export async function GET() {
     const classes = await prisma.class.findMany({
       where,
       include: {
+        academicYearRecord: {
+          select: {
+            id: true,
+            year: true,
+          },
+        },
         teacher: {
           select: {
             id: true,
@@ -62,12 +68,18 @@ export async function GET() {
       orderBy: { name: 'asc' },
     })
 
+    const normalizedClasses = classes.map((cls) => ({
+      ...cls,
+      academicYearId: cls.academicYearRecord?.id ?? cls.academicYearId ?? null,
+      academicYear: cls.academicYearRecord?.year ?? cls.academicYear,
+    }))
+
     // For teachers, enrich with the subjects they teach in each class
-    if (session.user.role === 'TEACHER' && classes.length > 0) {
+    if (session.user.role === 'TEACHER' && normalizedClasses.length > 0) {
       const assignments = await prisma.classSubjectTeacher.findMany({
         where: {
           teacherId: session.user.id,
-          classId: { in: classes.map((c) => c.id) },
+          classId: { in: normalizedClasses.map((c) => c.id) },
           ...(session.user.schoolId ? { schoolId: session.user.schoolId } : {}),
         },
         include: {
@@ -82,11 +94,11 @@ export async function GET() {
         subjectMap.get(a.classId)!.push(a.subject)
       }
 
-      const enrichedClasses = classes.map((c) => ({ ...c, subjects: subjectMap.get(c.id) ?? [] }))
+      const enrichedClasses = normalizedClasses.map((c) => ({ ...c, subjects: subjectMap.get(c.id) ?? [] }))
       return NextResponse.json({ classes: enrichedClasses })
     }
 
-    return NextResponse.json({ classes })
+    return NextResponse.json({ classes: normalizedClasses })
   } catch (error) {
     console.error('Error fetching classes:', error)
     return NextResponse.json(
@@ -109,7 +121,7 @@ export async function POST(request: NextRequest) {
     const normalizedBody = {
       ...body,
       name: typeof body.name === 'string' ? body.name.trim() : body.name,
-      academicYear: body.academicYear,
+      academicYearId: body.academicYearId,
       teacherId:
         typeof body.teacherId === 'string' && body.teacherId.trim() === ''
           ? undefined
@@ -128,7 +140,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, academicYear, teacherId, grade, capacity } = validation.data
+    const { name, academicYearId, teacherId, grade, capacity } = validation.data
 
     if (!session.user.schoolId) {
       return NextResponse.json(
@@ -137,35 +149,55 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!academicYearId) {
+      return NextResponse.json(
+        { error: 'Academic year is required' },
+        { status: 400 }
+      )
+    }
+
+    const academicYearRecord = await prisma.academic_years.findFirst({
+      where: {
+        id: academicYearId,
+        school_id: session.user.schoolId,
+      },
+      select: {
+        id: true,
+        year: true,
+      },
+    })
+
+    if (!academicYearRecord) {
+      return NextResponse.json(
+        { error: 'Selected academic year is invalid for this school.' },
+        { status: 400 }
+      )
+    }
+
     const classId = randomUUID()
 
-    await prisma.$executeRaw`
-      INSERT INTO classes (
-        id,
-        school_id,
+    await prisma.class.create({
+      data: {
+        id: classId,
+        schoolId: session.user.schoolId,
         name,
-        academic_year,
-        teacher_id,
-        grade,
-        capacity,
-        created_at,
-        updated_at
-      ) VALUES (
-        ${classId},
-        ${session.user.schoolId},
-        ${name},
-        ${academicYear},
-        ${teacherId ?? null},
-        ${grade ?? null},
-        ${capacity ?? null},
-        NOW(),
-        NOW()
-      )
-    `
+        academicYear: academicYearRecord.year,
+        academicYearId: academicYearRecord.id,
+        teacherId: teacherId ?? null,
+        grade: grade ?? null,
+        capacity: capacity ?? null,
+      },
+    })
 
     const classData = await prisma.class.findUnique({
       where: { id: classId },
       include: {
+        academicYearRecord: {
+          select: {
+            id: true,
+            year: true,
+          },
+        },
         teacher: {
           select: {
             firstName: true,
@@ -175,7 +207,15 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({ class: classData }, { status: 201 })
+    const normalizedClassData = classData
+      ? {
+          ...classData,
+          academicYearId: classData.academicYearRecord?.id ?? classData.academicYearId ?? null,
+          academicYear: classData.academicYearRecord?.year ?? classData.academicYear,
+        }
+      : null
+
+    return NextResponse.json({ class: normalizedClassData }, { status: 201 })
   } catch (error) {
     console.error('Error creating class:', error)
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
