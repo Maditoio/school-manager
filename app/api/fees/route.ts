@@ -458,6 +458,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Fetch fee adjustments for this period's schedules
+    const adjustmentsByStudent = new Map<string, number>()
+    if (periodScheduleIds.length > 0) {
+      const adjustments = await prisma.feeAdjustment.findMany({
+        where: { schoolId, scheduleId: { in: periodScheduleIds } },
+        select: { studentId: true, amount: true },
+      })
+      for (const adj of adjustments) {
+        adjustmentsByStudent.set(adj.studentId, (adjustmentsByStudent.get(adj.studentId) ?? 0) + adj.amount)
+      }
+    }
+
     // Schedule lookup maps for per-student fee resolution
     const schoolWideSchedule = periodSchedules.find((s) => s.classId === null) ?? null
     const classScheduleMap = new Map(
@@ -473,13 +485,15 @@ export async function GET(request: NextRequest) {
       const classSchedule = student.classId ? (classScheduleMap.get(student.classId) ?? null) : null
       const applicableSchedule = classSchedule ?? schoolWideSchedule
 
-      const amountDue = applicableSchedule?.amountDue ?? 0
+      const baseAmountDue = applicableSchedule?.amountDue ?? 0
+      const adjustmentAmount = adjustmentsByStudent.get(student.id) ?? 0
+      const amountDue = Number(Math.max(0, baseAmountDue + adjustmentAmount).toFixed(2))
       const scheduleId = applicableSchedule?.id ?? null
       const studentPayments = paidByStudent.get(student.id)
       const totalPaid = studentPayments?.totalPaid ?? 0
       const balance = Number((amountDue - totalPaid).toFixed(2))
       const status =
-        amountDue === 0
+        baseAmountDue === 0
           ? 'NO_SCHEDULE'
           : balance <= 0
           ? 'PAID'
@@ -499,6 +513,7 @@ export async function GET(request: NextRequest) {
         classId: student.classId,
         scheduleId,
         amountDue,
+        adjustmentAmount,
         totalPaid,
         balance,
         status,
@@ -1012,6 +1027,53 @@ export async function POST(request: NextRequest) {
         },
         { status: 201 }
       )
+    }
+
+    // adjustFee — SCHOOL_ADMIN and DEPUTY_ADMIN only
+    if (action === 'adjustFee') {
+      if (!hasRole(role, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN'])) {
+        return NextResponse.json({ error: 'Only admins can adjust individual student fees' }, { status: 403 })
+      }
+
+      const { scheduleId, studentId, amount, reason } = body
+
+      if (!scheduleId || typeof scheduleId !== 'string') {
+        return NextResponse.json({ error: 'scheduleId is required' }, { status: 400 })
+      }
+      if (!studentId || typeof studentId !== 'string') {
+        return NextResponse.json({ error: 'studentId is required' }, { status: 400 })
+      }
+      if (typeof amount !== 'number' || isNaN(amount)) {
+        return NextResponse.json({ error: 'amount must be a number' }, { status: 400 })
+      }
+
+      // Verify schedule belongs to school
+      const schedule = await prisma.feeSchedule.findUnique({ where: { id: scheduleId } })
+      if (!schedule || schedule.schoolId !== schoolId) {
+        return NextResponse.json({ error: 'Fee schedule not found' }, { status: 404 })
+      }
+      if (schedule.status !== 'APPROVED') {
+        return NextResponse.json({ error: 'Schedule must be approved before adjusting' }, { status: 409 })
+      }
+
+      // Verify student belongs to school
+      const student = await prisma.student.findUnique({ where: { id: studentId } })
+      if (!student || student.schoolId !== schoolId) {
+        return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+      }
+
+      const adjustment = await prisma.feeAdjustment.create({
+        data: {
+          schoolId,
+          scheduleId,
+          studentId,
+          amount,
+          reason: reason?.trim() || null,
+          createdBy: userId,
+        },
+      })
+
+      return NextResponse.json({ adjustment }, { status: 201 })
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })

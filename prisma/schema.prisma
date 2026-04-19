@@ -32,6 +32,7 @@ model School {
   expenses                     Expense[]
   fundRequests                 FundRequest[]
   feePayments                  FeePayment[]
+  feeAdjustments               FeeAdjustment[]
   studentLicenses              StudentLicense[]
   studentLicensePayments       StudentLicensePayment[]
   feeSchedules                 FeeSchedule[]
@@ -160,6 +161,7 @@ model User {
   studentLicensePaymentsRecorded StudentLicensePayment[] @relation("StudentLicensePaymentRecorder")
   feeSchedulesApproved     FeeSchedule[]          @relation("FeeScheduleApprovedBy")
   feeSchedulesCreated      FeeSchedule[]          @relation("FeeScheduleCreatedBy")
+  feeAdjustmentsCreated    FeeAdjustment[]        @relation("FeeAdjustmentCreatedBy")
   receivedMessages         Message[]              @relation("ReceivedMessages")
   sentMessages             Message[]              @relation("SentMessages")
   parentComplaints         ParentComplaint[]      @relation("ParentComplaints")
@@ -343,6 +345,7 @@ model Student {
   studentAssessments    StudentAssessment[]
   attendance            Attendance[]
   feePayments           FeePayment[]
+  feeAdjustments        FeeAdjustment[]
   studentLicenses       StudentLicense[]
   studentLicensePayments StudentLicensePayment[]
   complaints            ParentComplaint[]
@@ -735,6 +738,7 @@ model FeeSchedule {
   createdAt    DateTime            @default(now()) @map("created_at")
   updatedAt    DateTime            @updatedAt @map("updated_at")
   payments     FeePayment[]
+  adjustments  FeeAdjustment[]
   approver       User?               @relation("FeeScheduleApprovedBy", fields: [approvedBy], references: [id])
   scheduledClass Class?              @relation("FeeScheduleClass", fields: [classId], references: [id])
   creator        User                @relation("FeeScheduleCreatedBy", fields: [createdBy], references: [id])
@@ -778,6 +782,27 @@ model FeePayment {
   @@index([schoolId, scheduleId, studentId])
   @@index([termId])
   @@map("fee_payments")
+}
+
+model FeeAdjustment {
+  id         String      @id @default(uuid())
+  schoolId   String      @map("school_id")
+  scheduleId String      @map("schedule_id")
+  studentId  String      @map("student_id")
+  amount     Float       // negative = discount/waiver, positive = extra charge
+  reason     String?
+  createdBy  String      @map("created_by")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  school     School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schedule   FeeSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  student    Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  creator    User        @relation("FeeAdjustmentCreatedBy", fields: [createdBy], references: [id])
+
+  @@index([schoolId])
+  @@index([scheduleId])
+  @@index([studentId])
+  @@index([schoolId, scheduleId, studentId])
+  @@map("fee_adjustments")
 }
 
 model StudentLicensePayment {

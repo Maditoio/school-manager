@@ -76,6 +76,7 @@ type StudentStatus = {
   classId: string | null
   scheduleId: string | null
   amountDue: number
+  adjustmentAmount: number
   totalPaid: number
   balance: number
   status: FeeStatus
@@ -155,6 +156,11 @@ export default function AdminFeesPage({
   const [selectedStudentDue, setSelectedStudentDue] = useState<StudentStatus | null>(null)
   const [calculatingStudentDue, setCalculatingStudentDue] = useState(false)
   const [receiptPreview, setReceiptPreview] = useState<{ url: string; fileName: string; mimeType: string | null } | null>(null)
+
+  const [adjustTarget, setAdjustTarget] = useState<StudentStatus | null>(null)
+  const [adjustAmount, setAdjustAmount] = useState('')
+  const [adjustReason, setAdjustReason] = useState('')
+  const [submittingAdjustment, setSubmittingAdjustment] = useState(false)
   const pageSize = 10
 
   const isAdmin = session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'DEPUTY_ADMIN'
@@ -304,8 +310,29 @@ export default function AdminFeesPage({
           return student.status === 'NOT_PAID' ? 'NOT PAID' : student.status
         },
       },
+      ...(isAdmin ? [{
+        key: 'adjust',
+        label: '',
+        renderCell: (student: StudentStatus) => {
+          if (!student.scheduleId) return null
+          const hasAdj = student.adjustmentAmount !== 0
+          return (
+            <button
+              onClick={() => {
+                setAdjustTarget(student)
+                setAdjustAmount('')
+                setAdjustReason('')
+              }}
+              className="text-xs text-indigo-400 hover:underline whitespace-nowrap"
+              title={hasAdj ? `Current adjustment: ${formatCurrency(student.adjustmentAmount)}` : 'Adjust fee'}
+            >
+              {hasAdj ? `Adjusted (${student.adjustmentAmount > 0 ? '+' : ''}${formatCurrency(student.adjustmentAmount)})` : 'Adjust'}
+            </button>
+          )
+        },
+      }] : []),
     ],
-    [formatCurrency]
+    [formatCurrency, isAdmin, setAdjustTarget, setAdjustAmount, setAdjustReason]
   )
 
   const recentColumns = useMemo(
@@ -731,6 +758,44 @@ export default function AdminFeesPage({
       showToast('Failed to reject schedule', 'error')
     } finally {
       setRejectingId('')
+    }
+  }
+
+  const handleAdjustFee = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!adjustTarget?.scheduleId) return
+    const amount = Number(adjustAmount)
+    if (isNaN(amount) || amount === 0) {
+      showToast('Enter a non-zero adjustment amount', 'warning')
+      return
+    }
+    setSubmittingAdjustment(true)
+    try {
+      const res = await fetch('/api/fees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'adjustFee',
+          scheduleId: adjustTarget.scheduleId,
+          studentId: adjustTarget.studentId,
+          amount,
+          reason: adjustReason,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        showToast(data?.error || 'Failed to save adjustment', 'error')
+        return
+      }
+      showToast('Fee adjustment saved', 'success')
+      setAdjustTarget(null)
+      setAdjustAmount('')
+      setAdjustReason('')
+      await fetchFeesData(selectedPeriodKey)
+    } catch {
+      showToast('Failed to save adjustment', 'error')
+    } finally {
+      setSubmittingAdjustment(false)
     }
   }
 
@@ -1202,6 +1267,84 @@ export default function AdminFeesPage({
                       setPaymentReceiptFile(null)
                       setSelectedStudentDue(null)
                     }}
+                    className="flex-1 ui-button ui-button-secondary"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </Card>
+          </div>
+        )}
+
+        {/* Fee adjustment modal */}
+        {adjustTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--overlay) p-4">
+            <Card title="Adjust Student Fee" className="w-full max-w-md">
+              <button
+                onClick={() => setAdjustTarget(null)}
+                className="absolute right-4 top-4 ui-text-secondary hover:ui-text-primary"
+              >
+                ✕
+              </button>
+              <div className="mb-4 rounded-lg bg-(--surface-soft) p-3 text-sm space-y-0.5">
+                <p className="font-semibold ui-text-primary">{adjustTarget.studentName}</p>
+                <p className="ui-text-secondary">{adjustTarget.className} · {adjustTarget.admissionNumber || 'No admission no.'}</p>
+                <p className="ui-text-secondary">
+                  Schedule amount: <span className="font-medium ui-text-primary">{formatCurrency(adjustTarget.amountDue - adjustTarget.adjustmentAmount)}</span>
+                  {adjustTarget.adjustmentAmount !== 0 && (
+                    <> · Prior adjustments: <span className={adjustTarget.adjustmentAmount < 0 ? 'text-emerald-400 font-medium' : 'text-rose-400 font-medium'}>
+                      {adjustTarget.adjustmentAmount > 0 ? '+' : ''}{formatCurrency(adjustTarget.adjustmentAmount)}
+                    </span></>
+                  )}
+                </p>
+                <p className="ui-text-secondary">
+                  Effective amount due: <span className="font-semibold ui-text-primary">{formatCurrency(adjustTarget.amountDue)}</span>
+                </p>
+              </div>
+              <form onSubmit={handleAdjustFee} className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium ui-text-secondary">
+                    Adjustment Amount
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={adjustAmount}
+                    onChange={(e) => setAdjustAmount(e.target.value)}
+                    placeholder="e.g. -50 for discount, 20 for extra charge"
+                    className="ui-input"
+                    required
+                  />
+                  <p className="mt-1 text-xs ui-text-secondary">
+                    Negative = discount / waiver. Positive = extra charge. This is added on top of existing adjustments.
+                  </p>
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium ui-text-secondary">Reason (optional)</label>
+                  <input
+                    type="text"
+                    value={adjustReason}
+                    onChange={(e) => setAdjustReason(e.target.value)}
+                    placeholder="e.g. Scholarship, Sibling discount, Late fee"
+                    className="ui-input"
+                  />
+                </div>
+                {adjustAmount !== '' && !isNaN(Number(adjustAmount)) && Number(adjustAmount) !== 0 && (
+                  <div className="rounded-lg bg-(--surface-soft) p-3 text-sm ui-text-secondary">
+                    New effective amount due:{' '}
+                    <span className="font-semibold ui-text-primary">
+                      {formatCurrency(Math.max(0, adjustTarget.amountDue + Number(adjustAmount)))}
+                    </span>
+                  </div>
+                )}
+                <div className="flex gap-2 pt-1">
+                  <Button type="submit" isLoading={submittingAdjustment} className="flex-1">
+                    Save Adjustment
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setAdjustTarget(null)}
                     className="flex-1 ui-button ui-button-secondary"
                   >
                     Cancel

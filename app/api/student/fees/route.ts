@@ -35,15 +35,20 @@ export async function GET() {
         where: { studentId },
         orderBy: { paymentDate: 'desc' },
       },
+      adjustments: {
+        where: { studentId },
+      },
     },
     orderBy: { createdAt: 'desc' },
   })
 
   const enriched = schedules.map(schedule => {
     const totalPaid = schedule.payments.reduce((sum: number, p: { amountPaid: number }) => sum + p.amountPaid, 0)
-    const balance = schedule.amountDue - totalPaid
+    const totalAdjustment = (schedule.adjustments as Array<{ amount: number }>).reduce((sum, a) => sum + a.amount, 0)
+    const amountDue = Math.max(0, schedule.amountDue + totalAdjustment)
+    const balance = amountDue - totalPaid
     const status = balance <= 0 ? 'PAID' : totalPaid > 0 ? 'PARTIAL' : 'UNPAID'
-    return { ...schedule, totalPaid, balance, feeStatus: status }
+    return { ...schedule, amountDue, totalAdjustment, totalPaid, balance, feeStatus: status }
   })
 
   const totalOutstanding = enriched.reduce((sum, s) => sum + Math.max(0, s.balance), 0)
