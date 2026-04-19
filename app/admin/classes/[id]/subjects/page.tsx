@@ -52,7 +52,7 @@ export default function ClassSubjectsPage() {
   const [saving, setSaving] = useState(false)
 
   const [formData, setFormData] = useState({
-    subjectId: '',
+    subjectIds: [] as string[],
     teacherId: '',
   })
 
@@ -116,8 +116,8 @@ export default function ClassSubjectsPage() {
   const handleAssign = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!classId || !formData.subjectId || !formData.teacherId) {
-      showToast('Please select both subject and teacher', 'warning')
+    if (!classId || formData.subjectIds.length === 0 || !formData.teacherId) {
+      showToast('Please select one or more subjects and a teacher', 'warning')
       return
     }
 
@@ -127,7 +127,7 @@ export default function ClassSubjectsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          subjectId: formData.subjectId,
+          subjectIds: formData.subjectIds,
           teacherId: formData.teacherId,
         }),
       })
@@ -139,8 +139,9 @@ export default function ClassSubjectsPage() {
         return
       }
 
-      setFormData({ subjectId: '', teacherId: '' })
-      showToast('Subject assignment saved', 'success')
+      setFormData({ subjectIds: [], teacherId: '' })
+      const assignedCount = typeof data.count === 'number' ? data.count : formData.subjectIds.length
+      showToast(`${assignedCount} subject assignment(s) saved`, 'success')
       await fetchData()
     } catch (error) {
       console.error('Failed to assign subject:', error)
@@ -172,6 +173,18 @@ export default function ClassSubjectsPage() {
       console.error('Failed to remove assignment:', error)
       showToast('Failed to remove assignment', 'error')
     }
+  }
+
+  const handleSubjectToggle = (subjectId: string) => {
+    setFormData((prev) => {
+      const selected = prev.subjectIds.includes(subjectId)
+      return {
+        ...prev,
+        subjectIds: selected
+          ? prev.subjectIds.filter((id) => id !== subjectId)
+          : [...prev.subjectIds, subjectId],
+      }
+    })
   }
 
   if (status === 'loading' || !session) {
@@ -206,21 +219,28 @@ export default function ClassSubjectsPage() {
         </div>
 
         <Card className="p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Assign Subject to Class</h2>
-          <form onSubmit={handleAssign} noValidate className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            <Select
-              label="Subject"
-              value={formData.subjectId}
-              onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
-              className="text-gray-900 bg-white"
-            >
-              <option value="">Select subject</option>
-              {subjects.map((subject) => (
-                <option key={subject.id} value={subject.id}>
-                  {subject.name}{subject.code ? ` (${subject.code})` : ''}
-                </option>
-              ))}
-            </Select>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Assign Subjects to Class</h2>
+          <form onSubmit={handleAssign} noValidate className="space-y-4">
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">Subjects</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto rounded-md border border-(--border-subtle) p-3 bg-white">
+                {subjects.map((subject) => {
+                  const checked = formData.subjectIds.includes(subject.id)
+                  return (
+                    <label key={subject.id} className="flex items-center gap-2 text-sm text-gray-800">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => handleSubjectToggle(subject.id)}
+                        className="h-4 w-4"
+                      />
+                      <span>{subject.name}{subject.code ? ` (${subject.code})` : ''}</span>
+                    </label>
+                  )
+                })}
+              </div>
+              <p className="mt-2 text-xs text-gray-600">Selected: {formData.subjectIds.length}</p>
+            </div>
 
             <Select
               label="Teacher"
@@ -236,9 +256,9 @@ export default function ClassSubjectsPage() {
               ))}
             </Select>
 
-            <div>
+            <div className="flex justify-end">
               <Button type="submit" isLoading={saving}>
-                Save Assignment
+                Save Assignments
               </Button>
             </div>
           </form>

@@ -76,11 +76,15 @@ export async function POST(
     const { id: classId } = await context.params
     const body = await request.json()
 
-    const subjectId = typeof body.subjectId === 'string' ? body.subjectId : ''
+    const subjectIds = Array.isArray(body.subjectIds)
+      ? body.subjectIds.filter((value: unknown): value is string => typeof value === 'string' && value.trim().length > 0)
+      : typeof body.subjectId === 'string' && body.subjectId.trim().length > 0
+        ? [body.subjectId]
+        : []
     const teacherId = typeof body.teacherId === 'string' ? body.teacherId : ''
 
-    if (!subjectId || !teacherId) {
-      return NextResponse.json({ error: 'subjectId and teacherId are required' }, { status: 400 })
+    if (subjectIds.length === 0 || !teacherId) {
+      return NextResponse.json({ error: 'subjectIds and teacherId are required' }, { status: 400 })
     }
 
     const classData = await prisma.class.findFirst({
@@ -95,10 +99,10 @@ export async function POST(
       return NextResponse.json({ error: 'Class not found' }, { status: 404 })
     }
 
-    const [subject, teacher] = await Promise.all([
-      prisma.subject.findFirst({
+    const [subjects, teacher] = await Promise.all([
+      prisma.subject.findMany({
         where: {
-          id: subjectId,
+          id: { in: subjectIds },
           schoolId: classData.schoolId,
         },
         select: { id: true },
@@ -113,29 +117,41 @@ export async function POST(
       }),
     ])
 
-    if (!subject) {
-      return NextResponse.json({ error: 'Subject not found in this school' }, { status: 404 })
+    if (subjects.length !== subjectIds.length) {
+      return NextResponse.json({ error: 'One or more subjects were not found in this school' }, { status: 404 })
     }
 
     if (!teacher) {
       return NextResponse.json({ error: 'Teacher not found in this school' }, { status: 404 })
     }
 
-    const assignment = await prisma.classSubjectTeacher.upsert({
+    await prisma.$transaction(
+      subjectIds.map((subjectId) =>
+        prisma.classSubjectTeacher.upsert({
+          where: {
+            classId_subjectId: {
+              classId,
+              subjectId,
+            },
+          },
+          update: {
+            teacherId,
+          },
+          create: {
+            schoolId: classData.schoolId,
+            classId,
+            subjectId,
+            teacherId,
+          },
+        })
+      )
+    )
+
+    const assignments = await prisma.classSubjectTeacher.findMany({
       where: {
-        classId_subjectId: {
-          classId,
-          subjectId,
-        },
-      },
-      update: {
-        teacherId,
-      },
-      create: {
-        schoolId: classData.schoolId,
         classId,
-        subjectId,
-        teacherId,
+        schoolId: classData.schoolId,
+        subjectId: { in: subjectIds },
       },
       include: {
         subject: {
@@ -156,7 +172,7 @@ export async function POST(
       },
     })
 
-    return NextResponse.json({ assignment }, { status: 201 })
+    return NextResponse.json({ assignments, count: assignments.length }, { status: 201 })
   } catch (error) {
     console.error('Error assigning subject teacher to class:', error)
     return NextResponse.json({ error: 'Failed to assign subject teacher to class' }, { status: 500 })
