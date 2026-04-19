@@ -190,6 +190,25 @@ table tbody tr:hover {
   transition: all 0.15s ease;
 }
 
+/* Border color utility — used with Tailwind's `border` to apply theme color */
+.ui-border {
+  border-color: var(--border-subtle);
+}
+
+/* Toolbar background — applied via CSS so it's theme-reactive before React hydrates */
+.ui-toolbar {
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(12px);
+}
+
+html[data-theme='dark'] .ui-toolbar {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+html[data-theme='calm'] .ui-toolbar {
+  background: rgba(245, 248, 245, 0.86);
+}
+
 .ui-surface:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-soft-hover);

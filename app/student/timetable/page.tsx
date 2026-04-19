@@ -120,15 +120,16 @@ export default function StudentTimetablePage() {
             <p className="ui-text-secondary">No timetable has been set for your class yet.</p>
           </Card>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="ui-surface overflow-hidden p-0">
+            <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr>
-                  <th className="ui-border border p-2 text-left ui-text-secondary font-medium min-w-20">Time</th>
+                <tr className="bg-(--surface-soft)">
+                  <th className="ui-border border p-2 text-left ui-text-secondary font-medium min-w-20 bg-(--surface-soft)">Time</th>
                   {displayDays.map(d => (
                     <th
                       key={d}
-                      className={`ui-border border p-2 text-center font-medium min-w-35 ${
+                      className={`ui-border border p-2 text-center font-medium min-w-35 bg-(--surface-soft) ${
                         d === TODAY_DOW ? 'border-t-2 border-t-blue-400 text-blue-600 dark:text-blue-400' : 'ui-text-secondary'
                       }`}
                     >
@@ -142,12 +143,14 @@ export default function StudentTimetablePage() {
               </thead>
               <tbody>
                 {uniqueTimes.map(time => (
-                  <tr key={time}>
-                    <td className="ui-border border p-2 ui-text-secondary text-[11px] font-mono align-top">{time}</td>
+                  <tr key={time} className="bg-(--surface)">
+                    <td className="ui-border border p-2 ui-text-secondary text-[11px] font-mono align-top bg-(--surface-soft)">{time}</td>
                     {displayDays.map(d => {
                       const cell = slots.find(s => s.dayOfWeek === d && s.startTime === time)
                       return (
-                        <td key={d} className={`ui-border border p-1 align-top ${d === TODAY_DOW ? 'bg-blue-50/40 dark:bg-blue-900/10' : ''}`}>
+                        <td key={d} className={`ui-border border p-1 align-top ${
+                          d === TODAY_DOW ? 'bg-blue-50/40 dark:bg-blue-900/10' : 'bg-(--surface)'
+                        }`}>
                           {cell ? (
                             <div className={`rounded-md p-2 text-[11px] ${subjectColor(cell.subjectId)}`}>
                               <div className="font-semibold">{cell.subject.name}</div>
@@ -162,6 +165,7 @@ export default function StudentTimetablePage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>

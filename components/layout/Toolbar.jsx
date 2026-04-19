@@ -125,12 +125,10 @@ export default function Toolbar({
 
   return (
     <header
-      className="fixed top-0 right-0 z-30 h-16"
+      className="ui-toolbar fixed top-0 right-0 z-30 h-16"
       style={{
         left: `${sidebarWidth}px`,
         transition: 'left 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-        background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(255, 255, 255, 0.86)',
-        backdropFilter: 'blur(12px)',
       }}
     >
       <div className={`relative h-full px-5 sm:px-6 ${isDark ? 'border-b border-white/5' : 'border-b border-slate-200/80'}`}>
