@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { hasRole } from '@/lib/auth-utils'
 import { generateMonthlyInvoices, reconcileInvoiceStatuses } from '@/lib/fee-invoices'
+import type { UserRole } from '@prisma/client'
 
 // GET /api/fees/invoices?schoolId=&year=&month=&studentId=&status=
 export async function GET(request: NextRequest) {
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
   const user = session.user as { id: string; role: string; schoolId?: string }
 
   // Students can only view their own invoices; admins can view all
-  const isAdmin = hasRole(user.role, ['ADMIN', 'SUPER_ADMIN'])
+  const isAdmin = hasRole(user.role as UserRole, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])
   const isStudent = user.role === 'STUDENT'
 
   if (!isAdmin && !isStudent) {
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const user = session.user as { id: string; role: string }
-  if (!hasRole(user.role, ['ADMIN', 'SUPER_ADMIN'])) {
+  if (!hasRole(user.role as UserRole, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { FeeInvoiceStatus, FeePeriodType } from '@prisma/client'
 
 export interface GenerateInvoicesOptions {
@@ -74,7 +74,7 @@ export async function generateMonthlyInvoices(
   const students = await prisma.student.findMany({
     where: {
       schoolId,
-      enrollmentStatus: 'ACTIVE',
+      status: 'ACTIVE',
     },
     select: {
       id: true,
