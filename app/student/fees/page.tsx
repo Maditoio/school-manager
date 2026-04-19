@@ -36,6 +36,22 @@ interface FeesResponse {
   totalOutstanding: number
 }
 
+type InvoiceStatus = 'PENDING' | 'OVERDUE' | 'PAID' | 'PARTIAL'
+
+interface Invoice {
+  id: string
+  periodType: string
+  year: number
+  month: number | null
+  semester: number | null
+  amountDue: number
+  dueDate: string
+  status: InvoiceStatus
+  totalPaid: number
+  balance: number
+  payments: { id: string; amountPaid: number; paymentDate: string; paymentMethod: string }[]
+}
+
 const statusStyle: Record<string, string> = {
   PAID: 'bg-green-100 text-green-700',
   PARTIAL: 'bg-amber-100 text-amber-700',
@@ -64,6 +80,11 @@ export default function StudentFeesPage() {
   const [data, setData] = useState<FeesResponse | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
+  // Invoice history
+  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [invoicesLoading, setInvoicesLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState<'schedules' | 'invoices'>('invoices')
+
   useEffect(() => {
     if (status === 'unauthenticated') redirect('/login')
     if (status === 'authenticated' && session?.user?.role !== 'STUDENT') redirect('/login')
@@ -91,6 +112,25 @@ export default function StudentFeesPage() {
     load()
   }, [session])
 
+  useEffect(() => {
+    const loadInvoices = async () => {
+      if (!session?.user) return
+      setInvoicesLoading(true)
+      try {
+        const res = await fetch('/api/student/fees/invoices')
+        if (res.ok) {
+          const body = await res.json()
+          setInvoices(Array.isArray(body.invoices) ? body.invoices : [])
+        }
+      } catch {
+        // non-critical
+      } finally {
+        setInvoicesLoading(false)
+      }
+    }
+    loadInvoices()
+  }, [session])
+
   if (status === 'loading' || !session) return null
 
   const fmt = (n: number) =>
@@ -108,6 +148,22 @@ export default function StudentFeesPage() {
       <div className="space-y-4">
         <h1 className="text-lg font-semibold ui-text-primary">Frais Scolaires</h1>
 
+        {/* Tab switcher */}
+        <div className="flex gap-1 rounded-lg p-1 w-fit" style={{ background: 'var(--surface-soft)' }}>
+          <button
+            onClick={() => setActiveTab('invoices')}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'invoices' ? 'bg-blue-600 text-white' : 'ui-text-secondary hover:ui-text-primary'}`}
+          >
+            Factures Mensuelles
+          </button>
+          <button
+            onClick={() => setActiveTab('schedules')}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'schedules' ? 'bg-blue-600 text-white' : 'ui-text-secondary hover:ui-text-primary'}`}
+          >
+            Échéanciers
+          </button>
+        </div>
+
         {loading ? (
           <div className="ui-surface p-6 flex items-center gap-3">
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-(--border-subtle) border-t-(--accent)" />
@@ -117,6 +173,75 @@ export default function StudentFeesPage() {
           <div className="ui-surface p-5">
             <p className="text-sm text-red-600">{error}</p>
           </div>
+        ) : activeTab === 'invoices' ? (
+          /* ── Invoice history ────────────────────────────────────── */
+          <>
+            {invoicesLoading ? (
+              <div className="ui-surface p-6 flex items-center gap-3">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-(--border-subtle) border-t-(--accent)" />
+                <p className="text-sm ui-text-secondary">Chargement des factures...</p>
+              </div>
+            ) : invoices.length === 0 ? (
+              <div className="ui-surface p-8 text-center">
+                <p className="text-sm ui-text-secondary">Aucune facture générée pour le moment.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto ui-surface rounded-xl">
+                <table className="min-w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ui-text-secondary">Période</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ui-text-secondary">Échéance</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider ui-text-secondary">Montant Dû</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider ui-text-secondary">Payé</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider ui-text-secondary">Solde</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ui-text-secondary">Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invoices.map((inv) => {
+                      const MONTH_NAMES_FR = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc']
+                      const periodLabel = inv.month != null
+                        ? `${MONTH_NAMES_FR[inv.month - 1]} ${inv.year}`
+                        : inv.semester != null
+                        ? `Sem ${inv.semester} · ${inv.year}`
+                        : `${inv.year}`
+
+                      const STATUS_STYLE: Record<InvoiceStatus, string> = {
+                        PENDING: 'bg-slate-500/20 text-slate-400',
+                        OVERDUE: 'bg-rose-500/20 text-rose-400',
+                        PAID: 'bg-emerald-500/20 text-emerald-400',
+                        PARTIAL: 'bg-amber-500/20 text-amber-400',
+                      }
+                      const STATUS_LABEL: Record<InvoiceStatus, string> = {
+                        PENDING: 'En attente',
+                        OVERDUE: 'En retard',
+                        PAID: 'Payé',
+                        PARTIAL: 'Partiel',
+                      }
+
+                      return (
+                        <tr key={inv.id} className="border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                          <td className="px-4 py-3 font-medium ui-text-primary">{periodLabel}</td>
+                          <td className="px-4 py-3 ui-text-secondary">{new Date(inv.dueDate).toLocaleDateString('fr-FR')}</td>
+                          <td className="px-4 py-3 text-right ui-text-primary">{fmt(inv.amountDue)}</td>
+                          <td className="px-4 py-3 text-right text-emerald-500">{fmt(inv.totalPaid)}</td>
+                          <td className="px-4 py-3 text-right">
+                            <span className={inv.balance > 0 ? 'text-rose-400' : 'text-emerald-400'}>{fmt(inv.balance)}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[inv.status]}`}>
+                              {STATUS_LABEL[inv.status]}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         ) : data ? (
           <>
             {/* Summary banner */}

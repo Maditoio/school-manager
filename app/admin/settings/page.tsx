@@ -48,6 +48,13 @@ export default function AdminSettingsPage() {
   const [thresholdInput, setThresholdInput] = useState('0')
   const [thresholdSaving, setThresholdSaving] = useState(false)
   const [minimumPassRatePerSubject, setMinimumPassRatePerSubject] = useState(50)
+
+  // Invoice settings
+  const [autoInvoiceEnabled, setAutoInvoiceEnabled] = useState(false)
+  const [invoiceDayOfMonth, setInvoiceDayOfMonth] = useState(1)
+  const [feesDueDayOfMonth, setFeesDueDayOfMonth] = useState(15)
+  const [invoiceActiveMonths, setInvoiceActiveMonths] = useState<number[]>([])
+  const [invoiceSettingsSaving, setInvoiceSettingsSaving] = useState(false)
   const [minimumPassRateInput, setMinimumPassRateInput] = useState('50')
   const [minimumPassRateSaving, setMinimumPassRateSaving] = useState(false)
 
@@ -96,6 +103,10 @@ export default function AdminSettingsPage() {
         setMinimumPassRateInput(String(passRate))
         if (data.currency) setCurrencyInput(data.currency as CurrencyCode)
         if (data.logoUrl) setLogoUrl(data.logoUrl)
+        setAutoInvoiceEnabled(data.autoInvoiceEnabled ?? false)
+        setInvoiceDayOfMonth(data.invoiceDayOfMonth ?? 1)
+        setFeesDueDayOfMonth(data.feesDueDayOfMonth ?? 15)
+        setInvoiceActiveMonths(data.invoiceActiveMonths ?? [])
       }
     } catch {
       // fail silently — not critical for page load
@@ -409,6 +420,38 @@ export default function AdminSettingsPage() {
     [academicYears]
   )
 
+  // ── Invoice settings: save ────────────────────────────────────────────────
+
+  const MONTH_NAMES = [
+    t('Jan'), t('Feb'), t('Mar'), t('Apr'), t('May'), t('Jun'),
+    t('Jul'), t('Aug'), t('Sep'), t('Oct'), t('Nov'), t('Dec'),
+  ]
+
+  const handleSaveInvoiceSettings = async () => {
+    setInvoiceSettingsSaving(true)
+    try {
+      const res = await fetch('/api/schools/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          autoInvoiceEnabled,
+          invoiceDayOfMonth,
+          feesDueDayOfMonth,
+          invoiceActiveMonths,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err?.error || 'Failed to save invoice settings')
+      }
+      showToast(t('Invoice settings saved'), 'success')
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : t('Failed to save invoice settings'), 'error')
+    } finally {
+      setInvoiceSettingsSaving(false)
+    }
+  }
+
   if (status === 'loading' || !session?.user) return <div>{t('Loading...')}</div>
 
   return (
@@ -490,6 +533,103 @@ export default function AdminSettingsPage() {
                   {t('Delegation disabled — only administrators can approve expenses and fund requests')}
                 </p>
               )}
+            </Card>
+
+            {/* Invoice Settings */}
+            <Card title={t('Fee Invoice Generation')} className="p-5">
+              <p className="text-sm ui-text-secondary mb-4">
+                {t('Configure automatic monthly fee invoice generation. Invoices are generated on the chosen day each month, with a configurable due date for students to pay by.')}
+              </p>
+
+              <div className="space-y-5">
+                {/* Toggle */}
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div
+                    role="switch"
+                    aria-checked={autoInvoiceEnabled}
+                    onClick={() => setAutoInvoiceEnabled((v) => !v)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      autoInvoiceEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                        autoInvoiceEnabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </div>
+                  <span className="text-sm font-medium ui-text-primary">{t('Auto-generate invoices monthly')}</span>
+                </label>
+
+                {/* Day controls */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 max-w-md">
+                  <div>
+                    <label className="block text-xs font-semibold ui-text-secondary mb-1 uppercase tracking-wider">
+                      {t('Generation day of month')}
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={28}
+                      value={invoiceDayOfMonth}
+                      onChange={(e) => setInvoiceDayOfMonth(Number(e.target.value))}
+                      className="w-full rounded-md border px-3 py-2 text-sm ui-text-primary ui-surface ui-border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="mt-1 text-xs ui-text-secondary">{t('Day invoices are auto-created (1–28)')}</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold ui-text-secondary mb-1 uppercase tracking-wider">
+                      {t('Due day of month')}
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={28}
+                      value={feesDueDayOfMonth}
+                      onChange={(e) => setFeesDueDayOfMonth(Number(e.target.value))}
+                      className="w-full rounded-md border px-3 py-2 text-sm ui-text-primary ui-surface ui-border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="mt-1 text-xs ui-text-secondary">{t('Day payment is due each month (1–28)')}</p>
+                  </div>
+                </div>
+
+                {/* Active months */}
+                <div>
+                  <p className="text-xs font-semibold ui-text-secondary mb-2 uppercase tracking-wider">{t('Active months (leave empty for all)')}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {MONTH_NAMES.map((name, i) => {
+                      const monthNum = i + 1
+                      const active = invoiceActiveMonths.includes(monthNum)
+                      return (
+                        <button
+                          key={monthNum}
+                          type="button"
+                          onClick={() =>
+                            setInvoiceActiveMonths((prev) =>
+                              active ? prev.filter((m) => m !== monthNum) : [...prev, monthNum]
+                            )
+                          }
+                          className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                            active
+                              ? 'bg-blue-600 text-white border-blue-600'
+                              : 'ui-surface ui-text-secondary ui-border hover:border-blue-400'
+                          }`}
+                        >
+                          {name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  isLoading={invoiceSettingsSaving}
+                  onClick={handleSaveInvoiceSettings}
+                >
+                  {t('Save Invoice Settings')}
+                </Button>
+              </div>
             </Card>
           </div>
         </section>

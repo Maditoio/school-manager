@@ -36,6 +36,10 @@ export async function GET() {
       currency: settings?.currency ?? 'ZAR',
       logoUrl: settings?.logoUrl ?? null,
       reportTemplate: settings?.reportTemplate ?? 1,
+      autoInvoiceEnabled: settings?.autoInvoiceEnabled ?? false,
+      invoiceDayOfMonth: settings?.invoiceDayOfMonth ?? 1,
+      feesDueDayOfMonth: settings?.feesDueDayOfMonth ?? 15,
+      invoiceActiveMonths: settings?.invoiceActiveMonths ?? [],
     })
   } catch (error) {
     console.error('Error fetching school settings:', error)
@@ -61,6 +65,10 @@ export async function PATCH(request: NextRequest) {
       currency?: string
       logoUrl?: string | null
       reportTemplate?: number
+      autoInvoiceEnabled?: boolean
+      invoiceDayOfMonth?: number
+      feesDueDayOfMonth?: number
+      invoiceActiveMonths?: number[]
     } = {}
 
     if (body.expenseApprovalThreshold !== undefined) {
@@ -103,6 +111,37 @@ export async function PATCH(request: NextRequest) {
       updateData.reportTemplate = tpl
     }
 
+    if (body.autoInvoiceEnabled !== undefined) {
+      updateData.autoInvoiceEnabled = Boolean(body.autoInvoiceEnabled)
+    }
+
+    if (body.invoiceDayOfMonth !== undefined) {
+      const d = Number(body.invoiceDayOfMonth)
+      if (!Number.isInteger(d) || d < 1 || d > 28) {
+        return NextResponse.json({ error: 'invoiceDayOfMonth must be 1–28' }, { status: 400 })
+      }
+      updateData.invoiceDayOfMonth = d
+    }
+
+    if (body.feesDueDayOfMonth !== undefined) {
+      const d = Number(body.feesDueDayOfMonth)
+      if (!Number.isInteger(d) || d < 1 || d > 28) {
+        return NextResponse.json({ error: 'feesDueDayOfMonth must be 1–28' }, { status: 400 })
+      }
+      updateData.feesDueDayOfMonth = d
+    }
+
+    if (body.invoiceActiveMonths !== undefined) {
+      if (!Array.isArray(body.invoiceActiveMonths)) {
+        return NextResponse.json({ error: 'invoiceActiveMonths must be an array' }, { status: 400 })
+      }
+      const months = body.invoiceActiveMonths as number[]
+      if (months.some((m) => !Number.isInteger(m) || m < 1 || m > 12)) {
+        return NextResponse.json({ error: 'invoiceActiveMonths values must be 1–12' }, { status: 400 })
+      }
+      updateData.invoiceActiveMonths = months
+    }
+
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
     }
@@ -119,6 +158,10 @@ export async function PATCH(request: NextRequest) {
       currency: settings.currency,
       logoUrl: settings.logoUrl ?? null,
       reportTemplate: settings.reportTemplate,
+      autoInvoiceEnabled: settings.autoInvoiceEnabled,
+      invoiceDayOfMonth: settings.invoiceDayOfMonth,
+      feesDueDayOfMonth: settings.feesDueDayOfMonth,
+      invoiceActiveMonths: settings.invoiceActiveMonths,
     })
   } catch (error) {
     console.error('Error updating school settings:', error)
