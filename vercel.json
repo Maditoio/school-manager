@@ -1,10 +1,2 @@
-{
-  "crons": [
-    {
-      "path": "/api/internal/execute-scheduled-deletions",
-      "schedule": "0 2 * * *"
-    }
-    
-  ]
-}
+
 
