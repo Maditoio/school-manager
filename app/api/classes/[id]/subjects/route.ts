@@ -76,7 +76,7 @@ export async function POST(
     const { id: classId } = await context.params
     const body = await request.json()
 
-    const subjectIds = Array.isArray(body.subjectIds)
+    const subjectIds: string[] = Array.isArray(body.subjectIds)
       ? body.subjectIds.filter((value: unknown): value is string => typeof value === 'string' && value.trim().length > 0)
       : typeof body.subjectId === 'string' && body.subjectId.trim().length > 0
         ? [body.subjectId]
@@ -126,7 +126,7 @@ export async function POST(
     }
 
     await prisma.$transaction(
-      subjectIds.map((subjectId) =>
+      subjectIds.map((subjectId: string) =>
         prisma.classSubjectTeacher.upsert({
           where: {
             classId_subjectId: {
