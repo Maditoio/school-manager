@@ -20,6 +20,7 @@ interface Subject {
   id: string
   name: string
   code: string | null
+  passRate: number | null
 }
 
 interface ClassItem {
@@ -100,7 +101,7 @@ export default function SubjectsPage() {
   // Manual add/edit modal
   const [showModal, setShowModal] = useState(false)
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
-  const [formData, setFormData] = useState({ name: '', code: '' })
+  const [formData, setFormData] = useState({ name: '', code: '', passRate: '' })
 
   // Quick-add presets modal
   const [showPresetsModal, setShowPresetsModal] = useState(false)
@@ -196,10 +197,11 @@ export default function SubjectsPage() {
     try {
       const url = editingSubject ? `/api/subjects/${editingSubject.id}` : '/api/subjects'
       const method = editingSubject ? 'PUT' : 'POST'
+      const passRateValue = formData.passRate.trim() !== '' ? Number(formData.passRate) : null
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: formData.name, code: formData.code || undefined }),
+        body: JSON.stringify({ name: formData.name, code: formData.code || undefined, passRate: passRateValue }),
       })
       if (res.ok) {
         await fetchAll()
@@ -217,7 +219,7 @@ export default function SubjectsPage() {
 
   const handleEdit = (subject: Subject) => {
     setEditingSubject(subject)
-    setFormData({ name: subject.name, code: subject.code || '' })
+    setFormData({ name: subject.name, code: subject.code || '', passRate: subject.passRate !== null && subject.passRate !== undefined ? String(subject.passRate) : '' })
     setShowModal(true)
   }
 
@@ -238,7 +240,7 @@ export default function SubjectsPage() {
   }
 
   const resetForm = () => {
-    setFormData({ name: '', code: '' })
+    setFormData({ name: '', code: '', passRate: '' })
     setEditingSubject(null)
   }
 
@@ -489,6 +491,11 @@ export default function SubjectsPage() {
                                 {subject.code}
                               </p>
                             )}
+                            {subject.passRate !== null && subject.passRate !== undefined ? (
+                              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">Pass mark: {subject.passRate}%</p>
+                            ) : (
+                              <p className="text-xs ui-text-secondary mt-1">Pass mark: school default</p>
+                            )}
                           </div>
                           <div className="relative shrink-0">
                             <button
@@ -552,6 +559,19 @@ export default function SubjectsPage() {
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                 placeholder={tAdmin('egMath101', 'e.g., MATH')}
               />
+              <div>
+                <Input
+                  label={tAdmin('subjectPassRate', 'Pass Mark % (optional)')}
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={formData.passRate}
+                  onChange={(e) => setFormData({ ...formData, passRate: e.target.value })}
+                  placeholder={tAdmin('passRatePlaceholder', 'Leave blank to use school default')}
+                />
+                <p className="mt-1 text-xs ui-text-secondary">{tAdmin('passRateHelp', 'Override the school-wide pass mark for this subject only.')}</p>
+              </div>
               <div className="flex gap-2 justify-end pt-2">
                 <Button type="button" variant="secondary" onClick={() => { setShowModal(false); resetForm() }}>
                   {tCommon('cancel', 'Cancel')}

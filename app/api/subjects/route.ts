@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, code } = validation.data
+    const { name, code, passRate } = validation.data
 
     if (!session.user.schoolId) {
       return NextResponse.json(
@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
         schoolId: session.user.schoolId,
         name,
         code,
+        passRate: passRate ?? null,
       },
     })
 

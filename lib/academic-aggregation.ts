@@ -5,6 +5,20 @@ import { randomUUID } from 'crypto'
 const ACADEMIC_EVENT_TYPE = 'ACADEMIC_TERM_SUMMARY'
 const PASS_MARK_PERCENT = 50
 
+type AggregationRow = {
+  totalScore: number | null
+  maxScore: number
+  createdAt: Date
+  updatedAt: Date
+  subjectPassRate: number | null
+  student: {
+    class: {
+      name: string
+      grade: string | null
+    }
+  }
+}
+
 type AggregationPayload = {
   termId?: string | null
 }
@@ -58,19 +72,6 @@ function termWeekAverages(
   return sums.map((sum, index) => (counts[index] > 0 ? roundOne(sum / counts[index]) : 0))
 }
 
-type AggregationRow = {
-  totalScore: number | null
-  maxScore: number
-  createdAt: Date
-  updatedAt: Date
-  student: {
-    class: {
-      name: string
-      grade: string | null
-    }
-  }
-}
-
 async function getTermAggregationRows(params: {
   schoolId: string
   termId: string
@@ -87,6 +88,9 @@ async function getTermAggregationRows(params: {
       maxScore: true,
       createdAt: true,
       updatedAt: true,
+      subject: {
+        select: { passRate: true },
+      },
       student: {
         select: {
           class: {
@@ -101,7 +105,14 @@ async function getTermAggregationRows(params: {
   })
 
   if (resultRows.length > 0) {
-    return resultRows as AggregationRow[]
+    return resultRows.map((row) => ({
+      totalScore: row.totalScore,
+      maxScore: row.maxScore,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      subjectPassRate: row.subject?.passRate ?? null,
+      student: row.student,
+    })) as AggregationRow[]
   }
 
   const assessmentRows = await prisma.studentAssessment.findMany({
@@ -130,6 +141,9 @@ async function getTermAggregationRows(params: {
       assessment: {
         select: {
           totalMarks: true,
+          subject: {
+            select: { passRate: true },
+          },
         },
       },
       student: {
@@ -150,6 +164,7 @@ async function getTermAggregationRows(params: {
     maxScore: Number(row.assessment.totalMarks),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    subjectPassRate: row.assessment.subject?.passRate ?? null,
     student: row.student,
   })) as AggregationRow[]
 }
@@ -199,7 +214,7 @@ export async function recomputeAcademicSummaryForTerm(params: { schoolId: string
     return { updated: false, reason: 'term-not-found' }
   }
 
-  const [currentRows, previousTerms] = await Promise.all([
+  const [currentRows, previousTerms, schoolSettings] = await Promise.all([
     getTermAggregationRows({
       schoolId: params.schoolId,
       termId: term.id,
@@ -235,9 +250,13 @@ export async function recomputeAcademicSummaryForTerm(params: { schoolId: string
         },
       }))
     })(),
+    prisma.schoolSettings.findUnique({
+      where: { schoolId: params.schoolId },
+      select: { minimumPassRatePerSubject: true },
+    }),
   ])
 
-  const validPercents: number[] = []
+  const schoolPassMark = schoolSettings?.minimumPassRatePerSubject ?? PASS_MARK_PERCENT
   let passCount = 0
   const classAcc = new Map<string, { sum: number; count: number }>()
   const gradeAcc = new Map<string, { sum: number; count: number; passCount: number }>()
@@ -246,8 +265,9 @@ export async function recomputeAcademicSummaryForTerm(params: { schoolId: string
     const percent = resultPercent(row.totalScore, row.maxScore)
     if (percent === null) continue
 
+    const rowPassMark = row.subjectPassRate ?? schoolPassMark
     validPercents.push(percent)
-    if (percent >= PASS_MARK_PERCENT) passCount += 1
+    if (percent >= rowPassMark) passCount += 1
 
     const className = row.student.class?.name || '-'
     const classExisting = classAcc.get(className) || { sum: 0, count: 0 }
@@ -259,7 +279,7 @@ export async function recomputeAcademicSummaryForTerm(params: { schoolId: string
     const gradeExisting = gradeAcc.get(gradeLabel) || { sum: 0, count: 0, passCount: 0 }
     gradeExisting.sum += percent
     gradeExisting.count += 1
-    if (percent >= PASS_MARK_PERCENT) gradeExisting.passCount += 1
+    if (percent >= rowPassMark) gradeExisting.passCount += 1
     gradeAcc.set(gradeLabel, gradeExisting)
   }
 

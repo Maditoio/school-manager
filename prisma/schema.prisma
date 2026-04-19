@@ -421,6 +421,7 @@ model Subject {
   schoolId         String                @map("school_id")
   name             String
   code             String?
+  passRate         Float?                @map("pass_rate")
   createdAt        DateTime              @default(now()) @map("created_at")
   updatedAt        DateTime              @updatedAt @map("updated_at")
   assessments      Assessment[]

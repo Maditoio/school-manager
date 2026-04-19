@@ -21,6 +21,10 @@ export interface SubjectVariable {
   comment: string
   bar_width: string      // percentage string e.g. "73.5" for progress bars
   row_alt: string        // "rpt-row-alt" for even rows, "" for odd
+  pass_mark: string      // e.g. "50" — the effective pass mark for this subject
+  is_passing: string     // "true" or "false"
+  pass_status: string    // "Pass" or "Fail"
+  pass_badge_class: string // CSS class for pass/fail badge
 }
 
 export interface ReportVariables {
@@ -254,8 +258,10 @@ export interface ReportDataInput {
     grade: string | null
     comment: string | null
     classAvg: number | null
+    subjectPassRate?: number | null
   }[]
   overallAverage: number | null
+  schoolPassMark?: number
   attendance: {
     totalDays: number
     presentDays: number
@@ -269,6 +275,7 @@ export interface ReportDataInput {
 
 export function buildReportVariables(data: ReportDataInput): ReportVariables {
   const { student, term, subjects, overallAverage, attendance, position, logoUrl, isFinal } = data
+  const schoolPassMark = data.schoolPassMark ?? 50
 
   const schoolInitials = student.school.name
     .split(' ')
@@ -295,7 +302,7 @@ export function buildReportVariables(data: ReportDataInput): ReportVariables {
       : 0
 
   const avgNum = overallAverage ?? 0
-  const isPromoted = avgNum >= 50
+  const isPromoted = avgNum >= schoolPassMark
   const grade = overallAverage != null ? gradeFromPct(overallAverage) : '—'
   const rankStr = position.rank != null ? ordinalSuffix(position.rank) : '—'
 
@@ -307,6 +314,8 @@ export function buildReportVariables(data: ReportDataInput): ReportVariables {
       s.classAvg != null && s.maxScore > 0
         ? ((s.classAvg / s.maxScore) * 100).toFixed(1) + '%'
         : '—'
+    const effectivePassMark = s.subjectPassRate ?? schoolPassMark
+    const isPassing = pct != null ? pct >= effectivePassMark : null
     return {
       subject_name: s.subjectName,
       subject_code: s.subjectCode ?? '',
@@ -323,6 +332,10 @@ export function buildReportVariables(data: ReportDataInput): ReportVariables {
       comment: s.comment ?? '',
       bar_width: pct != null ? pct.toFixed(1) : '0',
       row_alt: idx % 2 === 1 ? 'rpt-row-alt' : '',
+      pass_mark: String(effectivePassMark),
+      is_passing: isPassing != null ? String(isPassing) : 'false',
+      pass_status: isPassing === true ? 'Pass' : isPassing === false ? 'Fail' : '—',
+      pass_badge_class: isPassing === true ? 'rpt-pass-yes' : 'rpt-pass-no',
     }
   })
 
@@ -411,11 +424,11 @@ ${fontLink}
 
 export function buildSampleVariables(): ReportVariables {
   const sampleSubjects: SubjectVariable[] = [
-    { subject_name: 'Mathematics', subject_code: 'MATH', teacher_name: 'Mr. Johnson', score: '87 / 100', max_score: '100', percentage: '87.0%', grade: 'A', grade_badge_class: 'rpt-badge-a', class_average: '74.2%', comment: 'Excellent analytical skills. Keep up the great work!', bar_width: '87', row_alt: '' },
-    { subject_name: 'English Language', subject_code: 'ENG', teacher_name: 'Ms. Williams', score: '74 / 100', max_score: '100', percentage: '74.0%', grade: 'B', grade_badge_class: 'rpt-badge-b', class_average: '70.5%', comment: 'Good reading comprehension. Focus on essay structure.', bar_width: '74', row_alt: 'rpt-row-alt' },
-    { subject_name: 'Science', subject_code: 'SCI', teacher_name: 'Dr. Okonkwo', score: '91 / 100', max_score: '100', percentage: '91.0%', grade: 'A', grade_badge_class: 'rpt-badge-a', class_average: '68.3%', comment: 'Outstanding understanding of concepts. Future scientist!', bar_width: '91', row_alt: '' },
-    { subject_name: 'History', subject_code: 'HIST', teacher_name: 'Mr. Mensah', score: '63 / 100', max_score: '100', percentage: '63.0%', grade: 'C', grade_badge_class: 'rpt-badge-c', class_average: '61.0%', comment: 'Satisfactory progress. Review key dates and events.', bar_width: '63', row_alt: 'rpt-row-alt' },
-    { subject_name: 'Geography', subject_code: 'GEO', teacher_name: 'Mrs. Adeyemi', score: '78 / 100', max_score: '100', percentage: '78.0%', grade: 'B', grade_badge_class: 'rpt-badge-b', class_average: '72.1%', comment: 'Good map work. Improve on physical geography topics.', bar_width: '78', row_alt: '' },
+    { subject_name: 'Mathematics', subject_code: 'MATH', teacher_name: 'Mr. Johnson', score: '87 / 100', max_score: '100', percentage: '87.0%', grade: 'A', grade_badge_class: 'rpt-badge-a', class_average: '74.2%', comment: 'Excellent analytical skills. Keep up the great work!', bar_width: '87', row_alt: '', pass_mark: '50', is_passing: 'true', pass_status: 'Pass', pass_badge_class: 'rpt-pass-yes' },
+    { subject_name: 'English Language', subject_code: 'ENG', teacher_name: 'Ms. Williams', score: '74 / 100', max_score: '100', percentage: '74.0%', grade: 'B', grade_badge_class: 'rpt-badge-b', class_average: '70.5%', comment: 'Good reading comprehension. Focus on essay structure.', bar_width: '74', row_alt: 'rpt-row-alt', pass_mark: '50', is_passing: 'true', pass_status: 'Pass', pass_badge_class: 'rpt-pass-yes' },
+    { subject_name: 'Science', subject_code: 'SCI', teacher_name: 'Dr. Okonkwo', score: '91 / 100', max_score: '100', percentage: '91.0%', grade: 'A', grade_badge_class: 'rpt-badge-a', class_average: '68.3%', comment: 'Outstanding understanding of concepts. Future scientist!', bar_width: '91', row_alt: '', pass_mark: '60', is_passing: 'true', pass_status: 'Pass', pass_badge_class: 'rpt-pass-yes' },
+    { subject_name: 'History', subject_code: 'HIST', teacher_name: 'Mr. Mensah', score: '63 / 100', max_score: '100', percentage: '63.0%', grade: 'C', grade_badge_class: 'rpt-badge-c', class_average: '61.0%', comment: 'Satisfactory progress. Review key dates and events.', bar_width: '63', row_alt: 'rpt-row-alt', pass_mark: '50', is_passing: 'true', pass_status: 'Pass', pass_badge_class: 'rpt-pass-yes' },
+    { subject_name: 'Geography', subject_code: 'GEO', teacher_name: 'Mrs. Adeyemi', score: '78 / 100', max_score: '100', percentage: '78.0%', grade: 'B', grade_badge_class: 'rpt-badge-b', class_average: '72.1%', comment: 'Good map work. Improve on physical geography topics.', bar_width: '78', row_alt: '', pass_mark: '50', is_passing: 'true', pass_status: 'Pass', pass_badge_class: 'rpt-pass-yes' },
   ]
 
   return {

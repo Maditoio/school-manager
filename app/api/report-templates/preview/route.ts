@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
           // Fetch school settings for logo
           const settings = await prisma.schoolSettings.findUnique({
             where: { schoolId },
-            select: { logoUrl: true },
+            select: { logoUrl: true, minimumPassRatePerSubject: true },
           })
 
           // Fetch results for the given term or all
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
           const subjectIds = [...new Set(results.map((r) => r.subjectId))]
           const subjects = await prisma.subject.findMany({
             where: { id: { in: subjectIds } },
-            select: { id: true, name: true, code: true },
+            select: { id: true, name: true, code: true, passRate: true },
           })
           const classSubjectTeachers = await prisma.classSubjectTeacher.findMany({
             where: { classId: student.classId, subjectId: { in: subjectIds } },
@@ -157,6 +157,7 @@ export async function GET(request: NextRequest) {
               grade: result?.grade ?? null,
               comment: result?.comment ?? null,
               classAvg,
+              subjectPassRate: subj?.passRate ?? null,
             }
           })
 
@@ -204,6 +205,7 @@ export async function GET(request: NextRequest) {
             term: termInfo,
             subjects: subjectVarInputs,
             overallAverage,
+            schoolPassMark: settings?.minimumPassRatePerSubject ?? 50,
             attendance: {
               totalDays: attendanceRecords.length,
               presentDays,

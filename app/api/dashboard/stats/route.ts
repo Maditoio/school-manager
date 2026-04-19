@@ -36,6 +36,7 @@ type AcademicRow = {
   updatedAt: Date
   className: string
   gradeLabel: string
+  subjectPassRate: number | null
 }
 
 function roundOne(value: number) {
@@ -112,6 +113,9 @@ async function getAcademicRowsForTerm(params: {
       assessment: {
         select: {
           totalMarks: true,
+          subject: {
+            select: { passRate: true },
+          },
         },
       },
       student: {
@@ -135,6 +139,7 @@ async function getAcademicRowsForTerm(params: {
       updatedAt: row.updatedAt,
       className: row.student.class?.name || '-',
       gradeLabel: row.student.class?.grade?.trim() || row.student.class?.name || '-',
+      subjectPassRate: row.assessment.subject?.passRate ?? null,
     })) as AcademicRow[]
   }
 
@@ -176,6 +181,7 @@ async function getAcademicRowsForTerm(params: {
     updatedAt: row.updatedAt,
     className: row.student.class?.name || '-',
     gradeLabel: row.student.class?.grade?.trim() || row.student.class?.name || '-',
+    subjectPassRate: null,
   })) as AcademicRow[]
 }
 
@@ -835,8 +841,9 @@ export async function GET(request: NextRequest) {
             const percent = resultPercent(row.totalScore, row.maxScore)
             if (percent === null) continue
 
+            const rowPassMark = row.subjectPassRate ?? passMarkPercent
             validPercents.push(percent)
-            if (percent >= passMarkPercent) passCount += 1
+            if (percent >= rowPassMark) passCount += 1
 
             const classExisting = classAcc.get(row.className) || { sum: 0, count: 0 }
             classExisting.sum += percent
@@ -846,7 +853,7 @@ export async function GET(request: NextRequest) {
             const gradeExisting = gradeAcc.get(row.gradeLabel) || { sum: 0, count: 0, passCount: 0 }
             gradeExisting.sum += percent
             gradeExisting.count += 1
-            if (percent >= passMarkPercent) gradeExisting.passCount += 1
+            if (percent >= rowPassMark) gradeExisting.passCount += 1
             gradeAcc.set(row.gradeLabel, gradeExisting)
           }
 

@@ -160,7 +160,7 @@ export async function getPortalAccessState(params: {
       blocked: result.blocked,
       reason: result.reason,
     }
-  }
+  } 
 
   return {
     blocked: false,

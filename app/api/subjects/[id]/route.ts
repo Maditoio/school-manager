@@ -50,12 +50,25 @@ export async function PUT(
     const body = await request.json()
     const { id: subjectId } = await params
 
+    const updateData: { name?: string; code?: string | null; passRate?: number | null } = {}
+    if (body.name !== undefined) updateData.name = body.name
+    if ('code' in body) updateData.code = body.code ?? null
+    if ('passRate' in body) {
+      const pr = body.passRate
+      if (pr !== null && pr !== undefined) {
+        const num = Number(pr)
+        if (isNaN(num) || num < 0 || num > 100) {
+          return NextResponse.json({ error: 'passRate must be between 0 and 100' }, { status: 400 })
+        }
+        updateData.passRate = num
+      } else {
+        updateData.passRate = null
+      }
+    }
+
     const subject = await prisma.subject.update({
       where: { id: subjectId },
-      data: {
-        name: body.name,
-        code: body.code,
-      },
+      data: updateData,
     })
 
     return NextResponse.json({ subject })

@@ -42,29 +42,37 @@ export async function GET(request: NextRequest) {
     const schoolId = session.user.schoolId
 
     // ── 1. Student + class + form teacher ──────────────────────────────
-    const student = await prisma.student.findFirst({
-      where: {
-        id: studentId,
-        ...(schoolId ? { schoolId } : {}),
-      },
-      include: {
-        class: {
-          include: {
-            teacher: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                title: true,
+    const [student, schoolSettings] = await Promise.all([
+      prisma.student.findFirst({
+        where: {
+          id: studentId,
+          ...(schoolId ? { schoolId } : {}),
+        },
+        include: {
+          class: {
+            include: {
+              teacher: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  title: true,
+                },
               },
             },
           },
+          school: {
+            select: { id: true, name: true },
+          },
         },
-        school: {
-          select: { id: true, name: true },
-        },
-      },
-    })
+      }),
+      prisma.schoolSettings.findUnique({
+        where: { schoolId: schoolId ?? '' },
+        select: { minimumPassRatePerSubject: true },
+      }),
+    ])
+
+    const schoolPassMark = schoolSettings?.minimumPassRatePerSubject ?? 50
 
     if (!student) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 })
@@ -118,7 +126,7 @@ export async function GET(request: NextRequest) {
     const results = await prisma.result.findMany({
       where: resultsWhere,
       include: {
-        subject: { select: { id: true, name: true, code: true } },
+        subject: { select: { id: true, name: true, code: true, passRate: true } },
         terms: { include: { academic_years: true } },
       },
       orderBy: [{ year: 'asc' }, { term: 'asc' }],
@@ -151,7 +159,7 @@ export async function GET(request: NextRequest) {
       include: {
         assessment: {
           include: {
-            subject: { select: { id: true, name: true, code: true } },
+            subject: { select: { id: true, name: true, code: true, passRate: true } },
             teacher: { select: { id: true, firstName: true, lastName: true, title: true } },
           },
         },
@@ -304,6 +312,7 @@ export async function GET(request: NextRequest) {
         comment: string | null
         termName: string | null
         classAvg: number | null
+        subjectPassRate: number | null
       }
     >()
 
@@ -321,6 +330,7 @@ export async function GET(request: NextRequest) {
         comment: r.comment,
         termName: r.terms?.name ?? r.term ?? null,
         classAvg: classAverageBySubject[r.subjectId]?.avg ?? null,
+        subjectPassRate: r.subject.passRate ?? null,
       })
     }
 
@@ -346,7 +356,7 @@ export async function GET(request: NextRequest) {
     // Supplement: StudentAssessment aggregated scores for subjects not in Result
     const assessmentSubjectMap = new Map<
       string,
-      { subjectId: string; subjectName: string; subjectCode: string | null; teacherName: string | null; scores: number[]; maxScore: number; feedbacks: string[] }
+      { subjectId: string; subjectName: string; subjectCode: string | null; teacherName: string | null; scores: number[]; maxScore: number; feedbacks: string[]; passRate: number | null }
     >()
     for (const sa of studentAssessments) {
       const { subject, teacher } = sa.assessment
@@ -366,6 +376,7 @@ export async function GET(request: NextRequest) {
             scores: sa.score != null ? [sa.score] : [],
             maxScore: sa.assessment.totalMarks,
             feedbacks: sa.feedback ? [sa.feedback] : [],
+            passRate: subject.passRate ?? null,
           })
         }
       }
@@ -383,6 +394,7 @@ export async function GET(request: NextRequest) {
         comment: v.feedbacks.join(' ') || null,
         termName: termInfo?.name ?? null,
         classAvg: classAverageBySubject[v.subjectId]?.avg ?? null,
+        subjectPassRate: v.passRate,
       })
     }
 
@@ -423,6 +435,7 @@ export async function GET(request: NextRequest) {
       term: termInfo,
       subjects: subjectRows,
       overallAverage: overallPct,
+      schoolPassMark,
       attendance: { totalDays, presentDays, absentDays, lateDays },
       position: { rank: classPosition, classSize },
       allTermResults,
