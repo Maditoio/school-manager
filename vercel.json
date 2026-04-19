@@ -3,10 +3,8 @@
     {
       "path": "/api/internal/execute-scheduled-deletions",
       "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/internal/generate-invoices",
-      "schedule": "0 1 * * *"
     }
+    
   ]
 }
+
