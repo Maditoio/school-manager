@@ -27,7 +27,7 @@ export async function GET(
 
     const billing = await prisma.schoolBilling.findUnique({
       where: { schoolId: id },
-      select: { id: true, onboardingFee: true, onboardingStatus: true },
+      select: { id: true, onboardingFee: true, onboardingStatus: true, annualPricePerStudent: true, licensedStudentCount: true, billingYear: true },
     })
 
     if (!billing) {
@@ -61,7 +61,24 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({ payments, totalPaid, onboardingStatus: finalOnboardingStatus })
+    // Auto-reconcile: derive licensedStudentCount from cumulative ANNUAL payments
+    let licensedStudentCount = billing.licensedStudentCount
+    if (billing.annualPricePerStudent > 0) {
+      const annualTotal = payments
+        .filter((p) => p.paymentType === 'ANNUAL')
+        .reduce((sum, p) => sum + p.amount, 0)
+      const derivedSeats = Math.floor(annualTotal / billing.annualPricePerStudent)
+      if (derivedSeats > billing.licensedStudentCount) {
+        const licenseYear = billing.billingYear > 0 ? billing.billingYear : new Date().getFullYear()
+        await prisma.schoolBilling.update({
+          where: { id: billing.id },
+          data: { licensedStudentCount: derivedSeats, billingYear: licenseYear },
+        })
+        licensedStudentCount = derivedSeats
+      }
+    }
+
+    return NextResponse.json({ payments, totalPaid, onboardingStatus: finalOnboardingStatus, licensedStudentCount })
   } catch (error) {
     console.error('Error fetching billing payments:', error)
     return NextResponse.json({ error: 'Failed to fetch billing payments' }, { status: 500 })
@@ -100,6 +117,7 @@ export async function POST(
         onboardingStatus: true,
         annualPricePerStudent: true,
         licensedStudentCount: true,
+        billingYear: true,
       },
     })
 
@@ -138,7 +156,32 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({ payment, onboardingStatus: finalOnboardingStatus }, { status: 201 })
+    // Auto-activate student licenses when ANNUAL payment is received:
+    // Sum all ANNUAL payments and derive how many seats are covered.
+    // Update licensedStudentCount so getStudentLicenseCoverageSnapshot auto-creates license records.
+    let licensedStudentCount = billing.licensedStudentCount
+    if (paymentType === 'ANNUAL' && billing.annualPricePerStudent > 0) {
+      const annualTotal = await prisma.schoolBillingPayment.aggregate({
+        where: { billingId: billing.id, paymentType: 'ANNUAL' },
+        _sum: { amount: true },
+      })
+      const totalAnnualPaid = annualTotal._sum.amount ?? 0
+      const derivedSeats = Math.floor(totalAnnualPaid / billing.annualPricePerStudent)
+      if (derivedSeats > billing.licensedStudentCount) {
+        // Set license year to billingYear or current year; also set default dates if not set
+        const licenseYear = billing.billingYear > 0 ? billing.billingYear : new Date().getFullYear()
+        await prisma.schoolBilling.update({
+          where: { id: billing.id },
+          data: {
+            licensedStudentCount: derivedSeats,
+            billingYear: licenseYear,
+          },
+        })
+        licensedStudentCount = derivedSeats
+      }
+    }
+
+    return NextResponse.json({ payment, onboardingStatus: finalOnboardingStatus, licensedStudentCount }, { status: 201 })
   } catch (error) {
     console.error('Error creating billing payment:', error)
     return NextResponse.json({ error: 'Failed to create billing payment' }, { status: 500 })
