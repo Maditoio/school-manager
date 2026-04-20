@@ -4,6 +4,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { translateText } from '@/lib/client-i18n'
+import { useLocale } from '@/lib/locale-context'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import {
   ChevronRight,
@@ -123,6 +125,8 @@ function buildSections(items: NavItem[]) {
 
 export function Sidebar({ items, user, onLogout, appName = 'School Connect', onDesktopWidthChange }: SidebarProps) {
   const pathname = usePathname()
+  const { locale } = useLocale()
+  const t = useCallback((s: string) => translateText(s, locale), [locale])
   const [isOpen, setIsOpen] = useState(true)
   const [isDesktop, setIsDesktop] = useState(false)
   // groups open state: { [groupName]: boolean }
@@ -240,7 +244,7 @@ export function Sidebar({ items, user, onLogout, appName = 'School Connect', onD
             transitionDelay: isOpen ? `${(index + 1) * 30}ms` : '0ms',
           }}
         >
-          {item.label}
+          {t(item.label)}
         </span>
       </Link>
     )
@@ -323,7 +327,7 @@ export function Sidebar({ items, user, onLogout, appName = 'School Connect', onD
                       transitionDelay: isOpen ? `${(si + 1) * 30}ms` : '0ms',
                     }}
                   >
-                    {name}
+                    {t(name)}
                   </span>
                   {isOpen && (
                     <ChevronRight
