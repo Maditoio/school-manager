@@ -12,6 +12,8 @@ import { useToast } from '@/components/ui/Toast'
 import { AlertTriangle, CircleCheck, Plus, Receipt, Users, Wallet } from 'lucide-react'
 import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS, FINANCE_NAV_ITEMS, FINANCE_MANAGER_NAV_ITEMS } from '@/lib/admin-nav'
 import { useCurrency } from '@/lib/currency-context'
+import { useLocale } from '@/lib/locale-context'
+import { translateText } from '@/lib/client-i18n'
 
 type FeeInvoiceStatus = 'PENDING' | 'OVERDUE' | 'PAID' | 'PARTIAL'
 
@@ -128,6 +130,8 @@ export default function AdminFeesPage({
   const { data: session, status } = useSession()
   const { showToast } = useToast()
   const { formatCurrency } = useCurrency()
+  const { locale } = useLocale()
+  const t = useCallback((s: string) => translateText(s, locale), [locale])
   const [loading, setLoading] = useState(true)
   const [periods, setPeriods] = useState<Period[]>([])
   const [selectedPeriodKey, setSelectedPeriodKey] = useState('')
@@ -254,7 +258,7 @@ export default function AdminFeesPage({
     () => [
       {
         key: 'studentName',
-        label: 'Student',
+        label: t('Student'),
         sortable: true,
         renderCell: (student: StudentStatus) => (
           <div className="flex flex-col">
@@ -263,10 +267,10 @@ export default function AdminFeesPage({
           </div>
         ),
       },
-      { key: 'className', label: 'Class', sortable: true },
+      { key: 'className', label: t('Class'), sortable: true },
       {
         key: 'baseFee',
-        label: 'Base Fee',
+        label: t('Base Fee'),
         sortable: false,
         renderCell: (student: StudentStatus) =>
           student.status === 'NO_SCHEDULE' ? (
@@ -277,7 +281,7 @@ export default function AdminFeesPage({
       },
       {
         key: 'adjustmentAmount',
-        label: 'Adjustment',
+        label: t('Adjustment'),
         sortable: true,
         renderCell: (student: StudentStatus) => {
           if (student.status === 'NO_SCHEDULE' || student.adjustmentAmount === 0)
@@ -291,7 +295,7 @@ export default function AdminFeesPage({
       },
       {
         key: 'amountDue',
-        label: 'Effective Amount',
+        label: t('Effective Amount'),
         sortable: true,
         renderCell: (student: StudentStatus) =>
           student.status === 'NO_SCHEDULE' ? '—' : (
@@ -312,15 +316,15 @@ export default function AdminFeesPage({
                 setAdjustReason('')
               }}
               className="text-xs text-indigo-400 hover:underline whitespace-nowrap"
-              title={hasAdj ? `Current adjustment: ${formatCurrency(student.adjustmentAmount)}` : 'Adjust fee'}
+              title={hasAdj ? `Current adjustment: ${formatCurrency(student.adjustmentAmount)}` : t('Adjust fee')}
             >
-              {hasAdj ? 'Edit Adjustment' : 'Adjust'}
+              {hasAdj ? t('Edit Adjustment') : t('Adjust')}
             </button>
           )
         },
       }] : []),
     ],
-    [formatCurrency, isAdmin, setAdjustTarget, setAdjustAmount, setAdjustReason]
+    [formatCurrency, isAdmin, t, setAdjustTarget, setAdjustAmount, setAdjustReason]
   )
 
   // Payment Status tab columns — due, paid, balance, status
@@ -328,7 +332,7 @@ export default function AdminFeesPage({
     () => [
       {
         key: 'studentName',
-        label: 'Student',
+        label: t('Student'),
         sortable: true,
         renderCell: (student: StudentStatus) => (
           <div className="flex flex-col">
@@ -337,10 +341,10 @@ export default function AdminFeesPage({
           </div>
         ),
       },
-      { key: 'className', label: 'Class', sortable: true },
+      { key: 'className', label: t('Class'), sortable: true },
       {
         key: 'amountDue',
-        label: 'Due',
+        label: t('Due'),
         sortable: true,
         renderCell: (student: StudentStatus) =>
           student.status === 'NO_SCHEDULE' ? (
@@ -351,7 +355,7 @@ export default function AdminFeesPage({
       },
       {
         key: 'totalPaid',
-        label: 'Paid',
+        label: t('Paid'),
         sortable: true,
         renderCell: (student: StudentStatus) => {
           const overpaidAmount = Math.max(student.totalPaid - student.amountDue, 0)
@@ -372,7 +376,7 @@ export default function AdminFeesPage({
       },
       {
         key: 'balance',
-        label: 'Balance',
+        label: t('Balance'),
         sortable: true,
         renderCell: (student: StudentStatus) => {
           if (student.status === 'NO_SCHEDULE') return '-'
@@ -388,7 +392,7 @@ export default function AdminFeesPage({
       },
       {
         key: 'status',
-        label: 'Status',
+        label: t('Status'),
         sortable: true,
         renderCell: (student: StudentStatus) => {
           if (student.status === 'NO_SCHEDULE') return <span className="text-xs text-amber-400">—</span>
@@ -401,7 +405,7 @@ export default function AdminFeesPage({
         },
       },
     ],
-    [formatCurrency]
+    [formatCurrency, t]
   )
 
   const filteredInvoices = useMemo(() => {
@@ -424,7 +428,7 @@ export default function AdminFeesPage({
     () => [
       {
         key: 'student',
-        label: 'Student',
+        label: t('Student'),
         sortable: false,
         renderCell: (inv: FeeInvoice) => (
           <div className="flex flex-col">
@@ -435,25 +439,25 @@ export default function AdminFeesPage({
       },
       {
         key: 'dueDate',
-        label: 'Due Date',
+        label: t('Due Date'),
         sortable: false,
         renderCell: (inv: FeeInvoice) => new Date(inv.dueDate).toLocaleDateString(),
       },
       {
         key: 'amountDue',
-        label: 'Amount Due',
+        label: t('Amount Due'),
         sortable: false,
         renderCell: (inv: FeeInvoice) => formatCurrency(inv.amountDue),
       },
       {
         key: 'totalPaid',
-        label: 'Paid',
+        label: t('Paid'),
         sortable: false,
         renderCell: (inv: FeeInvoice) => formatCurrency(inv.totalPaid),
       },
       {
         key: 'balance',
-        label: 'Balance',
+        label: t('Balance'),
         sortable: false,
         renderCell: (inv: FeeInvoice) => (
           <span className={inv.balance > 0 ? 'text-rose-400' : 'text-emerald-400'}>
@@ -463,7 +467,7 @@ export default function AdminFeesPage({
       },
       {
         key: 'status',
-        label: 'Status',
+        label: t('Status'),
         sortable: false,
         renderCell: (inv: FeeInvoice) => {
           const styles: Record<FeeInvoiceStatus, string> = {
@@ -476,7 +480,7 @@ export default function AdminFeesPage({
         },
       },
     ],
-    [formatCurrency]
+    [formatCurrency, t]
   )
 
   const fetchClasses = useCallback(async () => {
@@ -1598,13 +1602,13 @@ export default function AdminFeesPage({
             onClick={() => setActiveTab('structure')}
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'structure' ? 'bg-blue-600 text-white' : 'ui-text-secondary hover:ui-text-primary'}`}
           >
-            Fee Structure
+            {t('Fee Structure')}
           </button>
           <button
             onClick={() => setActiveTab('status')}
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'status' ? 'bg-blue-600 text-white' : 'ui-text-secondary hover:ui-text-primary'}`}
           >
-            Payment Status
+            {t('Payment Status')}
           </button>
           {isAdmin && selectedPeriod?.periodType === 'MONTHLY' && (
             <button
@@ -1614,14 +1618,14 @@ export default function AdminFeesPage({
               }}
               className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'invoices' ? 'bg-blue-600 text-white' : 'ui-text-secondary hover:ui-text-primary'}`}
             >
-              Invoices
+              {t('Invoices')}
             </button>
           )}
         </div>
 
         {activeTab === 'structure' && (
           <Table
-            title="Fee Structure"
+            title={t('Fee Structure')}
             columns={structureColumns}
             data={statusPageRows}
             loading={loading}
@@ -1634,7 +1638,7 @@ export default function AdminFeesPage({
             }}
             onPageChange={setStatusTablePage}
             filterOptions={[
-              { value: '', label: 'All classes' },
+              { value: '', label: t('All classes') },
               ...uniqueClasses.map((className) => ({ value: className, label: className })),
             ]}
             activeFilter={tableClassFilter}
@@ -1644,8 +1648,8 @@ export default function AdminFeesPage({
             }}
             emptyMessage={
               tableSearchQuery || tableClassFilter
-                ? 'No students match your filters.'
-                : 'No students found for this period.'
+                ? t('No students match your filters.')
+                : t('No students found for this period.')
             }
             rowKey="studentId"
           />
@@ -1653,7 +1657,7 @@ export default function AdminFeesPage({
 
         {activeTab === 'status' && (
           <Table
-            title="Payment Status"
+            title={t('Payment Status')}
             columns={statusColumns}
             data={statusPageRows}
             loading={loading}
@@ -1666,7 +1670,7 @@ export default function AdminFeesPage({
             }}
             onPageChange={setStatusTablePage}
             filterOptions={[
-              { value: '', label: 'All classes' },
+              { value: '', label: t('All classes') },
               ...uniqueClasses.map((className) => ({ value: className, label: className })),
             ]}
             activeFilter={tableClassFilter}
@@ -1676,8 +1680,8 @@ export default function AdminFeesPage({
             }}
             emptyMessage={
               tableSearchQuery || tableClassFilter
-                ? 'No students match your filters.'
-                : 'No students found for this period.'
+                ? t('No students match your filters.')
+                : t('No students found for this period.')
             }
             rowKey="studentId"
           />
@@ -1685,7 +1689,7 @@ export default function AdminFeesPage({
 
         {activeTab === 'invoices' && isAdmin && (
           <Table
-            title="Fee Invoices"
+            title={t('Fee Invoices')}
             columns={invoiceColumns}
             data={invoicePageRows}
             loading={invoicesLoading}
@@ -1695,11 +1699,11 @@ export default function AdminFeesPage({
             onSearch={(value) => { setInvoiceSearch(value); setInvoicesPage(1) }}
             onPageChange={setInvoicesPage}
             filterOptions={[
-              { value: '', label: 'All statuses' },
-              { value: 'PENDING', label: 'Pending' },
-              { value: 'OVERDUE', label: 'Overdue' },
-              { value: 'PARTIAL', label: 'Partial' },
-              { value: 'PAID', label: 'Paid' },
+              { value: '', label: t('All statuses') },
+              { value: 'PENDING', label: t('Pending') },
+              { value: 'OVERDUE', label: t('Overdue') },
+              { value: 'PARTIAL', label: t('Partial') },
+              { value: 'PAID', label: t('Paid') },
             ]}
             activeFilter={invoiceStatusFilter}
             onFilterChange={(value) => { setInvoiceStatusFilter(value); setInvoicesPage(1) }}
@@ -1710,13 +1714,13 @@ export default function AdminFeesPage({
                 className="ui-button ui-button-primary text-sm py-1 px-3 inline-flex items-center gap-1.5"
               >
                 <Receipt className="h-4 w-4" />
-                {generatingInvoices ? 'Generating…' : 'Generate Invoices'}
+                {generatingInvoices ? t('Generating…') : t('Generate Invoices')}
               </button>
             }
             emptyMessage={
               invoices.length === 0
-                ? 'No invoices for this period. Click "Generate Invoices" to create them.'
-                : 'No invoices match your filters.'
+                ? t('No invoices for this period. Click "Generate Invoices" to create them.')
+                : t('No invoices match your filters.')
             }
             rowKey="id"
           />
