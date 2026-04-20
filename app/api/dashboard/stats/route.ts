@@ -560,47 +560,61 @@ export async function GET(request: NextRequest) {
       const studentsInFinancialYear = studentsInFinancialYearRows.length
       const studentsInPreviousYear = studentsInPreviousYearRows.length
 
-      // Build per-student target amounts using class-specific or school-wide schedule
-      const currentClassScheduleMap = new Map(
-        currentYearSchedules.filter((s) => s.classId !== null).map((s) => [s.classId!, s])
-      )
-      const currentSchoolWideSchedule = currentYearSchedules.find((s) => s.classId === null) ?? null
+      // Build per-student target amounts supporting YEARLY, SEMESTER, and MONTHLY structures.
+      // A class may have multiple schedules (e.g. 2 semester schedules or 12 monthly schedules),
+      // so we group by classId → array, then sum all applicable schedules per student.
+      function buildClassScheduleGroups(schedules: typeof currentYearSchedules) {
+        const classGroups = new Map<string, typeof schedules>()
+        const schoolWide: typeof schedules = []
+        for (const s of schedules) {
+          if (s.classId === null) {
+            schoolWide.push(s)
+          } else {
+            const arr = classGroups.get(s.classId) ?? []
+            arr.push(s)
+            classGroups.set(s.classId, arr)
+          }
+        }
+        return { classGroups, schoolWide }
+      }
 
-      const previousClassScheduleMap = new Map(
-        previousYearSchedules.filter((s) => s.classId !== null).map((s) => [s.classId!, s])
-      )
-      const previousSchoolWideSchedule = previousYearSchedules.find((s) => s.classId === null) ?? null
+      function studentYearlyTarget(
+        student: { id: string; classId: string | null },
+        classGroups: Map<string, typeof currentYearSchedules>,
+        schoolWide: typeof currentYearSchedules
+      ) {
+        const applicable =
+          (student.classId && classGroups.has(student.classId))
+            ? classGroups.get(student.classId)!
+            : schoolWide
+        return applicable.reduce((sum, s) => sum + Number(s.amountDue), 0)
+      }
 
-      // Preferred schedule for target/rate display: school-wide YEARLY → school-wide any → first overall
+      const { classGroups: currentClassGroups, schoolWide: currentSchoolWide } =
+        buildClassScheduleGroups(currentYearSchedules)
+      const { classGroups: previousClassGroups, schoolWide: previousSchoolWide } =
+        buildClassScheduleGroups(previousYearSchedules)
+
+      // Preferred single schedule for display labels (school-wide YEARLY → school-wide any → first)
       const currentPrimarySchedule =
         currentYearSchedules.find((s) => s.classId === null && s.periodType === 'YEARLY') ||
         currentYearSchedules.find((s) => s.classId === null) ||
         currentYearSchedules[0] ||
         null
 
-      // Use all approved schedule IDs so payments across class-specific schedules are counted
+      // Use all approved schedule IDs so payments across all schedules are counted
       const currentScheduleIds = currentYearSchedules.map((s) => s.id)
       const previousScheduleIds = previousYearSchedules.map((s) => s.id)
 
       const targetAmount = Number(
         studentsInFinancialYearRows
-          .reduce((sum, student) => {
-            const applicable =
-              (student.classId ? currentClassScheduleMap.get(student.classId) : null) ??
-              currentSchoolWideSchedule
-            return sum + Number(applicable?.amountDue ?? 0)
-          }, 0)
+          .reduce((sum, student) => sum + studentYearlyTarget(student, currentClassGroups, currentSchoolWide), 0)
           .toFixed(2)
       )
 
       const previousTargetAmount = Number(
         studentsInPreviousYearRows
-          .reduce((sum, student) => {
-            const applicable =
-              (student.classId ? previousClassScheduleMap.get(student.classId) : null) ??
-              previousSchoolWideSchedule
-            return sum + Number(applicable?.amountDue ?? 0)
-          }, 0)
+          .reduce((sum, student) => sum + studentYearlyTarget(student, previousClassGroups, previousSchoolWide), 0)
           .toFixed(2)
       )
 
@@ -700,12 +714,10 @@ export async function GET(request: NextRequest) {
       const defaulterCount =
         currentYearSchedules.length > 0 && studentsInFinancialYear > 0
           ? studentsInFinancialYearRows.filter((student) => {
-              const applicable =
-                (student.classId ? currentClassScheduleMap.get(student.classId) : null) ??
-                currentSchoolWideSchedule
-              if (!applicable) return false
+              const fullTarget = studentYearlyTarget(student, currentClassGroups, currentSchoolWide)
+              if (!fullTarget) return false
               const paid = paidByStudent.get(student.id) || 0
-              return paid < Number(applicable.amountDue)
+              return paid < fullTarget
             }).length
           : 0
 
