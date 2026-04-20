@@ -516,8 +516,8 @@ export async function GET(request: NextRequest) {
       const [
         currentYearSchedules,
         previousYearSchedules,
-        studentsInFinancialYear,
-        studentsInPreviousYear,
+        studentsInFinancialYearRows,
+        studentsInPreviousYearRows,
       ] = await Promise.all([
         prisma.feeSchedule.findMany({
           where: {
@@ -547,19 +547,29 @@ export async function GET(request: NextRequest) {
             periodType: true,
           },
         }),
-        prisma.student.count({
-          where: {
-            schoolId,
-            academicYear: financialYear,
-          },
+        prisma.student.findMany({
+          where: { schoolId, academicYear: financialYear },
+          select: { id: true, classId: true },
         }),
-        prisma.student.count({
-          where: {
-            schoolId,
-            academicYear: previousYear,
-          },
+        prisma.student.findMany({
+          where: { schoolId, academicYear: previousYear },
+          select: { id: true, classId: true },
         }),
       ])
+
+      const studentsInFinancialYear = studentsInFinancialYearRows.length
+      const studentsInPreviousYear = studentsInPreviousYearRows.length
+
+      // Build per-student target amounts using class-specific or school-wide schedule
+      const currentClassScheduleMap = new Map(
+        currentYearSchedules.filter((s) => s.classId !== null).map((s) => [s.classId!, s])
+      )
+      const currentSchoolWideSchedule = currentYearSchedules.find((s) => s.classId === null) ?? null
+
+      const previousClassScheduleMap = new Map(
+        previousYearSchedules.filter((s) => s.classId !== null).map((s) => [s.classId!, s])
+      )
+      const previousSchoolWideSchedule = previousYearSchedules.find((s) => s.classId === null) ?? null
 
       // Preferred schedule for target/rate display: school-wide YEARLY → school-wide any → first overall
       const currentPrimarySchedule =
@@ -567,15 +577,32 @@ export async function GET(request: NextRequest) {
         currentYearSchedules.find((s) => s.classId === null) ||
         currentYearSchedules[0] ||
         null
-      const previousPrimarySchedule =
-        previousYearSchedules.find((s) => s.classId === null && s.periodType === 'YEARLY') ||
-        previousYearSchedules.find((s) => s.classId === null) ||
-        previousYearSchedules[0] ||
-        null
 
       // Use all approved schedule IDs so payments across class-specific schedules are counted
       const currentScheduleIds = currentYearSchedules.map((s) => s.id)
       const previousScheduleIds = previousYearSchedules.map((s) => s.id)
+
+      const targetAmount = Number(
+        studentsInFinancialYearRows
+          .reduce((sum, student) => {
+            const applicable =
+              (student.classId ? currentClassScheduleMap.get(student.classId) : null) ??
+              currentSchoolWideSchedule
+            return sum + Number(applicable?.amountDue ?? 0)
+          }, 0)
+          .toFixed(2)
+      )
+
+      const previousTargetAmount = Number(
+        studentsInPreviousYearRows
+          .reduce((sum, student) => {
+            const applicable =
+              (student.classId ? previousClassScheduleMap.get(student.classId) : null) ??
+              previousSchoolWideSchedule
+            return sum + Number(applicable?.amountDue ?? 0)
+          }, 0)
+          .toFixed(2)
+      )
 
       const [
         yearlyPayments,
@@ -650,13 +677,6 @@ export async function GET(request: NextRequest) {
       const yesterdayCollected = Number(yesterdayPaymentsAggregate._sum.amountPaid || 0)
       const todayPaymentsCount = Number(todayPaymentsAggregate._count?._all || 0)
 
-      const targetAmount = Number(
-        ((currentPrimarySchedule?.amountDue || 0) * studentsInFinancialYear).toFixed(2)
-      )
-      const previousTargetAmount = Number(
-        ((previousPrimarySchedule?.amountDue || 0) * studentsInPreviousYear).toFixed(2)
-      )
-
       const outstandingBalance = Number(Math.max(targetAmount - totalCollected, 0).toFixed(2))
       const previousOutstandingBalance = Number(Math.max(previousTargetAmount - previousCollected, 0).toFixed(2))
       const progressPercent =
@@ -677,23 +697,17 @@ export async function GET(request: NextRequest) {
       }
 
       // Build class-schedule map for per-student defaulter calc
-      const dashClassScheduleMap = new Map(
-        currentYearSchedules.filter((s) => s.classId !== null).map((s) => [s.classId!, s])
-      )
-      const dashSchoolWideSchedule =
-        currentYearSchedules.find((s) => s.classId === null) ?? null
-
       const defaulterCount =
         currentYearSchedules.length > 0 && studentsInFinancialYear > 0
-          ? Array.from(paidByStudent.values()).filter((paid) => {
-              // approximate: use primary schedule rate for dashboard simplicity
-              return paid < (currentPrimarySchedule?.amountDue ?? 0)
-            }).length + Math.max(studentsInFinancialYear - paidByStudent.size, 0)
+          ? studentsInFinancialYearRows.filter((student) => {
+              const applicable =
+                (student.classId ? currentClassScheduleMap.get(student.classId) : null) ??
+                currentSchoolWideSchedule
+              if (!applicable) return false
+              const paid = paidByStudent.get(student.id) || 0
+              return paid < Number(applicable.amountDue)
+            }).length
           : 0
-
-      // Suppress unused variable warning
-      void dashClassScheduleMap
-      void dashSchoolWideSchedule
 
       const methodAmounts = new Map<string, { amount: number; count: number }>()
       for (const payment of yearlyPayments) {
