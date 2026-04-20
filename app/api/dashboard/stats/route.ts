@@ -518,6 +518,7 @@ export async function GET(request: NextRequest) {
         previousYearSchedules,
         studentsInFinancialYearRows,
         studentsInPreviousYearRows,
+        feeSchoolSettings,
       ] = await Promise.all([
         prisma.feeSchedule.findMany({
           where: {
@@ -531,6 +532,7 @@ export async function GET(request: NextRequest) {
             classId: true,
             amountDue: true,
             periodType: true,
+            month: true,
           },
         }),
         prisma.feeSchedule.findMany({
@@ -545,6 +547,7 @@ export async function GET(request: NextRequest) {
             classId: true,
             amountDue: true,
             periodType: true,
+            month: true,
           },
         }),
         prisma.student.findMany({
@@ -555,14 +558,39 @@ export async function GET(request: NextRequest) {
           where: { schoolId, academicYear: previousYear },
           select: { id: true, classId: true },
         }),
+        prisma.schoolSettings.findUnique({
+          where: { schoolId },
+          select: { invoiceActiveMonths: true },
+        }),
       ])
 
       const studentsInFinancialYear = studentsInFinancialYearRows.length
       const studentsInPreviousYear = studentsInPreviousYearRows.length
 
-      // Build per-student target amounts supporting YEARLY, SEMESTER, and MONTHLY structures.
-      // A class may have multiple schedules (e.g. 2 semester schedules or 12 monthly schedules),
-      // so we group by classId → array, then sum all applicable schedules per student.
+      // For MONTHLY fee structures, schools approve one month at a time.
+      // We use the first approved monthly schedule as the representative rate and
+      // multiply by the expected billing months (invoiceActiveMonths count, or 12).
+      const billingMonthsCount =
+        (feeSchoolSettings?.invoiceActiveMonths?.length ?? 0) > 0
+          ? feeSchoolSettings!.invoiceActiveMonths.length
+          : 12
+
+      // For each group of schedules per classId (or school-wide), compute the annualised amount:
+      // - YEARLY: sum of schedule amounts (typically 1)
+      // - SEMESTER: sum of schedule amounts (typically 2)
+      // - MONTHLY: take ONE representative schedule's amountDue × billingMonthsCount
+      //   (avoids overcounting when only 1–2 months have been approved so far)
+      function annualise(schedules: { amountDue: number; periodType: string; month: number | null }[]): number {
+        if (schedules.length === 0) return 0
+        const type = schedules[0].periodType
+        if (type === 'MONTHLY') {
+          // Use the most-recently-approved month's rate as representative
+          return Number(schedules[0].amountDue) * billingMonthsCount
+        }
+        // YEARLY or SEMESTER: sum all approved schedules (1 or 2 respectively)
+        return schedules.reduce((sum, s) => sum + Number(s.amountDue), 0)
+      }
+
       function buildClassScheduleGroups(schedules: typeof currentYearSchedules) {
         const classGroups = new Map<string, typeof schedules>()
         const schoolWide: typeof schedules = []
@@ -587,7 +615,7 @@ export async function GET(request: NextRequest) {
           (student.classId && classGroups.has(student.classId))
             ? classGroups.get(student.classId)!
             : schoolWide
-        return applicable.reduce((sum, s) => sum + Number(s.amountDue), 0)
+        return annualise(applicable)
       }
 
       const { classGroups: currentClassGroups, schoolWide: currentSchoolWide } =
@@ -710,14 +738,28 @@ export async function GET(request: NextRequest) {
         )
       }
 
+      // Defaulter threshold = amount BILLED so far (sum of actual approved schedules),
+      // not the annualised full-year target (which would wrongly flag monthly-plan students).
+      function studentBilledSoFar(
+        student: { id: string; classId: string | null },
+        classGroups: Map<string, typeof currentYearSchedules>,
+        schoolWide: typeof currentYearSchedules
+      ) {
+        const applicable =
+          (student.classId && classGroups.has(student.classId))
+            ? classGroups.get(student.classId)!
+            : schoolWide
+        return applicable.reduce((sum, s) => sum + Number(s.amountDue), 0)
+      }
+
       // Build class-schedule map for per-student defaulter calc
       const defaulterCount =
         currentYearSchedules.length > 0 && studentsInFinancialYear > 0
           ? studentsInFinancialYearRows.filter((student) => {
-              const fullTarget = studentYearlyTarget(student, currentClassGroups, currentSchoolWide)
-              if (!fullTarget) return false
+              const billed = studentBilledSoFar(student, currentClassGroups, currentSchoolWide)
+              if (!billed) return false
               const paid = paidByStudent.get(student.id) || 0
-              return paid < fullTarget
+              return paid < billed
             }).length
           : 0
 
