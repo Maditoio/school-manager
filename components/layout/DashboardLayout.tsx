@@ -318,7 +318,7 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
           {translatedChildren}
         </main>
         {isParentView ? (
-          <BottomSidebarNav items={translatedNavItems} />
+          <BottomSidebarNav items={translatedNavItems} onLogout={handleLogout} />
         ) : null}
       </div>
     </div>

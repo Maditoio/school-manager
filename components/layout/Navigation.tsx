@@ -386,9 +386,10 @@ export function MobileNav() {
 
 interface BottomSidebarNavProps {
   items: NavItem[]
+  onLogout?: () => void
 }
 
-export function BottomSidebarNav({ items }: BottomSidebarNavProps) {
+export function BottomSidebarNav({ items, onLogout }: BottomSidebarNavProps) {
   const pathname = usePathname()
 
   return (
@@ -414,6 +415,16 @@ export function BottomSidebarNav({ items }: BottomSidebarNavProps) {
             </Link>
           )
         })}
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-medium transition text-rose-400 hover:bg-(--surface-soft)"
+            aria-label="Logout"
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            <span className="truncate">Logout</span>
+          </button>
+        )}
       </div>
     </nav>
   )
