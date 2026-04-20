@@ -141,7 +141,6 @@ export default function AdminFeesPage({
     pendingAmount: 0,
   })
   const [studentStatuses, setStudentStatuses] = useState<StudentStatus[]>([])
-  const [recentPayments, setRecentPayments] = useState<RecentPayment[]>([])
 
   const [scheduleForm, setScheduleForm] = useState({
     periodType: 'MONTHLY' as FeePeriodType,
@@ -172,8 +171,6 @@ export default function AdminFeesPage({
   const [tableSearchQuery, setTableSearchQuery] = useState('')
   const [tableClassFilter, setTableClassFilter] = useState('')
   const [statusTablePage, setStatusTablePage] = useState(1)
-  const [recentSearchQuery, setRecentSearchQuery] = useState('')
-  const [recentPaymentsPage, setRecentPaymentsPage] = useState(1)
   const [paymentModalSearchQuery, setPaymentModalSearchQuery] = useState('')
   const [showPaymentStudentDropdown, setShowPaymentStudentDropdown] = useState(false)
   const [selectedStudentDue, setSelectedStudentDue] = useState<StudentStatus | null>(null)
@@ -185,8 +182,8 @@ export default function AdminFeesPage({
   const [adjustReason, setAdjustReason] = useState('')
   const [submittingAdjustment, setSubmittingAdjustment] = useState(false)
 
-  // Invoices tab
-  const [activeTab, setActiveTab] = useState<'fees' | 'invoices'>('fees')
+  // Tabs
+  const [activeTab, setActiveTab] = useState<'structure' | 'status' | 'invoices'>('structure')
   const [invoices, setInvoices] = useState<FeeInvoice[]>([])
   const [invoicesLoading, setInvoicesLoading] = useState(false)
   const [generatingInvoices, setGeneratingInvoices] = useState(false)
@@ -247,30 +244,86 @@ export default function AdminFeesPage({
     [studentStatuses]
   )
 
-  const filteredRecentPayments = useMemo(() => {
-    const query = recentSearchQuery.trim().toLowerCase()
-    if (!query) return recentPayments
-
-    return recentPayments.filter(
-      (payment) =>
-        payment.paymentNumber.toLowerCase().includes(query) ||
-        formatPaymentMethod(payment.paymentMethod).toLowerCase().includes(query) ||
-        payment.studentName.toLowerCase().includes(query) ||
-        payment.className.toLowerCase().includes(query) ||
-        String(payment.admissionNumber || '').toLowerCase().includes(query)
-    )
-  }, [recentPayments, recentSearchQuery])
-
   const statusPageRows = useMemo(() => {
     const start = (statusTablePage - 1) * pageSize
     return filteredStudentStatuses.slice(start, start + pageSize)
   }, [filteredStudentStatuses, statusTablePage])
 
-  const recentPageRows = useMemo(() => {
-    const start = (recentPaymentsPage - 1) * pageSize
-    return filteredRecentPayments.slice(start, start + pageSize)
-  }, [filteredRecentPayments, recentPaymentsPage])
+  // Fee Structure tab columns — base amount, adjustment, effective amount, adjust action
+  const structureColumns = useMemo(
+    () => [
+      {
+        key: 'studentName',
+        label: 'Student',
+        sortable: true,
+        renderCell: (student: StudentStatus) => (
+          <div className="flex flex-col">
+            <span className="font-medium text-slate-100">{student.studentName}</span>
+            <span className="text-xs text-slate-400">{student.admissionNumber || 'No admission number'}</span>
+          </div>
+        ),
+      },
+      { key: 'className', label: 'Class', sortable: true },
+      {
+        key: 'baseFee',
+        label: 'Base Fee',
+        sortable: false,
+        renderCell: (student: StudentStatus) =>
+          student.status === 'NO_SCHEDULE' ? (
+            <span className="text-xs text-amber-400">No schedule</span>
+          ) : (
+            formatCurrency(student.amountDue - student.adjustmentAmount)
+          ),
+      },
+      {
+        key: 'adjustmentAmount',
+        label: 'Adjustment',
+        sortable: true,
+        renderCell: (student: StudentStatus) => {
+          if (student.status === 'NO_SCHEDULE' || student.adjustmentAmount === 0)
+            return <span className="text-xs ui-text-secondary">—</span>
+          return (
+            <span className={student.adjustmentAmount < 0 ? 'text-emerald-400' : 'text-rose-400'}>
+              {student.adjustmentAmount > 0 ? '+' : ''}{formatCurrency(student.adjustmentAmount)}
+            </span>
+          )
+        },
+      },
+      {
+        key: 'amountDue',
+        label: 'Effective Amount',
+        sortable: true,
+        renderCell: (student: StudentStatus) =>
+          student.status === 'NO_SCHEDULE' ? '—' : (
+            <span className="font-semibold ui-text-primary">{formatCurrency(student.amountDue)}</span>
+          ),
+      },
+      ...(isAdmin ? [{
+        key: 'adjust',
+        label: '',
+        renderCell: (student: StudentStatus) => {
+          if (!student.scheduleId) return null
+          const hasAdj = student.adjustmentAmount !== 0
+          return (
+            <button
+              onClick={() => {
+                setAdjustTarget(student)
+                setAdjustAmount('')
+                setAdjustReason('')
+              }}
+              className="text-xs text-indigo-400 hover:underline whitespace-nowrap"
+              title={hasAdj ? `Current adjustment: ${formatCurrency(student.adjustmentAmount)}` : 'Adjust fee'}
+            >
+              {hasAdj ? 'Edit Adjustment' : 'Adjust'}
+            </button>
+          )
+        },
+      }] : []),
+    ],
+    [formatCurrency, isAdmin, setAdjustTarget, setAdjustAmount, setAdjustReason]
+  )
 
+  // Payment Status tab columns — due, paid, balance, status
   const statusColumns = useMemo(
     () => [
       {
@@ -339,96 +392,16 @@ export default function AdminFeesPage({
         sortable: true,
         renderCell: (student: StudentStatus) => {
           if (student.status === 'NO_SCHEDULE') return <span className="text-xs text-amber-400">—</span>
-          return student.status === 'NOT_PAID' ? 'NOT PAID' : student.status
+          const label = student.status === 'NOT_PAID' ? 'NOT PAID' : student.status
+          const style =
+            student.status === 'PAID' ? 'bg-emerald-500/20 text-emerald-400' :
+            student.status === 'PARTIAL' ? 'bg-amber-500/20 text-amber-400' :
+            'bg-rose-500/20 text-rose-400'
+          return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${style}`}>{label}</span>
         },
       },
-      ...(isAdmin ? [{
-        key: 'adjust',
-        label: '',
-        renderCell: (student: StudentStatus) => {
-          if (!student.scheduleId) return null
-          const hasAdj = student.adjustmentAmount !== 0
-          return (
-            <button
-              onClick={() => {
-                setAdjustTarget(student)
-                setAdjustAmount('')
-                setAdjustReason('')
-              }}
-              className="text-xs text-indigo-400 hover:underline whitespace-nowrap"
-              title={hasAdj ? `Current adjustment: ${formatCurrency(student.adjustmentAmount)}` : 'Adjust fee'}
-            >
-              {hasAdj ? `Adjusted (${student.adjustmentAmount > 0 ? '+' : ''}${formatCurrency(student.adjustmentAmount)})` : 'Adjust'}
-            </button>
-          )
-        },
-      }] : []),
     ],
-    [formatCurrency, isAdmin, setAdjustTarget, setAdjustAmount, setAdjustReason]
-  )
-
-  const recentColumns = useMemo(
-    () => [
-      { key: 'paymentNumber', label: 'Payment #', sortable: true },
-      {
-        key: 'studentName',
-        label: 'Student',
-        sortable: true,
-        renderCell: (payment: RecentPayment) => (
-          <div className="flex flex-col">
-            <span className="font-medium text-slate-100">{payment.studentName}</span>
-            <span className="text-xs text-slate-400">{payment.className}</span>
-          </div>
-        ),
-      },
-      {
-        key: 'paymentMethod',
-        label: 'Method',
-        sortable: true,
-        renderCell: (payment: RecentPayment) => formatPaymentMethod(payment.paymentMethod),
-      },
-      {
-        key: 'amountPaid',
-        label: 'Amount',
-        sortable: true,
-        renderCell: (payment: RecentPayment) => formatCurrency(payment.amountPaid),
-      },
-      {
-        key: 'paymentDate',
-        label: 'Date',
-        sortable: true,
-        renderCell: (payment: RecentPayment) => new Date(payment.paymentDate).toLocaleDateString(),
-      },
-      {
-        key: 'invoice',
-        label: 'Invoice',
-        renderCell: (payment: RecentPayment) => (
-          <div className="flex flex-col gap-1">
-            <Link
-              href={`${routePrefix}/fees/invoice/${payment.id}`}
-              target="_blank"
-              className="text-indigo-300 hover:underline"
-            >
-              View Invoice
-            </Link>
-            {payment.receiptUrl ? (
-              <button
-                type="button"
-                onClick={() => setReceiptPreview({
-                  url: payment.receiptUrl as string,
-                  fileName: payment.receiptFileName || 'Receipt',
-                  mimeType: payment.receiptMimeType,
-                })}
-                className="text-left text-xs text-indigo-300 hover:underline"
-              >
-                {payment.receiptFileName || 'View Receipt'}
-              </button>
-            ) : null}
-          </div>
-        ),
-      },
-    ],
-    [routePrefix]
+    [formatCurrency]
   )
 
   const fetchClasses = useCallback(async () => {
@@ -492,7 +465,6 @@ export default function AdminFeesPage({
           }
         )
         setStudentStatuses(Array.isArray(data.studentStatuses) ? data.studentStatuses : [])
-        setRecentPayments(Array.isArray(data.recentPayments) ? data.recentPayments : [])
         setPendingSchedules(Array.isArray(data.pendingSchedules) ? data.pendingSchedules : [])
 
         const selected = data.selectedPeriod?.key || periodsData[0]?.key || ''
@@ -504,7 +476,6 @@ export default function AdminFeesPage({
         setPeriods([])
         setSummary({ studentsCount: 0, payingCount: 0, notPayingCount: 0, collectedAmount: 0, pendingAmount: 0 })
         setStudentStatuses([])
-        setRecentPayments([])
         setPendingSchedules([])
       } finally {
         setLoading(false)
@@ -939,18 +910,6 @@ export default function AdminFeesPage({
             >
               <Wallet className="h-4 w-4" />
               Record Payment
-            </button>
-            )}
-            {isAdmin && selectedPeriod?.periodType === 'MONTHLY' && (
-            <button
-              onClick={async () => {
-                setActiveTab('invoices')
-                await fetchInvoices()
-              }}
-              className="ui-button ui-button-secondary inline-flex items-center gap-2"
-            >
-              <Receipt className="h-4 w-4" />
-              Invoices
             </button>
             )}
             {lastInvoiceId && (
@@ -1559,14 +1518,20 @@ export default function AdminFeesPage({
         </Card>
 
         {/* Tab switcher */}
-        {isAdmin && selectedPeriod?.periodType === 'MONTHLY' && (
-          <div className="flex gap-1 rounded-lg p-1 w-fit" style={{ background: 'var(--surface-soft)' }}>
-            <button
-              onClick={() => setActiveTab('fees')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'fees' ? 'bg-blue-600 text-white' : 'ui-text-secondary hover:ui-text-primary'}`}
-            >
-              Payment Status
-            </button>
+        <div className="flex gap-1 rounded-lg p-1 w-fit" style={{ background: 'var(--surface-soft)' }}>
+          <button
+            onClick={() => setActiveTab('structure')}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'structure' ? 'bg-blue-600 text-white' : 'ui-text-secondary hover:ui-text-primary'}`}
+          >
+            Fee Structure
+          </button>
+          <button
+            onClick={() => setActiveTab('status')}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'status' ? 'bg-blue-600 text-white' : 'ui-text-secondary hover:ui-text-primary'}`}
+          >
+            Payment Status
+          </button>
+          {isAdmin && selectedPeriod?.periodType === 'MONTHLY' && (
             <button
               onClick={async () => {
                 setActiveTab('invoices')
@@ -1576,10 +1541,74 @@ export default function AdminFeesPage({
             >
               Invoices
             </button>
-          </div>
+          )}
+        </div>
+
+        {activeTab === 'structure' && (
+          <Table
+            title="Fee Structure"
+            columns={structureColumns}
+            data={statusPageRows}
+            loading={loading}
+            totalCount={filteredStudentStatuses.length}
+            page={statusTablePage}
+            pageSize={pageSize}
+            onSearch={(value: string) => {
+              setTableSearchQuery(value)
+              setStatusTablePage(1)
+            }}
+            onPageChange={setStatusTablePage}
+            filterOptions={[
+              { value: '', label: 'All classes' },
+              ...uniqueClasses.map((className) => ({ value: className, label: className })),
+            ]}
+            activeFilter={tableClassFilter}
+            onFilterChange={(value: string) => {
+              setTableClassFilter(value)
+              setStatusTablePage(1)
+            }}
+            emptyMessage={
+              tableSearchQuery || tableClassFilter
+                ? 'No students match your filters.'
+                : 'No students found for this period.'
+            }
+            rowKey="studentId"
+          />
         )}
 
-        {activeTab === 'invoices' && isAdmin ? (
+        {activeTab === 'status' && (
+          <Table
+            title="Payment Status"
+            columns={statusColumns}
+            data={statusPageRows}
+            loading={loading}
+            totalCount={filteredStudentStatuses.length}
+            page={statusTablePage}
+            pageSize={pageSize}
+            onSearch={(value: string) => {
+              setTableSearchQuery(value)
+              setStatusTablePage(1)
+            }}
+            onPageChange={setStatusTablePage}
+            filterOptions={[
+              { value: '', label: 'All classes' },
+              ...uniqueClasses.map((className) => ({ value: className, label: className })),
+            ]}
+            activeFilter={tableClassFilter}
+            onFilterChange={(value: string) => {
+              setTableClassFilter(value)
+              setStatusTablePage(1)
+            }}
+            emptyMessage={
+              tableSearchQuery || tableClassFilter
+                ? 'No students match your filters.'
+                : 'No students found for this period.'
+            }
+            rowKey="studentId"
+          />
+        )}
+
+        {activeTab === 'invoices' && isAdmin && (
           /* ── Invoices panel ─────────────────────────────────────────────── */
           <Card title="Fee Invoices" className="p-0 overflow-hidden">
             <div className="flex items-center justify-between gap-3 px-5 py-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
@@ -1707,58 +1736,7 @@ export default function AdminFeesPage({
               )
             })()}
           </Card>
-        ) : (
-          <Table
-            title="Payment Status by Student"
-            columns={statusColumns}
-            data={statusPageRows}
-            loading={loading}
-            totalCount={filteredStudentStatuses.length}
-            page={statusTablePage}
-            pageSize={pageSize}
-            onSearch={(value: string) => {
-              setTableSearchQuery(value)
-              setStatusTablePage(1)
-            }}
-            onPageChange={setStatusTablePage}
-            filterOptions={[
-              { value: '', label: 'All classes' },
-              ...uniqueClasses.map((className) => ({ value: className, label: className })),
-            ]}
-            activeFilter={tableClassFilter}
-            onFilterChange={(value: string) => {
-              setTableClassFilter(value)
-              setStatusTablePage(1)
-            }}
-            emptyMessage={
-              tableSearchQuery || tableClassFilter
-                ? 'No students match your filters.'
-                : 'No students found for this schedule year.'
-            }
-            rowKey="studentId"
-          />
         )}
-
-        <Table
-          title="Recent Payments"
-          columns={recentColumns}
-          data={recentPageRows}
-          loading={loading}
-          totalCount={filteredRecentPayments.length}
-          page={recentPaymentsPage}
-          pageSize={pageSize}
-          onSearch={(value: string) => {
-            setRecentSearchQuery(value)
-            setRecentPaymentsPage(1)
-          }}
-          onPageChange={setRecentPaymentsPage}
-          onFilterClick={() => {
-            setRecentSearchQuery('')
-            setRecentPaymentsPage(1)
-          }}
-          emptyMessage="No payments recorded yet."
-          rowKey="id"
-        />
       </div>
     </DashboardLayout>
   )
