@@ -404,6 +404,81 @@ export default function AdminFeesPage({
     [formatCurrency]
   )
 
+  const filteredInvoices = useMemo(() => {
+    const q = invoiceSearch.toLowerCase()
+    return invoices.filter((inv) => {
+      const name = `${inv.student.firstName} ${inv.student.lastName}`.toLowerCase()
+      const adm = (inv.student.admissionNumber ?? '').toLowerCase()
+      const matchesSearch = !q || name.includes(q) || adm.includes(q)
+      const matchesStatus = !invoiceStatusFilter || inv.status === invoiceStatusFilter
+      return matchesSearch && matchesStatus
+    })
+  }, [invoices, invoiceSearch, invoiceStatusFilter])
+
+  const invoicePageRows = useMemo(() => {
+    const start = (invoicesPage - 1) * pageSize
+    return filteredInvoices.slice(start, start + pageSize)
+  }, [filteredInvoices, invoicesPage, pageSize])
+
+  const invoiceColumns = useMemo(
+    () => [
+      {
+        key: 'student',
+        label: 'Student',
+        sortable: false,
+        renderCell: (inv: FeeInvoice) => (
+          <div className="flex flex-col">
+            <span className="font-medium ui-text-primary">{inv.student.firstName} {inv.student.lastName}</span>
+            {inv.student.admissionNumber && <span className="text-xs ui-text-secondary">{inv.student.admissionNumber}</span>}
+          </div>
+        ),
+      },
+      {
+        key: 'dueDate',
+        label: 'Due Date',
+        sortable: false,
+        renderCell: (inv: FeeInvoice) => new Date(inv.dueDate).toLocaleDateString(),
+      },
+      {
+        key: 'amountDue',
+        label: 'Amount Due',
+        sortable: false,
+        renderCell: (inv: FeeInvoice) => formatCurrency(inv.amountDue),
+      },
+      {
+        key: 'totalPaid',
+        label: 'Paid',
+        sortable: false,
+        renderCell: (inv: FeeInvoice) => formatCurrency(inv.totalPaid),
+      },
+      {
+        key: 'balance',
+        label: 'Balance',
+        sortable: false,
+        renderCell: (inv: FeeInvoice) => (
+          <span className={inv.balance > 0 ? 'text-rose-400' : 'text-emerald-400'}>
+            {formatCurrency(inv.balance)}
+          </span>
+        ),
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        sortable: false,
+        renderCell: (inv: FeeInvoice) => {
+          const styles: Record<FeeInvoiceStatus, string> = {
+            PENDING: 'bg-slate-500/20 text-slate-400',
+            OVERDUE: 'bg-rose-500/20 text-rose-400',
+            PAID: 'bg-emerald-500/20 text-emerald-400',
+            PARTIAL: 'bg-amber-500/20 text-amber-400',
+          }
+          return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${styles[inv.status]}`}>{inv.status}</span>
+        },
+      },
+    ],
+    [formatCurrency]
+  )
+
   const fetchClasses = useCallback(async () => {
     try {
       const res = await fetch('/api/classes', { credentials: 'include' })
@@ -1609,133 +1684,42 @@ export default function AdminFeesPage({
         )}
 
         {activeTab === 'invoices' && isAdmin && (
-          /* ── Invoices panel ─────────────────────────────────────────────── */
-          <Card title="Fee Invoices" className="p-0 overflow-hidden">
-            <div className="flex items-center justify-between gap-3 px-5 py-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-              <div className="flex items-center gap-2 flex-wrap">
-                <input
-                  type="text"
-                  placeholder="Search student…"
-                  value={invoiceSearch}
-                  onChange={(e) => { setInvoiceSearch(e.target.value); setInvoicesPage(1) }}
-                  className="ui-input text-sm py-1 px-3 w-48"
-                />
-                <select
-                  value={invoiceStatusFilter}
-                  onChange={(e) => { setInvoiceStatusFilter(e.target.value); setInvoicesPage(1) }}
-                  className="ui-select text-sm py-1 w-36"
-                >
-                  <option value="">All statuses</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="OVERDUE">Overdue</option>
-                  <option value="PARTIAL">Partial</option>
-                  <option value="PAID">Paid</option>
-                </select>
-              </div>
+          <Table
+            title="Fee Invoices"
+            columns={invoiceColumns}
+            data={invoicePageRows}
+            loading={invoicesLoading}
+            totalCount={filteredInvoices.length}
+            page={invoicesPage}
+            pageSize={pageSize}
+            onSearch={(value) => { setInvoiceSearch(value); setInvoicesPage(1) }}
+            onPageChange={setInvoicesPage}
+            filterOptions={[
+              { value: '', label: 'All statuses' },
+              { value: 'PENDING', label: 'Pending' },
+              { value: 'OVERDUE', label: 'Overdue' },
+              { value: 'PARTIAL', label: 'Partial' },
+              { value: 'PAID', label: 'Paid' },
+            ]}
+            activeFilter={invoiceStatusFilter}
+            onFilterChange={(value) => { setInvoiceStatusFilter(value); setInvoicesPage(1) }}
+            headerControls={
               <button
                 onClick={handleGenerateInvoices}
                 disabled={generatingInvoices}
-                className="ui-button ui-button-primary text-sm py-1 px-3 shrink-0 inline-flex items-center gap-1.5"
+                className="ui-button ui-button-primary text-sm py-1 px-3 inline-flex items-center gap-1.5"
               >
                 <Receipt className="h-4 w-4" />
                 {generatingInvoices ? 'Generating…' : 'Generate Invoices'}
               </button>
-            </div>
-
-            {invoicesLoading ? (
-              <p className="p-5 ui-text-secondary">Loading invoices…</p>
-            ) : (() => {
-              const q = invoiceSearch.toLowerCase()
-              const filtered = invoices.filter((inv) => {
-                const name = `${inv.student.firstName} ${inv.student.lastName}`.toLowerCase()
-                const adm = (inv.student.admissionNumber ?? '').toLowerCase()
-                const matchesSearch = !q || name.includes(q) || adm.includes(q)
-                const matchesStatus = !invoiceStatusFilter || inv.status === invoiceStatusFilter
-                return matchesSearch && matchesStatus
-              })
-              const pageRows = filtered.slice((invoicesPage - 1) * pageSize, invoicesPage * pageSize)
-              const totalPages = Math.ceil(filtered.length / pageSize)
-
-              const STATUS_STYLES: Record<FeeInvoiceStatus, string> = {
-                PENDING: 'bg-slate-500/20 text-slate-400',
-                OVERDUE: 'bg-rose-500/20 text-rose-400',
-                PAID: 'bg-emerald-500/20 text-emerald-400',
-                PARTIAL: 'bg-amber-500/20 text-amber-400',
-              }
-
-              if (filtered.length === 0) {
-                return (
-                  <p className="p-5 ui-text-secondary">
-                    {invoices.length === 0
-                      ? 'No invoices exist for this period. Click "Generate Invoices" to create them.'
-                      : 'No invoices match your filters.'}
-                  </p>
-                )
-              }
-
-              return (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full border-collapse text-sm">
-                      <thead>
-                        <tr className="border-b" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
-                          <th className="px-4 py-3 text-left ui-text-secondary font-semibold">Student</th>
-                          <th className="px-4 py-3 text-left ui-text-secondary font-semibold">Due Date</th>
-                          <th className="px-4 py-3 text-right ui-text-secondary font-semibold">Amount Due</th>
-                          <th className="px-4 py-3 text-right ui-text-secondary font-semibold">Paid</th>
-                          <th className="px-4 py-3 text-right ui-text-secondary font-semibold">Balance</th>
-                          <th className="px-4 py-3 text-left ui-text-secondary font-semibold">Status</th>
-                          <th className="px-4 py-3 text-left ui-text-secondary font-semibold">Auto</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {pageRows.map((inv) => (
-                          <tr key={inv.id} className="border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-                            <td className="px-4 py-3">
-                              <div className="flex flex-col">
-                                <span className="font-medium ui-text-primary">{inv.student.firstName} {inv.student.lastName}</span>
-                                {inv.student.admissionNumber && <span className="text-xs ui-text-secondary">{inv.student.admissionNumber}</span>}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 ui-text-secondary">{new Date(inv.dueDate).toLocaleDateString()}</td>
-                            <td className="px-4 py-3 text-right ui-text-primary">{formatCurrency(inv.amountDue)}</td>
-                            <td className="px-4 py-3 text-right ui-text-secondary">{formatCurrency(inv.totalPaid)}</td>
-                            <td className="px-4 py-3 text-right">
-                              <span className={inv.balance > 0 ? 'text-rose-400' : 'text-emerald-400'}>
-                                {formatCurrency(inv.balance)}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[inv.status]}`}>
-                                {inv.status}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-xs ui-text-secondary">{inv.isAutoGenerated ? 'Auto' : 'Manual'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-between px-5 py-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-                      <span className="text-xs ui-text-secondary">{filtered.length} invoices</span>
-                      <div className="flex gap-1">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                          <button
-                            key={p}
-                            onClick={() => setInvoicesPage(p)}
-                            className={`w-7 h-7 rounded text-xs font-medium ${p === invoicesPage ? 'bg-blue-600 text-white' : 'ui-surface ui-text-secondary hover:ui-text-primary'}`}
-                          >
-                            {p}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )
-            })()}
-          </Card>
+            }
+            emptyMessage={
+              invoices.length === 0
+                ? 'No invoices for this period. Click "Generate Invoices" to create them.'
+                : 'No invoices match your filters.'
+            }
+            rowKey="id"
+          />
         )}
       </div>
     </DashboardLayout>
