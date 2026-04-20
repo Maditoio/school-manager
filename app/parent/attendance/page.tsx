@@ -115,11 +115,8 @@ export default function ParentAttendancePage() {
 
   const navItems = [
     { label: 'Dashboard', href: '/parent/dashboard', icon: '🏠' },
-    { label: 'My Children', href: '/parent/children', icon: '👨‍👩‍👧‍👦' },
     { label: 'Attendance', href: '/parent/attendance', icon: '📅' },
-    { label: 'Assessments', href: '/parent/assessments', icon: '📋' },
     { label: 'Results', href: '/parent/results', icon: '📊' },
-    { label: 'Announcements', href: '/parent/announcements', icon: '📢' },
     { label: 'Messages', href: '/parent/messages', icon: '💬' },
   ]
 

@@ -377,11 +377,8 @@ export default async function ParentDashboard() {
 
   const navItems = [
     { label: 'Dashboard', href: '/parent/dashboard', icon: '🏠' },
-    { label: 'My Children', href: '/parent/children', icon: '👨‍👩‍👧‍👦' },
     { label: 'Attendance', href: '/parent/attendance', icon: '📅' },
     { label: 'Results', href: '/parent/results', icon: '📊' },
-    { label: 'Assessments', href: '/parent/assessments', icon: '📋' },
-    { label: 'Announcements', href: '/parent/announcements', icon: '📢' },
     { label: 'Messages', href: '/parent/messages', icon: '💬' },
   ]
 
