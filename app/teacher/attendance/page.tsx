@@ -121,6 +121,12 @@ export default function TeacherAttendancePage() {
     setAttendance({ ...attendance, [studentId]: status })
   }
 
+  const handleMarkAllPresent = () => {
+    const allPresent: { [key: string]: string } = {}
+    students.forEach((student) => { allPresent[student.id] = 'PRESENT' })
+    setAttendance(allPresent)
+  }
+
   const handleSaveAttendance = async () => {
     setIsSavingAttendance(true)
     try {
@@ -197,7 +203,14 @@ export default function TeacherAttendancePage() {
                 className="w-full px-3 py-2 rounded-md border border-(--border-subtle) bg-(--surface-card) ui-text-primary"
               />
             </div>
-            <div className="flex items-end justify-end">
+            <div className="flex items-end justify-end gap-2">
+              <Button
+                variant="secondary"
+                onClick={handleMarkAllPresent}
+                disabled={!selectedClass || students.length === 0}
+              >
+                Mark All Present
+              </Button>
               <Button
                 onClick={handleSaveAttendance}
                 isLoading={isSavingAttendance}

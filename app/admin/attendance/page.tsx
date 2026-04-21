@@ -122,6 +122,12 @@ export default function AttendancePage() {
     setAttendance({ ...attendance, [studentId]: status })
   }, [attendance])
 
+  const handleMarkAllPresent = useCallback(() => {
+    const allPresent: { [key: string]: string } = {}
+    students.forEach((student) => { allPresent[student.id] = 'PRESENT' })
+    setAttendance(allPresent)
+  }, [students])
+
   const handleSaveAttendance = async () => {
     try {
       const records = students.map((student) => ({
@@ -254,7 +260,16 @@ export default function AttendancePage() {
             <h1 className="text-3xl font-bold text-gray-900">Attendance Management</h1>
             <p className="text-gray-600 mt-2">Mark and manage student attendance</p>
           </div>
-          <Button onClick={handleSaveAttendance}>Save Attendance</Button>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={handleMarkAllPresent}
+              disabled={students.length === 0}
+            >
+              Mark All Present
+            </Button>
+            <Button onClick={handleSaveAttendance}>Save Attendance</Button>
+          </div>
         </div>
 
         <Table
