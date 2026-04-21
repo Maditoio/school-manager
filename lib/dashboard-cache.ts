@@ -5,6 +5,7 @@ export type SchoolAdminDashboardStats = {
   teachersCount: number
   teachersAbsentCount: number
   newThisTermCount: number
+  newTeachersThisTermCount: number
   feeDefaultersCount: number
   absentTodayCount: number
   classesCount: number

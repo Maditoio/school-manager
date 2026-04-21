@@ -111,18 +111,34 @@ export default function DashboardPage({ user }) {
               value: Number.isFinite(Number(stats.teachersCount))
                 ? Number(stats.teachersCount)
                 : prev.schoolPulse.totalTeachers.value,
+              trendLabel: Number.isFinite(Number(stats.newTeachersThisTermCount))
+                ? `${Number(stats.newTeachersThisTermCount)} new this term`
+                : prev.schoolPulse.totalTeachers.trendLabel,
             },
             teachersAbsent: {
               ...prev.schoolPulse.teachersAbsent,
               value: Number.isFinite(Number(stats.teachersAbsentCount))
                 ? Number(stats.teachersAbsentCount)
                 : prev.schoolPulse.teachersAbsent.value,
+              trendLabel: (() => {
+                const absent = Number(stats.teachersAbsentCount)
+                const total = Number(stats.teachersCount)
+                if (!Number.isFinite(absent) || !Number.isFinite(total) || total <= 0) return prev.schoolPulse.teachersAbsent.trendLabel
+                return `${((absent / total) * 100).toFixed(1)}% absent today`
+              })(),
             },
             absentToday: {
               ...prev.schoolPulse.absentToday,
               value: Number.isFinite(Number(stats.absentTodayCount))
                 ? Number(stats.absentTodayCount)
                 : prev.schoolPulse.absentToday.value,
+              trendLabel: (() => {
+                const absent = Number(stats.absentTodayCount)
+                const total = Number(stats.studentsCount)
+                if (!Number.isFinite(absent) || !Number.isFinite(total) || total <= 0) return prev.schoolPulse.absentToday.trendLabel
+                const pct = ((absent / total) * 100).toFixed(1)
+                return absent === 0 ? 'No absences recorded today' : `${pct}% of students`
+              })(),
             },
             feeDefaulters: {
               ...prev.schoolPulse.feeDefaulters,

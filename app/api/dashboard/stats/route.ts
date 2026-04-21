@@ -425,6 +425,7 @@ export async function GET(request: NextRequest) {
       }
 
       let newThisTermCount = 0
+      let newTeachersThisTermCount = 0
       let feeDefaultersCount = 0
 
       if (currentTerm) {
@@ -432,15 +433,30 @@ export async function GET(request: NextRequest) {
         const termEndExclusive = new Date(currentTerm.endDate)
         termEndExclusive.setDate(termEndExclusive.getDate() + 1)
 
-        newThisTermCount = await prisma.student.count({
-          where: {
-            schoolId,
-            createdAt: {
-              gte: termStartDate,
-              lt: termEndExclusive,
+        const [newStudents, newTeachers] = await Promise.all([
+          prisma.student.count({
+            where: {
+              schoolId,
+              createdAt: {
+                gte: termStartDate,
+                lt: termEndExclusive,
+              },
             },
-          },
-        })
+          }),
+          prisma.user.count({
+            where: {
+              schoolId,
+              role: 'TEACHER',
+              createdAt: {
+                gte: termStartDate,
+                lt: termEndExclusive,
+              },
+            },
+          }),
+        ])
+
+        newThisTermCount = newStudents
+        newTeachersThisTermCount = newTeachers
 
         const [studentsInAcademicYear, approvedSchedules] = await Promise.all([
           prisma.student.findMany({
@@ -1140,6 +1156,7 @@ export async function GET(request: NextRequest) {
         teachersCount,
         teachersAbsentCount,
         newThisTermCount,
+        newTeachersThisTermCount,
         feeDefaultersCount,
         absentTodayCount,
         classesCount,
