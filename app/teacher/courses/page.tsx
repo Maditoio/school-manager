@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect, useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Form'
 import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
@@ -153,52 +152,65 @@ export default function TeacherCoursesPage() {
           <Button onClick={() => setShowCreate(true)}>+ New Course</Button>
         </div>
 
-        {/* Create Course Form */}
+        {/* Create Course Modal */}
         {showCreate && (
-          <Card title="Create New Course">
-            <div className="space-y-4">
-              <Input
-                label="Course Title"
-                value={form.title}
-                onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                placeholder="e.g. Introduction to Algebra"
-              />
-              <div>
-                <label className="block text-sm font-medium ui-text-secondary mb-2">Description</label>
-                <textarea
-                  className="ui-input min-h-20 resize-y"
-                  value={form.description}
-                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  placeholder="What will students learn?"
-                />
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            onClick={e => { if (e.target === e.currentTarget) { setShowCreate(false); setForm({ title: '', description: '', price: '0', thumbnailUrl: '' }) } }}
+          >
+            <div className="ui-surface rounded-2xl border ui-border shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b ui-border">
+                <h2 className="text-base font-semibold ui-text-primary">Create New Course</h2>
+                <button
+                  onClick={() => { setShowCreate(false); setForm({ title: '', description: '', price: '0', thumbnailUrl: '' }) }}
+                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-(--surface-soft) ui-text-secondary transition-colors text-lg leading-none"
+                >
+                  ×
+                </button>
               </div>
-              <Input
-                label="Price (0 = free)"
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.price}
-                onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
-              />
-              <div>
-                <label className="block text-sm font-medium ui-text-secondary mb-2">Thumbnail</label>
-                {form.thumbnailUrl && (
-                  <img src={form.thumbnailUrl} alt="thumbnail" className="w-32 h-20 object-cover rounded-lg mb-2 border ui-border" />
-                )}
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handleThumbnailUpload}
-                  className="text-sm ui-text-secondary"
+              <div className="px-6 py-5 space-y-4">
+                <Input
+                  label="Course Title"
+                  value={form.title}
+                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="e.g. Introduction to Algebra"
                 />
-                {thumbnailUploading && <p className="text-xs ui-text-secondary mt-1">Uploading…</p>}
+                <div>
+                  <label className="block text-sm font-medium ui-text-secondary mb-2">Description</label>
+                  <textarea
+                    className="ui-input min-h-20 resize-y"
+                    value={form.description}
+                    onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                    placeholder="What will students learn?"
+                  />
+                </div>
+                <Input
+                  label="Price (0 = free)"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.price}
+                  onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
+                />
+                <div>
+                  <label className="block text-sm font-medium ui-text-secondary mb-2">Thumbnail</label>
+                  {form.thumbnailUrl && (
+                    <div className="w-full h-40 rounded-xl overflow-hidden border ui-border mb-3">
+                      <img src={form.thumbnailUrl} alt="thumbnail" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <label className="cursor-pointer flex items-center gap-2 h-9 px-3 rounded-lg border ui-border text-sm ui-text-secondary hover:bg-(--surface-soft) transition-colors w-fit">
+                    <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleThumbnailUpload} className="hidden" disabled={thumbnailUploading} />
+                    {thumbnailUploading ? 'Uploading…' : form.thumbnailUrl ? '🔄 Change Thumbnail' : '📷 Upload Thumbnail'}
+                  </label>
+                </div>
               </div>
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2 px-6 py-4 border-t ui-border">
                 <Button onClick={handleCreateCourse} isLoading={saving}>Create Course</Button>
-                <Button variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button>
+                <Button variant="ghost" onClick={() => { setShowCreate(false); setForm({ title: '', description: '', price: '0', thumbnailUrl: '' }) }}>Cancel</Button>
               </div>
             </div>
-          </Card>
+          </div>
         )}
 
         {/* Course List */}
