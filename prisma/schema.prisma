@@ -25,6 +25,8 @@ model School {
   classSubjectTeachers         ClassSubjectTeacher[]
   classes                      Class[]
   timetableSlots               TimetableSlot[]
+  videoCourses                 VideoCourse[]
+  courseEnrollments            CourseEnrollment[]
   dashboard_academic_summaries dashboard_academic_summaries[]
   dashboard_aggregation_events dashboard_aggregation_events[]
   deletionRequests             DeletionRequest[]              @relation("DeletionRequests")
@@ -184,6 +186,7 @@ model User {
   settings                 UserSettings?
   linkedStudent            Student?               @relation("StudentUser")
   timetableSlotsTeaching   TimetableSlot[]        @relation("TimetableSlots")
+  coursesCreated           VideoCourse[]          @relation("TeacherCourses")
   school                   School?                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([schoolId])
@@ -360,6 +363,8 @@ model Student {
   additionalClasses     StudentAdditionalClass[]
   expenses              Expense[]
   statusHistory         StudentStatusHistory[]
+  courseEnrollments     CourseEnrollment[]
+  courseRatings         CourseRating[]
   class                 Class                   @relation(fields: [classId], references: [id])
   parent                User?                   @relation("ParentStudents", fields: [parentId], references: [id])
   user                  User?                   @relation("StudentUser", fields: [userId], references: [id])
@@ -1259,4 +1264,108 @@ model TimetableSlot {
   @@index([teacherId])
   @@index([termId])
   @@map("timetable_slots")
+}
+
+// ── Video Learning Platform ────────────────────────────────────────────────────
+
+model VideoCourse {
+  id            String             @id @default(uuid())
+  schoolId      String             @map("school_id")
+  teacherId     String             @map("teacher_id")
+  title         String
+  description   String?
+  thumbnailUrl  String?            @map("thumbnail_url")
+  price         Float              @default(0)
+  published     Boolean            @default(false)
+  totalDuration Int                @default(0) @map("total_duration")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  lessons       VideoLesson[]
+  enrollments   CourseEnrollment[]
+  ratings       CourseRating[]
+  school        School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teacher       User               @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([teacherId])
+  @@index([published])
+  @@map("video_courses")
+}
+
+model VideoLesson {
+  id            String           @id @default(uuid())
+  courseId      String           @map("course_id")
+  title         String
+  description   String?
+  videoUrl      String?          @map("video_url")
+  duration      Int              @default(0)
+  lessonOrder   Int              @default(0) @map("lesson_order")
+  isFreePreview Boolean          @default(false) @map("is_free_preview")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  course        VideoCourse      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress      LessonProgress[]
+
+  @@index([courseId])
+  @@index([courseId, lessonOrder])
+  @@map("video_lessons")
+}
+
+model CourseEnrollment {
+  id         String           @id @default(uuid())
+  courseId   String           @map("course_id")
+  studentId  String           @map("student_id")
+  schoolId   String           @map("school_id")
+  paid       Boolean          @default(false)
+  paidAt     DateTime?        @map("paid_at")
+  amountPaid Float            @default(0) @map("amount_paid")
+  paymentRef String?          @map("payment_ref")
+  enrolledAt DateTime         @default(now()) @map("enrolled_at")
+  createdAt  DateTime         @default(now()) @map("created_at")
+  course     VideoCourse      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student    Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  school     School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  progress   LessonProgress[]
+
+  @@unique([courseId, studentId])
+  @@index([courseId])
+  @@index([studentId])
+  @@index([schoolId])
+  @@map("course_enrollments")
+}
+
+model LessonProgress {
+  id             String           @id @default(uuid())
+  enrollmentId   String           @map("enrollment_id")
+  lessonId       String           @map("lesson_id")
+  studentId      String           @map("student_id")
+  completed      Boolean          @default(false)
+  lastPosition   Int              @default(0) @map("last_position")
+  completedAt    DateTime?        @map("completed_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  enrollment     CourseEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lesson         VideoLesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, lessonId])
+  @@index([enrollmentId])
+  @@index([lessonId])
+  @@index([studentId])
+  @@map("lesson_progress")
+}
+
+model CourseRating {
+  id        String      @id @default(uuid())
+  courseId  String      @map("course_id")
+  studentId String      @map("student_id")
+  rating    Int
+  review    String?
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+  course    VideoCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student   Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, studentId])
+  @@index([courseId])
+  @@index([studentId])
+  @@map("course_ratings")
 }

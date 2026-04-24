@@ -84,6 +84,7 @@ export const TEACHER_NAV_ITEMS: NavItem[] = [
   { label: 'Announcements',href: '/teacher/announcements',icon: '📢' },
   { label: 'Messages',     href: '/teacher/messages',     icon: '💬' },
   { label: 'Meeting Agenda', href: '/admin/meeting-agenda', icon: '📋' },
+  { label: 'My Courses',   href: '/teacher/courses',      icon: '🎬' },
 ]
 
 /** Student navigation */
