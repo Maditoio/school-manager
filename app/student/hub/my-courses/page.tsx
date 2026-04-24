@@ -37,6 +37,16 @@ function formatDuration(seconds: number) {
   return `${m}m`
 }
 
+function formatDate(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Recently'
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date)
+}
+
 export default function MyCoursesPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -117,56 +127,78 @@ export default function MyCoursesPage() {
             {courses.map(({ enrollment, course, progress }) => {
               const teacherName = [course.teacher.firstName, course.teacher.lastName].filter(Boolean).join(' ') || 'Instructor'
               return (
-                <div key={enrollment.id} className="ui-surface border ui-border rounded-xl p-4 flex flex-col sm:flex-row gap-4">
-                  {/* Thumbnail */}
-                  <div className="w-full sm:w-36 h-24 rounded-lg overflow-hidden shrink-0 bg-(--surface-soft) flex items-center justify-center">
-                    {course.thumbnailUrl ? (
-                      <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-3xl">🎬</span>
-                    )}
-                  </div>
+                <div key={enrollment.id} className="ui-surface border ui-border rounded-xl overflow-hidden">
+                  <div className="flex flex-col lg:flex-row">
+                    {/* Thumbnail */}
+                    <div className="w-full lg:w-64 h-44 lg:h-auto shrink-0 bg-linear-to-br from-(--accent-soft) to-(--surface-soft) relative flex items-center justify-center">
+                      {course.thumbnailUrl ? (
+                        <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-5xl">🎬</span>
+                      )}
+                      <span className="absolute top-3 left-3 text-[11px] px-2 py-0.5 rounded-full bg-black/60 text-white font-semibold tracking-wide">
+                        Enrolled
+                      </span>
+                    </div>
 
-                  {/* Info */}
-                  <div className="flex-1 space-y-2">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
+                    {/* Info */}
+                    <div className="flex-1 p-4 sm:p-5 space-y-3">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <h3 className="font-semibold ui-text-primary leading-tight">{course.title}</h3>
+                          <p className="text-xs ui-text-secondary mt-0.5">{teacherName}</p>
+                        </div>
+                        <div className="flex gap-1.5 shrink-0">
+                          {enrollment.paid ? (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">Full Access</span>
+                          ) : (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">Preview Only</span>
+                          )}
+                          {progress.progressPct === 100 && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">Completed</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {course.description && (
+                        <p className="text-sm ui-text-secondary line-clamp-2">{course.description}</p>
+                      )}
+
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs ui-text-secondary">
+                        <span>📹 {course.lessons.length} lessons</span>
+                        <span>⏱ {formatDuration(course.totalDuration)}</span>
+                        <span>🗓 Enrolled {formatDate(enrollment.enrolledAt)}</span>
+                      </div>
+
+                      {/* Progress bar */}
                       <div>
-                        <h3 className="font-semibold ui-text-primary">{course.title}</h3>
-                        <p className="text-xs ui-text-secondary">{teacherName}</p>
+                        <div className="flex justify-between text-xs ui-text-secondary mb-1">
+                          <span>{progress.completedLessons}/{progress.totalLessons} lessons completed</span>
+                          <span className="font-medium">{progress.progressPct}%</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-(--border) overflow-hidden">
+                          <div
+                            className="h-full bg-(--accent) transition-all duration-500"
+                            style={{ width: `${progress.progressPct}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="flex gap-1.5 shrink-0">
-                        {enrollment.paid ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">Full Access</span>
-                        ) : (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">Preview Only</span>
-                        )}
-                        {progress.progressPct === 100 && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">Completed ✓</span>
-                        )}
-                      </div>
-                    </div>
 
-                    {/* Progress bar */}
-                    <div>
-                      <div className="flex justify-between text-xs ui-text-secondary mb-1">
-                        <span>{progress.completedLessons}/{progress.totalLessons} lessons</span>
-                        <span>{progress.progressPct}%</span>
+                      <div className="flex items-center gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          onClick={() => router.push(`/student/hub/course/${course.id}${progress.lastLessonId ? `?lesson=${progress.lastLessonId}` : ''}`)}
+                        >
+                          {progress.progressPct === 0 ? 'Start Course' : progress.progressPct === 100 ? 'Review Course' : 'Continue Learning'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => router.push(`/student/hub/course/${course.id}`)}
+                        >
+                          Open Course
+                        </Button>
                       </div>
-                      <div className="h-2 rounded-full bg-(--border) overflow-hidden">
-                        <div
-                          className="h-full bg-(--accent) transition-all duration-500"
-                          style={{ width: `${progress.progressPct}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 pt-1">
-                      <Button
-                        size="sm"
-                        onClick={() => router.push(`/student/hub/course/${course.id}${progress.lastLessonId ? `?lesson=${progress.lastLessonId}` : ''}`)}
-                      >
-                        {progress.progressPct === 0 ? 'Start' : progress.progressPct === 100 ? 'Review' : 'Continue'}
-                      </Button>
                     </div>
                   </div>
                 </div>
