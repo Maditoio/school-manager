@@ -58,6 +58,10 @@ export default function AdminSettingsPage() {
   const [minimumPassRateInput, setMinimumPassRateInput] = useState('50')
   const [minimumPassRateSaving, setMinimumPassRateSaving] = useState(false)
 
+  // Video courses settings
+  const [allowCrossSchoolCourses, setAllowCrossSchoolCourses] = useState(false)
+  const [crossSchoolCoursesSaving, setCrossSchoolCoursesSaving] = useState(false)
+
   // Currency setting
   const [currencyInput, setCurrencyInput] = useState<CurrencyCode>('ZAR')
   const [currencySaving, setCurrencySaving] = useState(false)
@@ -107,6 +111,7 @@ export default function AdminSettingsPage() {
         setInvoiceDayOfMonth(data.invoiceDayOfMonth ?? 1)
         setFeesDueDayOfMonth(data.feesDueDayOfMonth ?? 15)
         setInvoiceActiveMonths(data.invoiceActiveMonths ?? [])
+        setAllowCrossSchoolCourses(data.allowCrossSchoolCourses ?? false)
       }
     } catch {
       // fail silently — not critical for page load
@@ -452,6 +457,24 @@ export default function AdminSettingsPage() {
     }
   }
 
+  const handleSaveCrossSchoolCourses = async (value: boolean) => {
+    setCrossSchoolCoursesSaving(true)
+    try {
+      const res = await fetch('/api/schools/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ allowCrossSchoolCourses: value }),
+      })
+      if (!res.ok) throw new Error('Failed to save')
+      setAllowCrossSchoolCourses(value)
+      showToast(value ? t('Cross-school courses enabled') : t('Cross-school courses disabled'), 'success')
+    } catch {
+      showToast(t('Failed to save setting'), 'error')
+    } finally {
+      setCrossSchoolCoursesSaving(false)
+    }
+  }
+
   if (status === 'loading' || !session?.user) return <div>{t('Loading...')}</div>
 
   return (
@@ -632,6 +655,40 @@ export default function AdminSettingsPage() {
               </div>
             </Card>
           </div>
+        </section>
+
+        {/* ──────────────────────────────────────────────────────── */}
+        {/* Video Courses                                             */}
+        {/* ──────────────────────────────────────────────────────── */}
+        <section>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider ui-text-secondary">{t('Video Courses')}</h2>
+          <Card title={t('Cross-School Course Sharing')} className="p-5">
+            <p className="text-sm ui-text-secondary mb-4">
+              {t('When enabled, teachers at your school can mark their courses as available to students from all schools on the platform. Students at other schools will see these courses in their course library.')}
+            </p>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <div
+                role="switch"
+                aria-checked={allowCrossSchoolCourses}
+                onClick={() => !crossSchoolCoursesSaving && handleSaveCrossSchoolCourses(!allowCrossSchoolCourses)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  crossSchoolCoursesSaving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                } ${allowCrossSchoolCourses ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                    allowCrossSchoolCourses ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </div>
+              <div>
+                <span className="text-sm font-medium ui-text-primary">
+                  {allowCrossSchoolCourses ? t('Enabled — teachers can share courses across schools') : t('Disabled — courses are school-only')}
+                </span>
+                {crossSchoolCoursesSaving && <span className="ml-2 text-xs ui-text-secondary">{t('Saving…')}</span>}
+              </div>
+            </label>
+          </Card>
         </section>
 
         {/* ──────────────────────────────────────────────────────── */}

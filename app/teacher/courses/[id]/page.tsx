@@ -29,6 +29,7 @@ interface Course {
   thumbnailUrl: string | null
   price: number
   published: boolean
+  allSchools: boolean
   totalDuration: number
   lessons: Lesson[]
   _count: { enrollments: number; ratings: number }
@@ -54,9 +55,10 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
   const [course, setCourse] = useState<Course | null>(null)
   const [loading, setLoading] = useState(true)
   const [editingCourse, setEditingCourse] = useState(false)
-  const [courseForm, setCourseForm] = useState({ title: '', description: '', price: '0', thumbnailUrl: '' })
+  const [courseForm, setCourseForm] = useState({ title: '', description: '', price: '0', thumbnailUrl: '', allSchools: false })
   const [savingCourse, setSavingCourse] = useState(false)
   const [thumbnailUploading, setThumbnailUploading] = useState(false)
+  const [allowCrossSchool, setAllowCrossSchool] = useState(false)
 
   const [showAddLesson, setShowAddLesson] = useState(false)
   const [lessonForm, setLessonForm] = useState({ title: '', description: '', isFreePreview: false })
@@ -74,14 +76,19 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
     try {
       const res = await fetch(`/api/courses/${courseId}`)
       if (!res.ok) { router.push('/teacher/courses'); return }
-      const data = await res.json()
+      const [data, settingsData] = await Promise.all([
+        res.json(),
+        fetch('/api/schools/settings').then(r => r.json()),
+      ])
       setCourse(data.course)
       setCourseForm({
         title: data.course.title,
         description: data.course.description ?? '',
         price: String(data.course.price),
         thumbnailUrl: data.course.thumbnailUrl ?? '',
+        allSchools: data.course.allSchools ?? false,
       })
+      setAllowCrossSchool(settingsData.allowCrossSchoolCourses ?? false)
     } finally {
       setLoading(false)
     }
@@ -131,6 +138,7 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
           description: courseForm.description,
           price: parseFloat(courseForm.price) || 0,
           thumbnailUrl: courseForm.thumbnailUrl || null,
+          allSchools: courseForm.allSchools,
         }),
       })
       if (res.ok) { setEditingCourse(false); fetchCourse() }
@@ -268,6 +276,24 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
                     <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleThumbnailUpload} className="text-sm" />
                     {thumbnailUploading && <p className="text-xs ui-text-secondary mt-1">Uploading thumbnail…</p>}
                   </div>
+                  {allowCrossSchool && (
+                    <div className="p-4 rounded-lg border ui-border bg-(--surface-soft) space-y-1">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <div
+                          role="switch"
+                          aria-checked={courseForm.allSchools}
+                          onClick={() => setCourseForm(f => ({ ...f, allSchools: !f.allSchools }))}
+                          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${courseForm.allSchools ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+                        >
+                          <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${courseForm.allSchools ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                        </div>
+                        <span className="text-sm font-medium ui-text-primary">Share across all schools</span>
+                      </label>
+                      <p className="text-xs ui-text-secondary pl-12">
+                        {courseForm.allSchools ? 'Students from all schools can find and enroll.' : 'Only students at your school can see this course.'}
+                      </p>
+                    </div>
+                  )}
                   <Button onClick={handleSaveCourse} isLoading={savingCourse}>Save Changes</Button>
                 </div>
               ) : (
@@ -303,6 +329,11 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
                     <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-semibold ${course.published ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                       {course.published ? '✅ Published' : '⚠️ Draft — not visible to students'}
                     </span>
+                    {course.allSchools && (
+                      <span className="inline-flex items-center text-xs px-2.5 py-1 rounded-full font-semibold bg-blue-100 text-blue-700">
+                        🌐 Shared across all schools
+                      </span>
+                    )}
                   </div>
                 </div>
               )}

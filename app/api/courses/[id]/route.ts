@@ -64,7 +64,21 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   })
   if (!course) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const { title, description, price, thumbnailUrl, published } = body
+  const { title, description, price, thumbnailUrl, published, allSchools } = body
+
+  // Validate allSchools: only allow true if admin has enabled cross-school courses
+  let resolvedAllSchools: boolean | undefined
+  if (allSchools !== undefined) {
+    if (!allSchools) {
+      resolvedAllSchools = false
+    } else {
+      const settings = await prisma.schoolSettings.findUnique({
+        where: { schoolId: course.schoolId },
+        select: { allowCrossSchoolCourses: true },
+      })
+      resolvedAllSchools = settings?.allowCrossSchoolCourses === true
+    }
+  }
 
   const updated = await prisma.videoCourse.update({
     where: { id },
@@ -74,6 +88,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       ...(price !== undefined && { price: Number(price) }),
       ...(thumbnailUrl !== undefined && { thumbnailUrl }),
       ...(published !== undefined && { published: Boolean(published) }),
+      ...(resolvedAllSchools !== undefined && { allSchools: resolvedAllSchools }),
     },
   })
 

@@ -40,6 +40,7 @@ export async function GET() {
       invoiceDayOfMonth: settings?.invoiceDayOfMonth ?? 1,
       feesDueDayOfMonth: settings?.feesDueDayOfMonth ?? 15,
       invoiceActiveMonths: settings?.invoiceActiveMonths ?? [],
+      allowCrossSchoolCourses: settings?.allowCrossSchoolCourses ?? false,
     })
   } catch (error) {
     console.error('Error fetching school settings:', error)
@@ -115,6 +116,10 @@ export async function PATCH(request: NextRequest) {
       updateData.autoInvoiceEnabled = Boolean(body.autoInvoiceEnabled)
     }
 
+    if (body.allowCrossSchoolCourses !== undefined) {
+      (updateData as Record<string, unknown>).allowCrossSchoolCourses = Boolean(body.allowCrossSchoolCourses)
+    }
+
     if (body.invoiceDayOfMonth !== undefined) {
       const d = Number(body.invoiceDayOfMonth)
       if (!Number.isInteger(d) || d < 1 || d > 28) {
@@ -162,6 +167,7 @@ export async function PATCH(request: NextRequest) {
       invoiceDayOfMonth: settings.invoiceDayOfMonth,
       feesDueDayOfMonth: settings.feesDueDayOfMonth,
       invoiceActiveMonths: settings.invoiceActiveMonths,
+      allowCrossSchoolCourses: (settings as Record<string, unknown>).allowCrossSchoolCourses ?? false,
     })
   } catch (error) {
     console.error('Error updating school settings:', error)

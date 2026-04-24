@@ -14,6 +14,8 @@ interface BrowseCourse {
   thumbnailUrl: string | null
   price: number
   totalDuration: number
+  allSchools: boolean
+  school: { id: string; name: string }
   teacher: { firstName: string | null; lastName: string | null }
   lessons: Array<{ id: string; isFreePreview: boolean; duration: number }>
   _count: { enrollments: number; ratings: number }
@@ -140,13 +142,21 @@ export default function StudentHubPage() {
                         Free
                       </span>
                     )}
+                    {course.allSchools && (
+                      <span className="absolute top-2 left-2 text-xs font-bold bg-blue-600 text-white px-2 py-0.5 rounded-full">
+                        🌐 All Schools
+                      </span>
+                    )}
                   </div>
 
                   {/* Content */}
                   <div className="p-4 flex flex-col flex-1 gap-2">
                     <div>
                       <h3 className="font-semibold ui-text-primary leading-tight line-clamp-2">{course.title}</h3>
-                      <p className="text-xs ui-text-secondary mt-0.5">{teacherName}</p>
+                      <p className="text-xs ui-text-secondary mt-0.5">
+                        {teacherName}
+                        {course.allSchools && <span className="ml-1 opacity-60">· {course.school.name}</span>}
+                      </p>
                     </div>
                     {course.description && (
                       <p className="text-xs ui-text-secondary line-clamp-2 flex-1">{course.description}</p>

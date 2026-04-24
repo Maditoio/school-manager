@@ -26,6 +26,7 @@ interface Course {
   thumbnailUrl: string | null
   price: number
   published: boolean
+  allSchools: boolean
   totalDuration: number
   createdAt: string
   lessons: Lesson[]
@@ -55,12 +56,14 @@ export default function TeacherCoursesPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [saving, setSaving] = useState(false)
   const [thumbnailUploading, setThumbnailUploading] = useState(false)
+  const [allowCrossSchool, setAllowCrossSchool] = useState(false)
 
   const [form, setForm] = useState({
     title: '',
     description: '',
     price: '0',
     thumbnailUrl: '',
+    allSchools: false,
   })
 
   useEffect(() => {
@@ -71,9 +74,14 @@ export default function TeacherCoursesPage() {
   const fetchCourses = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/courses?mine=true')
-      const data = await res.json()
-      setCourses(data.courses ?? [])
+      const [coursesRes, settingsRes] = await Promise.all([
+        fetch('/api/courses?mine=true'),
+        fetch('/api/schools/settings'),
+      ])
+      const coursesData = await coursesRes.json()
+      const settingsData = await settingsRes.json()
+      setCourses(coursesData.courses ?? [])
+      setAllowCrossSchool(settingsData.allowCrossSchoolCourses ?? false)
     } finally {
       setLoading(false)
     }
@@ -111,12 +119,13 @@ export default function TeacherCoursesPage() {
           description: form.description,
           price: parseFloat(form.price) || 0,
           thumbnailUrl: form.thumbnailUrl || null,
+          allSchools: form.allSchools,
         }),
       })
       const data = await res.json()
       if (!res.ok) { showAlert({ title: 'Error', message: data.error }); return }
       setShowCreate(false)
-      setForm({ title: '', description: '', price: '0', thumbnailUrl: '' })
+      setForm({ title: '', description: '', price: '0', thumbnailUrl: '', allSchools: false })
       fetchCourses()
     } finally {
       setSaving(false)
@@ -156,13 +165,13 @@ export default function TeacherCoursesPage() {
         {showCreate && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-            onClick={e => { if (e.target === e.currentTarget) { setShowCreate(false); setForm({ title: '', description: '', price: '0', thumbnailUrl: '' }) } }}
+            onClick={e => { if (e.target === e.currentTarget) { setShowCreate(false); setForm({ title: '', description: '', price: '0', thumbnailUrl: '', allSchools: false }) } }}
           >
             <div className="ui-surface rounded-2xl border ui-border shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b ui-border">
                 <h2 className="text-base font-semibold ui-text-primary">Create New Course</h2>
                 <button
-                  onClick={() => { setShowCreate(false); setForm({ title: '', description: '', price: '0', thumbnailUrl: '' }) }}
+                  onClick={() => { setShowCreate(false); setForm({ title: '', description: '', price: '0', thumbnailUrl: '', allSchools: false }) }}
                   className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-(--surface-soft) ui-text-secondary transition-colors text-lg leading-none"
                 >
                   ×
@@ -204,10 +213,30 @@ export default function TeacherCoursesPage() {
                     {thumbnailUploading ? 'Uploading…' : form.thumbnailUrl ? '🔄 Change Thumbnail' : '📷 Upload Thumbnail'}
                   </label>
                 </div>
+
+                {/* Visibility — only shown if admin has enabled cross-school sharing */}
+                {allowCrossSchool && (
+                  <div className="p-4 rounded-lg border ui-border bg-(--surface-soft) space-y-1">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <div
+                        role="switch"
+                        aria-checked={form.allSchools}
+                        onClick={() => setForm(f => ({ ...f, allSchools: !f.allSchools }))}
+                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${form.allSchools ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+                      >
+                        <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${form.allSchools ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                      </div>
+                      <span className="text-sm font-medium ui-text-primary">Share across all schools</span>
+                    </label>
+                    <p className="text-xs ui-text-secondary pl-12">
+                      {form.allSchools ? 'Students from all schools can find and enroll in this course.' : 'Only students at your school can see this course.'}
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="flex gap-2 px-6 py-4 border-t ui-border">
                 <Button onClick={handleCreateCourse} isLoading={saving}>Create Course</Button>
-                <Button variant="ghost" onClick={() => { setShowCreate(false); setForm({ title: '', description: '', price: '0', thumbnailUrl: '' }) }}>Cancel</Button>
+                <Button variant="ghost" onClick={() => { setShowCreate(false); setForm({ title: '', description: '', price: '0', thumbnailUrl: '', allSchools: false }) }}>Cancel</Button>
               </div>
             </div>
           </div>
@@ -243,6 +272,9 @@ export default function TeacherCoursesPage() {
                   <span className={`absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full font-semibold shadow ${course.published ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
                     {course.published ? 'Published' : 'Draft'}
                   </span>
+                  {course.allSchools && (
+                    <span className="absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full font-semibold shadow bg-blue-600 text-white">🌐 All Schools</span>
+                  )}
                 </div>
 
                 {/* Content */}

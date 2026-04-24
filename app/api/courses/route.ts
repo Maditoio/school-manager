@@ -23,11 +23,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ courses })
   }
 
-  // Public browse — published courses for the school
+  // Public browse — published courses for the school + cross-school courses
+  const schoolId = session.user.schoolId!
+
+  // Get all published courses: own school + any school-shared from schools that allow it
   const courses = await prisma.videoCourse.findMany({
-    where: { schoolId: session.user.schoolId!, published: true },
+    where: {
+      published: true,
+      OR: [
+        { schoolId },
+        {
+          allSchools: true,
+          school: { schoolSettings: { allowCrossSchoolCourses: true } },
+        },
+      ],
+    },
     include: {
       teacher: { select: { firstName: true, lastName: true } },
+      school: { select: { id: true, name: true } },
       lessons: { select: { id: true, isFreePreview: true, duration: true } },
       _count: { select: { enrollments: true, ratings: true } },
       ratings: { select: { rating: true } },
@@ -46,9 +59,19 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { title, description, price, thumbnailUrl } = body
+  const { title, description, price, thumbnailUrl, allSchools } = body
 
   if (!title?.trim()) return NextResponse.json({ error: 'Title is required' }, { status: 400 })
+
+  // allSchools is only allowed if admin has enabled cross-school courses
+  let resolvedAllSchools = false
+  if (allSchools === true) {
+    const settings = await prisma.schoolSettings.findUnique({
+      where: { schoolId: session.user.schoolId! },
+      select: { allowCrossSchoolCourses: true },
+    })
+    resolvedAllSchools = settings?.allowCrossSchoolCourses === true
+  }
 
   const course = await prisma.videoCourse.create({
     data: {
@@ -58,6 +81,7 @@ export async function POST(request: NextRequest) {
       description: description?.trim() ?? null,
       price: typeof price === 'number' ? price : 0,
       thumbnailUrl: thumbnailUrl ?? null,
+      allSchools: resolvedAllSchools,
     },
   })
 
