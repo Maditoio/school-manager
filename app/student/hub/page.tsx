@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { redirect, useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/Button'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 import { STUDENT_NAV_ITEMS } from '@/lib/admin-nav'
 
 interface BrowseCourse {
@@ -98,7 +99,10 @@ export default function StudentHubPage() {
             <p className="text-sm ui-text-secondary mt-0.5">Browse and learn from courses created by your teachers</p>
           </div>
           <Button variant="secondary" size="sm" onClick={() => router.push('/student/hub/my-courses')}>
-            📚 My Courses
+            <span className="inline-flex items-center gap-1.5">
+              <MaterialIcon name="library_books" className="text-[18px]" />
+              My Courses
+            </span>
           </Button>
         </div>
 
@@ -116,7 +120,7 @@ export default function StudentHubPage() {
           <div className="text-center py-12 ui-text-secondary text-sm">Loading courses…</div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 ui-text-secondary">
-            <div className="text-5xl mb-3">🎬</div>
+            <div className="mb-3"><MaterialIcon name="play_circle" className="text-6xl" /></div>
             <p className="font-medium ui-text-primary">No courses available yet</p>
             <p className="text-sm mt-1">Check back when your teachers publish courses</p>
           </div>
@@ -135,7 +139,9 @@ export default function StudentHubPage() {
                     {course.thumbnailUrl ? (
                       <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl">🎬</div>
+                      <div className="w-full h-full flex items-center justify-center">
+                        <MaterialIcon name="play_circle" className="text-5xl" />
+                      </div>
                     )}
                     {course.price === 0 && (
                       <span className="absolute top-2 right-2 text-xs font-bold bg-emerald-500 text-white px-2 py-0.5 rounded-full">
@@ -143,8 +149,9 @@ export default function StudentHubPage() {
                       </span>
                     )}
                     {course.allSchools && (
-                      <span className="absolute top-2 left-2 text-xs font-bold bg-blue-600 text-white px-2 py-0.5 rounded-full">
-                        🌐 All Schools
+                      <span className="absolute top-2 left-2 text-xs font-bold bg-blue-600 text-white px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                        <MaterialIcon name="public" className="text-[14px]" />
+                        All Schools
                       </span>
                     )}
                   </div>
@@ -162,15 +169,24 @@ export default function StudentHubPage() {
                       <p className="text-xs ui-text-secondary line-clamp-2 flex-1">{course.description}</p>
                     )}
                     <div className="flex flex-wrap gap-2 text-xs ui-text-secondary">
-                      <span>📹 {course.lessons.length} lessons</span>
-                      {course.totalDuration > 0 && <span>⏱ {formatDuration(course.totalDuration)}</span>}
-                      {freeLessons > 0 && <span>🆓 {freeLessons} free</span>}
-                      <span>👤 {course._count.enrollments}</span>
+                      <span className="inline-flex items-center gap-1"><MaterialIcon name="video_library" className="text-[14px]" /> {course.lessons.length} lessons</span>
+                      {course.totalDuration > 0 && <span className="inline-flex items-center gap-1"><MaterialIcon name="schedule" className="text-[14px]" /> {formatDuration(course.totalDuration)}</span>}
+                      {freeLessons > 0 && <span className="inline-flex items-center gap-1"><MaterialIcon name="lock_open" className="text-[14px]" /> {freeLessons} free</span>}
+                      <span className="inline-flex items-center gap-1"><MaterialIcon name="group" className="text-[14px]" /> {course._count.enrollments}</span>
                     </div>
                     {avg && (
-                      <span className="text-xs">
-                        <span className="text-amber-400">{'★'.repeat(Math.round(parseFloat(avg)))}{'☆'.repeat(5 - Math.round(parseFloat(avg)))}</span>
-                        <span className="ui-text-secondary ml-1">{avg}</span>
+                      <span className="text-xs inline-flex items-center gap-1">
+                        <span className="inline-flex items-center text-amber-400 gap-0.5">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <MaterialIcon
+                              key={i}
+                              name="star"
+                              filled={i < Math.round(parseFloat(avg))}
+                              className="text-[14px]"
+                            />
+                          ))}
+                        </span>
+                        <span className="ui-text-secondary">{avg}</span>
                       </span>
                     )}
                     <div className="flex items-center justify-between pt-1 mt-auto">

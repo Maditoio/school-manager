@@ -6,6 +6,7 @@ import { redirect, useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Form'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
 import { useAlert } from '@/lib/useAlertDialog'
 
@@ -158,7 +159,12 @@ export default function TeacherCoursesPage() {
             <h1 className="text-xl font-bold ui-text-primary">My Courses</h1>
             <p className="text-sm ui-text-secondary mt-0.5">Manage your video courses for students</p>
           </div>
-          <Button onClick={() => setShowCreate(true)}>+ New Course</Button>
+          <Button onClick={() => setShowCreate(true)}>
+            <span className="inline-flex items-center gap-1.5">
+              <MaterialIcon name="add" className="text-[18px]" />
+              New Course
+            </span>
+          </Button>
         </div>
 
         {/* Create Course Modal */}
@@ -210,7 +216,22 @@ export default function TeacherCoursesPage() {
                   )}
                   <label className="cursor-pointer flex items-center gap-2 h-9 px-3 rounded-lg border ui-border text-sm ui-text-secondary hover:bg-(--surface-soft) transition-colors w-fit">
                     <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleThumbnailUpload} className="hidden" disabled={thumbnailUploading} />
-                    {thumbnailUploading ? 'Uploading…' : form.thumbnailUrl ? '🔄 Change Thumbnail' : '📷 Upload Thumbnail'}
+                    {thumbnailUploading ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <MaterialIcon name="hourglass_top" className="text-[16px]" />
+                        Uploading...
+                      </span>
+                    ) : form.thumbnailUrl ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <MaterialIcon name="sync" className="text-[16px]" />
+                        Change Thumbnail
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5">
+                        <MaterialIcon name="add_photo_alternate" className="text-[16px]" />
+                        Upload Thumbnail
+                      </span>
+                    )}
                   </label>
                 </div>
 
@@ -247,7 +268,9 @@ export default function TeacherCoursesPage() {
           <div className="text-center py-12 ui-text-secondary text-sm">Loading courses…</div>
         ) : courses.length === 0 ? (
           <div className="text-center py-16 ui-text-secondary">
-            <div className="text-4xl mb-3">🎬</div>
+            <div className="mb-3">
+              <MaterialIcon name="play_circle" className="text-5xl" />
+            </div>
             <p className="font-medium ui-text-primary">No courses yet</p>
             <p className="text-sm mt-1">Create your first course to get started</p>
           </div>
@@ -265,7 +288,7 @@ export default function TeacherCoursesPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-2 ui-text-secondary">
-                      <span className="text-4xl">🎬</span>
+                      <MaterialIcon name="play_circle" className="text-5xl" />
                       <span className="text-xs">No thumbnail</span>
                     </div>
                   )}
@@ -273,7 +296,10 @@ export default function TeacherCoursesPage() {
                     {course.published ? 'Published' : 'Draft'}
                   </span>
                   {course.allSchools && (
-                    <span className="absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full font-semibold shadow bg-blue-600 text-white">🌐 All Schools</span>
+                    <span className="absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full font-semibold shadow bg-blue-600 text-white inline-flex items-center gap-1">
+                      <MaterialIcon name="public" className="text-[14px]" />
+                      All Schools
+                    </span>
                   )}
                 </div>
 
@@ -286,10 +312,10 @@ export default function TeacherCoursesPage() {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs ui-text-secondary mt-auto pt-1">
-                    <span>📹 {course.lessons.length} lessons</span>
-                    {course.totalDuration > 0 && <span>⏱ {formatDuration(course.totalDuration)}</span>}
-                    <span>👤 {course._count.enrollments} enrolled</span>
-                    {avgRating(course.ratings) && <span>⭐ {avgRating(course.ratings)}</span>}
+                    <span className="inline-flex items-center gap-1"><MaterialIcon name="video_library" className="text-[14px]" /> {course.lessons.length} lessons</span>
+                    {course.totalDuration > 0 && <span className="inline-flex items-center gap-1"><MaterialIcon name="schedule" className="text-[14px]" /> {formatDuration(course.totalDuration)}</span>}
+                    <span className="inline-flex items-center gap-1"><MaterialIcon name="group" className="text-[14px]" /> {course._count.enrollments} enrolled</span>
+                    {avgRating(course.ratings) && <span className="inline-flex items-center gap-1"><MaterialIcon name="star" className="text-[14px]" /> {avgRating(course.ratings)}</span>}
                     <span className="font-medium ui-text-primary">{course.price === 0 ? 'Free' : `$${course.price}`}</span>
                   </div>
                   <div className="flex gap-2 pt-2 border-t ui-border">

@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { redirect, useRouter, useSearchParams } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/Button'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 import { STUDENT_NAV_ITEMS } from '@/lib/admin-nav'
 
 interface Lesson {
@@ -205,8 +206,12 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
       <div className="p-4 sm:p-6 max-w-6xl mx-auto">
         {/* Back */}
         <div className="flex items-center gap-3 mb-4">
-          <Button variant="ghost" size="sm" onClick={() => router.push('/student/hub')}>← Hub</Button>
-          <Button variant="ghost" size="sm" onClick={() => router.push('/student/hub/my-courses')}>My Courses</Button>
+          <Button variant="ghost" size="sm" onClick={() => router.push('/student/hub')}>
+            <span className="inline-flex items-center gap-1.5"><MaterialIcon name="arrow_back" className="text-[18px]" /> Hub</span>
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => router.push('/student/hub/my-courses')}>
+            <span className="inline-flex items-center gap-1.5"><MaterialIcon name="library_books" className="text-[18px]" /> My Courses</span>
+          </Button>
         </div>
 
         {loading ? (
@@ -231,7 +236,7 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                   <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-white/60">
                     {!enrollment ? (
                       <>
-                        <span className="text-5xl">🔒</span>
+                        <MaterialIcon name="lock" className="text-6xl" />
                         <p className="text-sm">Enroll to access this course</p>
                         <Button onClick={handleEnroll} isLoading={enrolling}>
                           {course.price === 0 ? 'Enroll Free' : 'Subscribe'}
@@ -239,13 +244,13 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                       </>
                     ) : !hasFullAccess && !activeLesson?.isFreePreview ? (
                       <>
-                        <span className="text-5xl">💳</span>
+                        <MaterialIcon name="credit_card" className="text-6xl" />
                         <p className="text-sm">Full access required for this lesson</p>
                         <p className="text-xs opacity-70">Contact your teacher or admin to unlock</p>
                       </>
                     ) : (
                       <>
-                        <span className="text-5xl">🎬</span>
+                        <MaterialIcon name="play_circle" className="text-6xl" />
                         <p className="text-sm">No video for this lesson yet</p>
                       </>
                     )}
@@ -265,11 +270,11 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                     </div>
                     {(hasFullAccess || activeLesson.isFreePreview) && !lessonProgress(activeLesson.id)?.completed && (
                       <Button size="sm" variant="secondary" onClick={() => handleMarkComplete(activeLesson.id)}>
-                        ✓ Mark Complete
+                        <span className="inline-flex items-center gap-1"><MaterialIcon name="task_alt" className="text-[14px]" /> Mark Complete</span>
                       </Button>
                     )}
                     {lessonProgress(activeLesson.id)?.completed && (
-                      <span className="text-xs text-emerald-600 font-medium shrink-0">✅ Completed</span>
+                      <span className="text-xs text-emerald-600 font-medium shrink-0 inline-flex items-center gap-1"><MaterialIcon name="check_circle" className="text-[14px]" /> Completed</span>
                     )}
                   </div>
 
@@ -305,9 +310,9 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                       <button
                         key={s}
                         onClick={() => setRating(s)}
-                        className={`text-2xl ${s <= rating ? 'text-amber-400' : 'text-gray-300'} transition-colors`}
+                        className={`inline-flex ${s <= rating ? 'text-amber-400' : 'text-gray-300'} transition-colors`}
                       >
-                        ★
+                        <MaterialIcon name="star" filled={s <= rating} className="text-[28px]" />
                       </button>
                     ))}
                   </div>
@@ -324,7 +329,10 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                 </div>
               )}
               {ratingSubmitted && (
-                <p className="text-sm text-emerald-600 font-medium">Thanks for your rating! ⭐</p>
+                <p className="text-sm text-emerald-600 font-medium inline-flex items-center gap-1">
+                  <MaterialIcon name="star" className="text-[16px]" />
+                  Thanks for your rating!
+                </p>
               )}
 
               {/* Reviews */}
@@ -337,7 +345,11 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                         <span className="text-sm font-medium ui-text-primary">
                           {r.student.firstName} {r.student.lastName}
                         </span>
-                        <span className="text-amber-400 text-sm">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
+                        <span className="text-amber-400 inline-flex items-center gap-0.5">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <MaterialIcon key={i} name="star" filled={i < r.rating} className="text-[14px]" />
+                          ))}
+                        </span>
                       </div>
                       {r.review && <p className="text-xs ui-text-secondary mt-1">{r.review}</p>}
                     </div>
@@ -379,8 +391,11 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                             {lesson.isFreePreview && ' · Free'}
                           </p>
                         </div>
-                        <span className="shrink-0 text-sm">
-                          {isLocked ? '🔒' : lp?.completed ? '✅' : isActive ? '▶️' : '○'}
+                        <span className="shrink-0 text-sm inline-flex items-center">
+                          <MaterialIcon
+                            name={isLocked ? 'lock' : lp?.completed ? 'check_circle' : isActive ? 'play_arrow' : 'radio_button_unchecked'}
+                            className="text-[16px]"
+                          />
                         </span>
                       </button>
                     )

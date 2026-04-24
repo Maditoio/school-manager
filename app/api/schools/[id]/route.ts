@@ -102,8 +102,18 @@ export async function PATCH(
         },
         schoolSettings: {
           upsert: {
-            create: { slogan: typeof body.slogan === 'string' ? body.slogan.trim() || null : null },
-            update: { slogan: typeof body.slogan === 'string' ? body.slogan.trim() || null : null },
+            create: {
+              slogan: typeof body.slogan === 'string' ? body.slogan.trim() || null : null,
+              ...(body.allowCrossSchoolCourses !== undefined && {
+                allowCrossSchoolCourses: Boolean(body.allowCrossSchoolCourses),
+              }),
+            },
+            update: {
+              slogan: typeof body.slogan === 'string' ? body.slogan.trim() || null : null,
+              ...(body.allowCrossSchoolCourses !== undefined && {
+                allowCrossSchoolCourses: Boolean(body.allowCrossSchoolCourses),
+              }),
+            },
           },
         },
       },

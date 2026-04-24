@@ -28,6 +28,7 @@ interface School {
   suspendedAt?: string
   schoolSettings?: {
     slogan: string | null
+    allowCrossSchoolCourses: boolean
   } | null
   schoolBilling?: {
     id: string
@@ -106,6 +107,7 @@ export default function SchoolsPage() {
     enabledModules: '',
     billingNotes: '',
     slogan: '',
+    allowCrossSchoolCourses: false,
   })
 
   useEffect(() => {
@@ -161,6 +163,7 @@ export default function SchoolsPage() {
             enabledModules: formData.enabledModules.split(',').map((item) => item.trim()).filter(Boolean),
             billingNotes: formData.billingNotes,
             slogan: formData.slogan,
+            allowCrossSchoolCourses: formData.allowCrossSchoolCourses,
           }),
         })
 
@@ -185,6 +188,7 @@ export default function SchoolsPage() {
             licensedStudentCount: Number(formData.licensedStudentCount || 0),
             billingYear: Number(formData.billingYear || new Date().getFullYear()),
             enabledModules: formData.enabledModules.split(',').map((item) => item.trim()).filter(Boolean),
+            allowCrossSchoolCourses: formData.allowCrossSchoolCourses,
           }),
         })
 
@@ -223,6 +227,7 @@ export default function SchoolsPage() {
       enabledModules: school.schoolBilling?.enabledModules?.join(', ') ?? '',
       billingNotes: school.schoolBilling?.notes ?? '',
       slogan: school.schoolSettings?.slogan ?? '',
+      allowCrossSchoolCourses: school.schoolSettings?.allowCrossSchoolCourses ?? false,
     })
     setShowModal(true)
   }
@@ -393,6 +398,7 @@ export default function SchoolsPage() {
       enabledModules: '',
       billingNotes: '',
       slogan: '',
+      allowCrossSchoolCourses: false,
     })
     setEditingSchool(null)
   }
@@ -483,6 +489,7 @@ export default function SchoolsPage() {
                     <p>👥 Licensed Students: {school.schoolBilling?.licensedStudentCount ?? 0}</p>
                     <p>💰 Annual / Student: {school.schoolBilling?.annualPricePerStudent ?? 0}</p>
                     <p>🧭 Onboarding: {school.schoolBilling?.onboardingStatus ?? 'PENDING'}</p>
+                    <p>🎥 Inter-school courses: {school.schoolSettings?.allowCrossSchoolCourses ? 'Enabled' : 'Disabled'}</p>
                                       {school.suspended && school.suspensionReason && (
                                         <p className="text-orange-700 font-medium">Reason: {school.suspensionReason}</p>
                                       )}
@@ -533,6 +540,25 @@ export default function SchoolsPage() {
                   onChange={(e) => setFormData({ ...formData, slogan: e.target.value })}
                   placeholder="e.g. Excellence · Integrity · Growth"
                 />
+                <div className="rounded-lg border border-gray-200 p-3 bg-gray-50">
+                  <label className="flex items-center justify-between gap-3 cursor-pointer">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">Enable Inter-School Video Courses</p>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        Teachers can mark courses as visible to students in other schools.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={formData.allowCrossSchoolCourses}
+                      onClick={() => setFormData((prev) => ({ ...prev, allowCrossSchoolCourses: !prev.allowCrossSchoolCourses }))}
+                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${formData.allowCrossSchoolCourses ? 'bg-blue-600' : 'bg-gray-300'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${formData.allowCrossSchoolCourses ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </label>
+                </div>
                 <Select
                   label={t('school.schools.subscriptionPlan')}
                   value={formData.plan}

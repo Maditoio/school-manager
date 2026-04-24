@@ -7,6 +7,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Form'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 import { upload } from '@vercel/blob/client'
 import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
 import { useAlert } from '@/lib/useAlertDialog'
@@ -223,7 +224,9 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
     >
       <div className="p-4 sm:p-6 space-y-6 max-w-4xl mx-auto">
         <div className="flex flex-wrap items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => router.push('/teacher/courses')}>← Back</Button>
+          <Button variant="ghost" size="sm" onClick={() => router.push('/teacher/courses')}>
+            <span className="inline-flex items-center gap-1.5"><MaterialIcon name="arrow_back" className="text-[18px]" /> Back</span>
+          </Button>
           <h1 className="text-xl font-bold ui-text-primary flex-1">{course?.title ?? 'Loading…'}</h1>
           {course && (
             <Button
@@ -238,7 +241,10 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
                 fetchCourse()
               }}
             >
-              {course.published ? '⏸ Unpublish' : '🚀 Publish'}
+              <span className="inline-flex items-center gap-1.5">
+                <MaterialIcon name={course.published ? 'pause_circle' : 'rocket_launch'} className="text-[18px]" />
+                {course.published ? 'Unpublish' : 'Publish'}
+              </span>
             </Button>
           )}
         </div>
@@ -305,14 +311,20 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
                         <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center gap-2 ui-text-secondary">
-                          <span className="text-3xl">🎬</span>
+                          <MaterialIcon name="play_circle" className="text-4xl" />
                           <span className="text-xs">No thumbnail</span>
                         </div>
                       )}
                     </div>
                     <label className="cursor-pointer flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border ui-border text-xs ui-text-secondary hover:bg-(--surface-soft) transition-colors w-full">
                       <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleThumbnailUpload} className="hidden" disabled={thumbnailUploading} />
-                      {thumbnailUploading ? 'Uploading…' : course.thumbnailUrl ? '🔄 Change Thumbnail' : '📷 Upload Thumbnail'}
+                      {thumbnailUploading ? (
+                        <span className="inline-flex items-center gap-1"><MaterialIcon name="hourglass_top" className="text-[14px]" /> Uploading...</span>
+                      ) : course.thumbnailUrl ? (
+                        <span className="inline-flex items-center gap-1"><MaterialIcon name="sync" className="text-[14px]" /> Change Thumbnail</span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1"><MaterialIcon name="add_photo_alternate" className="text-[14px]" /> Upload Thumbnail</span>
+                      )}
                     </label>
                   </div>
                   <div className="space-y-2 flex-1">
@@ -322,16 +334,21 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
                       <span className="ui-text-secondary">Enrolled: <strong className="ui-text-primary">{course._count.enrollments}</strong></span>
                       {course.ratings.length > 0 && (
                         <span className="ui-text-secondary">Avg Rating: <strong className="ui-text-primary">
-                          {(course.ratings.reduce((s, r) => s + r.rating, 0) / course.ratings.length).toFixed(1)} ⭐
+                          <span className="inline-flex items-center gap-1">
+                            {(course.ratings.reduce((s, r) => s + r.rating, 0) / course.ratings.length).toFixed(1)}
+                            <MaterialIcon name="star" className="text-[14px]" />
+                          </span>
                         </strong></span>
                       )}
                     </div>
                     <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-semibold ${course.published ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                      {course.published ? '✅ Published' : '⚠️ Draft — not visible to students'}
+                      <MaterialIcon name={course.published ? 'check_circle' : 'warning'} className="text-[14px] mr-1" />
+                      {course.published ? 'Published' : 'Draft - not visible to students'}
                     </span>
                     {course.allSchools && (
-                      <span className="inline-flex items-center text-xs px-2.5 py-1 rounded-full font-semibold bg-blue-100 text-blue-700">
-                        🌐 Shared across all schools
+                      <span className="inline-flex items-center text-xs px-2.5 py-1 rounded-full font-semibold bg-blue-100 text-blue-700 gap-1">
+                        <MaterialIcon name="public" className="text-[14px]" />
+                        Shared across all schools
                       </span>
                     )}
                   </div>
@@ -342,7 +359,14 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
             {/* Lessons */}
             <Card
               title={`Lessons (${course.lessons.length})`}
-              action={<Button size="sm" onClick={() => setShowAddLesson(s => !s)}>+ Add Lesson</Button>}
+              action={
+                <Button size="sm" onClick={() => setShowAddLesson(s => !s)}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <MaterialIcon name="add" className="text-[16px]" />
+                    Add Lesson
+                  </span>
+                </Button>
+              }
             >
               {showAddLesson && (
                 <div className="mb-6 p-4 rounded-lg border ui-border bg-(--surface-soft) space-y-3">
@@ -449,12 +473,22 @@ function LessonRow({
         <span className="text-xs ui-text-secondary w-5 shrink-0">{index + 1}</span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium ui-text-primary truncate">{lesson.title}</p>
-          <p className="text-xs ui-text-secondary">
-            {lesson.videoUrl ? `✅ Video uploaded · ${formatDuration(lesson.duration)}` : '⚠️ No video'}
-            {lesson.isFreePreview && ' · 🆓 Free preview'}
+          <p className="text-xs ui-text-secondary inline-flex items-center gap-1.5 flex-wrap">
+            <span className="inline-flex items-center gap-1">
+              <MaterialIcon name={lesson.videoUrl ? 'check_circle' : 'warning'} className="text-[14px]" />
+              {lesson.videoUrl ? `Video uploaded - ${formatDuration(lesson.duration)}` : 'No video'}
+            </span>
+            {lesson.isFreePreview && (
+              <span className="inline-flex items-center gap-1">
+                <MaterialIcon name="lock_open" className="text-[14px]" />
+                Free preview
+              </span>
+            )}
           </p>
         </div>
-        <span className="text-xs ui-text-secondary">{expanded ? '▲' : '▼'}</span>
+        <span className="text-xs ui-text-secondary inline-flex items-center">
+          <MaterialIcon name={expanded ? 'expand_less' : 'expand_more'} className="text-[16px]" />
+        </span>
       </button>
 
       {expanded && (
@@ -487,7 +521,10 @@ function LessonRow({
             <label className="cursor-pointer">
               <input type="file" accept="video/mp4,video/quicktime,video/webm" className="hidden" onChange={handleFileSelect} disabled={!!videoUploading} />
               <span className="inline-flex items-center h-7 px-3 rounded text-xs font-medium ui-button-secondary cursor-pointer">
-                {lesson.videoUrl ? '🔄 Replace Video' : '📤 Upload Video'}
+                <span className="inline-flex items-center gap-1">
+                  <MaterialIcon name={lesson.videoUrl ? 'sync' : 'upload'} className="text-[14px]" />
+                  {lesson.videoUrl ? 'Replace Video' : 'Upload Video'}
+                </span>
               </span>
             </label>
             <Button size="sm" variant="ghost" onClick={() => onToggleFreePreview(lesson)}>

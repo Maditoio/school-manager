@@ -37,6 +37,7 @@ export const createSchoolSchema = z.object({
   enabledModules: z.array(z.string().min(1)).optional(),
   billingNotes: z.string().optional(),
   slogan: z.string().optional(),
+  allowCrossSchoolCourses: z.boolean().optional(),
 })
 
 export const createStudentSchema = z.object({

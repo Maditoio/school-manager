@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { redirect, useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/Button'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 import { STUDENT_NAV_ITEMS } from '@/lib/admin-nav'
 
 interface MyCourse {
@@ -88,7 +89,9 @@ export default function MyCoursesPage() {
       <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => router.push('/student/hub')}>← Browse</Button>
+          <Button variant="ghost" size="sm" onClick={() => router.push('/student/hub')}>
+            <span className="inline-flex items-center gap-1.5"><MaterialIcon name="arrow_back" className="text-[18px]" /> Browse</span>
+          </Button>
           <div>
             <h1 className="text-xl font-bold ui-text-primary">My Courses</h1>
             <p className="text-sm ui-text-secondary">Track your enrolled courses and progress</p>
@@ -117,7 +120,7 @@ export default function MyCoursesPage() {
           <div className="text-center py-12 ui-text-secondary text-sm">Loading…</div>
         ) : courses.length === 0 ? (
           <div className="text-center py-16 ui-text-secondary">
-            <div className="text-5xl mb-3">📚</div>
+            <div className="mb-3"><MaterialIcon name="library_books" className="text-6xl" /></div>
             <p className="font-medium ui-text-primary">No courses yet</p>
             <p className="text-sm mt-1">Browse the course library and enroll to get started</p>
             <Button className="mt-4" size="sm" onClick={() => router.push('/student/hub')}>Browse Courses</Button>
@@ -134,7 +137,7 @@ export default function MyCoursesPage() {
                       {course.thumbnailUrl ? (
                         <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-5xl">🎬</span>
+                        <MaterialIcon name="play_circle" className="text-6xl" />
                       )}
                       <span className="absolute top-3 left-3 text-[11px] px-2 py-0.5 rounded-full bg-black/60 text-white font-semibold tracking-wide">
                         Enrolled
@@ -165,9 +168,9 @@ export default function MyCoursesPage() {
                       )}
 
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs ui-text-secondary">
-                        <span>📹 {course.lessons.length} lessons</span>
-                        <span>⏱ {formatDuration(course.totalDuration)}</span>
-                        <span>🗓 Enrolled {formatDate(enrollment.enrolledAt)}</span>
+                        <span className="inline-flex items-center gap-1"><MaterialIcon name="video_library" className="text-[14px]" /> {course.lessons.length} lessons</span>
+                        <span className="inline-flex items-center gap-1"><MaterialIcon name="schedule" className="text-[14px]" /> {formatDuration(course.totalDuration)}</span>
+                        <span className="inline-flex items-center gap-1"><MaterialIcon name="calendar_month" className="text-[14px]" /> Enrolled {formatDate(enrollment.enrolledAt)}</span>
                       </div>
 
                       {/* Progress bar */}

@@ -47,6 +47,10 @@ export default async function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:FILL,wght,GRAD,opsz@0..1,100..700,-50..200,20..48"
+        />
         <meta name="theme-color" content={initialThemeColor} />
         <script
           dangerouslySetInnerHTML={{

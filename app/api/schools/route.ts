@@ -24,7 +24,7 @@ export async function GET() {
           },
         },
         schoolSettings: {
-          select: { slogan: true },
+          select: { slogan: true, allowCrossSchoolCourses: true },
         },
         _count: {
           select: {
@@ -111,6 +111,7 @@ export async function POST(request: NextRequest) {
         schoolSettings: {
           create: {
             slogan,
+            allowCrossSchoolCourses: validation.data.allowCrossSchoolCourses ?? false,
           },
         },
         users: {
