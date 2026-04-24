@@ -101,7 +101,19 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
       const res = await fetch('/api/courses/upload-thumbnail', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) { showAlert({ title: 'Upload failed', message: data.error }); return }
-      setCourseForm(f => ({ ...f, thumbnailUrl: data.url }))
+      // Auto-save to DB immediately so thumbnail persists without needing "Save Changes"
+      const patchRes = await fetch(`/api/courses/${courseId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thumbnailUrl: data.url }),
+      })
+      if (patchRes.ok) {
+        setCourseForm(f => ({ ...f, thumbnailUrl: data.url }))
+        fetchCourse()
+      } else {
+        showAlert({ title: 'Error', message: 'Thumbnail uploaded but failed to save. Please save changes manually.' })
+        setCourseForm(f => ({ ...f, thumbnailUrl: data.url }))
+      }
     } finally {
       setThumbnailUploading(false)
     }
@@ -260,16 +272,23 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
                 </div>
               ) : (
                 <div className="flex flex-col sm:flex-row gap-4">
-                  {course.thumbnailUrl ? (
-                    <div className="w-full sm:w-56 h-36 rounded-xl overflow-hidden shrink-0 border ui-border">
-                      <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
+                  {/* Thumbnail with inline upload */}
+                  <div className="w-full sm:w-56 shrink-0 space-y-2">
+                    <div className="w-full h-36 rounded-xl overflow-hidden border-2 border-dashed ui-border">
+                      {course.thumbnailUrl ? (
+                        <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 ui-text-secondary">
+                          <span className="text-3xl">🎬</span>
+                          <span className="text-xs">No thumbnail</span>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="w-full sm:w-56 h-36 rounded-xl border-2 border-dashed ui-border flex flex-col items-center justify-center gap-2 ui-text-secondary shrink-0">
-                      <span className="text-3xl">🎬</span>
-                      <span className="text-xs">No thumbnail</span>
-                    </div>
-                  )}
+                    <label className="cursor-pointer flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border ui-border text-xs ui-text-secondary hover:bg-(--surface-soft) transition-colors w-full">
+                      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleThumbnailUpload} className="hidden" disabled={thumbnailUploading} />
+                      {thumbnailUploading ? 'Uploading…' : course.thumbnailUrl ? '🔄 Change Thumbnail' : '📷 Upload Thumbnail'}
+                    </label>
+                  </div>
                   <div className="space-y-2 flex-1">
                     {course.description && <p className="text-sm ui-text-secondary">{course.description}</p>}
                     <div className="flex flex-wrap gap-4 text-sm pt-1">
