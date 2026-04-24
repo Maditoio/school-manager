@@ -202,9 +202,25 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
       navItems={TEACHER_NAV_ITEMS}
     >
       <div className="p-4 sm:p-6 space-y-6 max-w-4xl mx-auto">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => router.push('/teacher/courses')}>← Back</Button>
-          <h1 className="text-xl font-bold ui-text-primary">{course?.title ?? 'Loading…'}</h1>
+          <h1 className="text-xl font-bold ui-text-primary flex-1">{course?.title ?? 'Loading…'}</h1>
+          {course && (
+            <Button
+              size="sm"
+              variant={course.published ? 'ghost' : 'secondary'}
+              onClick={async () => {
+                await fetch(`/api/courses/${courseId}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ published: !course.published }),
+                })
+                fetchCourse()
+              }}
+            >
+              {course.published ? '⏸ Unpublish' : '🚀 Publish'}
+            </Button>
+          )}
         </div>
 
         {loading ? (
@@ -233,7 +249,9 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
                   <div>
                     <label className="block text-sm font-medium ui-text-secondary mb-2">Thumbnail</label>
                     {courseForm.thumbnailUrl && (
-                      <img src={courseForm.thumbnailUrl} alt="thumb" className="w-32 h-20 object-cover rounded-lg mb-2 border ui-border" />
+                      <div className="w-full sm:w-56 h-36 rounded-xl overflow-hidden border ui-border mb-3">
+                        <img src={courseForm.thumbnailUrl} alt="thumb" className="w-full h-full object-cover" />
+                      </div>
                     )}
                     <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleThumbnailUpload} className="text-sm" />
                     {thumbnailUploading && <p className="text-xs ui-text-secondary mt-1">Uploading thumbnail…</p>}
@@ -241,24 +259,31 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
                   <Button onClick={handleSaveCourse} isLoading={savingCourse}>Save Changes</Button>
                 </div>
               ) : (
-                <div className="flex gap-4">
-                  {course.thumbnailUrl && (
-                    <img src={course.thumbnailUrl} alt={course.title} className="w-32 h-20 object-cover rounded-lg border ui-border shrink-0" />
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {course.thumbnailUrl ? (
+                    <div className="w-full sm:w-56 h-36 rounded-xl overflow-hidden shrink-0 border ui-border">
+                      <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-full sm:w-56 h-36 rounded-xl border-2 border-dashed ui-border flex flex-col items-center justify-center gap-2 ui-text-secondary shrink-0">
+                      <span className="text-3xl">🎬</span>
+                      <span className="text-xs">No thumbnail</span>
+                    </div>
                   )}
-                  <div className="space-y-1">
+                  <div className="space-y-2 flex-1">
                     {course.description && <p className="text-sm ui-text-secondary">{course.description}</p>}
                     <div className="flex flex-wrap gap-4 text-sm pt-1">
-                      <span className="ui-text-secondary">Price: <strong className="ui-text-primary">{course.price === 0 ? 'Free' : `${course.price}`}</strong></span>
+                      <span className="ui-text-secondary">Price: <strong className="ui-text-primary">{course.price === 0 ? 'Free' : `$${course.price}`}</strong></span>
                       <span className="ui-text-secondary">Enrolled: <strong className="ui-text-primary">{course._count.enrollments}</strong></span>
                       {course.ratings.length > 0 && (
                         <span className="ui-text-secondary">Avg Rating: <strong className="ui-text-primary">
                           {(course.ratings.reduce((s, r) => s + r.rating, 0) / course.ratings.length).toFixed(1)} ⭐
                         </strong></span>
                       )}
-                      <span className={`font-medium ${course.published ? 'text-emerald-600' : 'text-amber-600'}`}>
-                        {course.published ? '✅ Published' : '⚠️ Draft'}
-                      </span>
                     </div>
+                    <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-semibold ${course.published ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {course.published ? '✅ Published' : '⚠️ Draft — not visible to students'}
+                    </span>
                   </div>
                 </div>
               )}

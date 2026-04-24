@@ -211,35 +211,44 @@ export default function TeacherCoursesPage() {
             <p className="text-sm mt-1">Create your first course to get started</p>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {courses.map(course => (
-              <Card key={course.id}>
-                {course.thumbnailUrl && (
-                  <img
-                    src={course.thumbnailUrl}
-                    alt={course.title}
-                    className="w-full h-36 object-cover rounded-t-lg -mx-4 -mt-4 mb-3"
-                    style={{ width: 'calc(100% + 2rem)' }}
-                  />
-                )}
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold ui-text-primary leading-tight">{course.title}</h3>
-                    <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${course.published ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                      {course.published ? 'Published' : 'Draft'}
-                    </span>
-                  </div>
-                  {course.description && (
-                    <p className="text-xs ui-text-secondary line-clamp-2">{course.description}</p>
+              <div key={course.id} className="group ui-surface border ui-border rounded-xl overflow-hidden hover:shadow-lg transition-shadow duration-200 flex flex-col">
+                {/* Thumbnail */}
+                <div className="h-44 relative overflow-hidden bg-(--surface-soft) shrink-0">
+                  {course.thumbnailUrl ? (
+                    <img
+                      src={course.thumbnailUrl}
+                      alt={course.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 ui-text-secondary">
+                      <span className="text-4xl">🎬</span>
+                      <span className="text-xs">No thumbnail</span>
+                    </div>
                   )}
-                  <div className="flex flex-wrap gap-3 text-xs ui-text-secondary pt-1">
+                  <span className={`absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full font-semibold shadow ${course.published ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
+                    {course.published ? 'Published' : 'Draft'}
+                  </span>
+                </div>
+
+                {/* Content */}
+                <div className="p-4 flex flex-col flex-1 gap-2">
+                  <div>
+                    <h3 className="font-semibold ui-text-primary leading-tight line-clamp-2">{course.title}</h3>
+                    {course.description && (
+                      <p className="text-xs ui-text-secondary line-clamp-2 mt-1">{course.description}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs ui-text-secondary mt-auto pt-1">
                     <span>📹 {course.lessons.length} lessons</span>
                     {course.totalDuration > 0 && <span>⏱ {formatDuration(course.totalDuration)}</span>}
                     <span>👤 {course._count.enrollments} enrolled</span>
                     {avgRating(course.ratings) && <span>⭐ {avgRating(course.ratings)}</span>}
-                    <span>{course.price === 0 ? '🆓 Free' : `💰 ${course.price}`}</span>
+                    <span className="font-medium ui-text-primary">{course.price === 0 ? 'Free' : `$${course.price}`}</span>
                   </div>
-                  <div className="flex gap-2 pt-2">
+                  <div className="flex gap-2 pt-2 border-t ui-border">
                     <Button size="sm" variant="secondary" onClick={() => router.push(`/teacher/courses/${course.id}`)}>
                       Manage
                     </Button>
@@ -248,7 +257,7 @@ export default function TeacherCoursesPage() {
                     </Button>
                   </div>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         )}
