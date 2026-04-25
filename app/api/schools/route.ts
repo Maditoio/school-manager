@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { createSchoolSchema } from "@/lib/validations"
+import { isMissingVideoCoursesEnabledColumn } from '@/lib/video-courses-feature'
 import { hash } from "bcryptjs"
 
 // GET /api/schools - List all schools (Super Admin only)
@@ -13,28 +14,63 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const schools = await prisma.school.findMany({
-      include: {
-        schoolBilling: {
-          include: {
-            payments: {
-              select: { id: true, amount: true, paymentType: true, paymentDate: true },
-              orderBy: { paymentDate: 'desc' },
+    let schools
+    try {
+      schools = await prisma.school.findMany({
+        include: {
+          schoolBilling: {
+            include: {
+              payments: {
+                select: { id: true, amount: true, paymentType: true, paymentDate: true },
+                orderBy: { paymentDate: 'desc' },
+              },
+            },
+          },
+          schoolSettings: {
+            select: { slogan: true, allowCrossSchoolCourses: true, videoCoursesEnabled: true },
+          },
+          _count: {
+            select: {
+              users: true,
+              students: true,
             },
           },
         },
-        schoolSettings: {
-          select: { slogan: true, allowCrossSchoolCourses: true, videoCoursesEnabled: true },
-        },
-        _count: {
-          select: {
-            users: true,
-            students: true,
+        orderBy: { createdAt: 'desc' },
+      })
+    } catch (error) {
+      if (!isMissingVideoCoursesEnabledColumn(error)) throw error
+
+      const legacySchools = await prisma.school.findMany({
+        include: {
+          schoolBilling: {
+            include: {
+              payments: {
+                select: { id: true, amount: true, paymentType: true, paymentDate: true },
+                orderBy: { paymentDate: 'desc' },
+              },
+            },
+          },
+          schoolSettings: {
+            select: { slogan: true, allowCrossSchoolCourses: true },
+          },
+          _count: {
+            select: {
+              users: true,
+              students: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+        orderBy: { createdAt: 'desc' },
+      })
+
+      schools = legacySchools.map((school) => ({
+        ...school,
+        schoolSettings: school.schoolSettings
+          ? { ...school.schoolSettings, videoCoursesEnabled: true }
+          : school.schoolSettings,
+      }))
+    }
 
     return NextResponse.json({ schools })
   } catch (error) {
@@ -91,60 +127,93 @@ export async function POST(request: NextRequest) {
     const currentAcademicYear = new Date().getFullYear()
 
     // Create school with admin user and a default Unassigned class
-    const school = await prisma.school.create({
-      data: {
-        name,
-        plan,
-        schoolBilling: {
-          create: {
-            onboardingFee: validation.data.onboardingFee ?? 0,
-            onboardingStatus: validation.data.onboardingStatus ?? 'PENDING',
-            annualPricePerStudent: validation.data.annualPricePerStudent ?? 0,
-            licensedStudentCount: validation.data.licensedStudentCount ?? 0,
-            billingYear,
-            licenseStartDate: validation.data.licenseStartDate ? new Date(validation.data.licenseStartDate) : null,
-            licenseEndDate: validation.data.licenseEndDate ? new Date(validation.data.licenseEndDate) : null,
-            enabledModules,
-            notes: validation.data.billingNotes?.trim() || null,
+    const createData = {
+      name,
+      plan,
+      schoolBilling: {
+        create: {
+          onboardingFee: validation.data.onboardingFee ?? 0,
+          onboardingStatus: validation.data.onboardingStatus ?? 'PENDING',
+          annualPricePerStudent: validation.data.annualPricePerStudent ?? 0,
+          licensedStudentCount: validation.data.licensedStudentCount ?? 0,
+          billingYear,
+          licenseStartDate: validation.data.licenseStartDate ? new Date(validation.data.licenseStartDate) : null,
+          licenseEndDate: validation.data.licenseEndDate ? new Date(validation.data.licenseEndDate) : null,
+          enabledModules,
+          notes: validation.data.billingNotes?.trim() || null,
+        },
+      },
+      schoolSettings: {
+        create: {
+          slogan,
+          allowCrossSchoolCourses: validation.data.allowCrossSchoolCourses ?? false,
+          videoCoursesEnabled: validation.data.videoCoursesEnabled ?? true,
+        },
+      },
+      users: {
+        create: {
+          email: normalizedAdminEmail,
+          password: hashedPassword,
+          firstName: adminFirstName,
+          lastName: adminLastName,
+          role: 'SCHOOL_ADMIN',
+        },
+      },
+      classes: {
+        create: {
+          name: 'Unassigned',
+          academicYear: currentAcademicYear,
+          grade: 'Unassigned',
+        },
+      },
+    }
+
+    let school
+    try {
+      school = await prisma.school.create({
+        data: createData,
+        include: {
+          schoolBilling: true,
+          users: {
+            where: { role: 'SCHOOL_ADMIN' },
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
           },
         },
+      })
+    } catch (error) {
+      if (!isMissingVideoCoursesEnabledColumn(error)) throw error
+
+      const legacyCreateData = {
+        ...createData,
         schoolSettings: {
           create: {
             slogan,
             allowCrossSchoolCourses: validation.data.allowCrossSchoolCourses ?? false,
-            videoCoursesEnabled: validation.data.videoCoursesEnabled ?? true,
           },
         },
-        users: {
-          create: {
-            email: normalizedAdminEmail,
-            password: hashedPassword,
-            firstName: adminFirstName,
-            lastName: adminLastName,
-            role: 'SCHOOL_ADMIN',
+      }
+
+      school = await prisma.school.create({
+        data: legacyCreateData,
+        include: {
+          schoolBilling: true,
+          users: {
+            where: { role: 'SCHOOL_ADMIN' },
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
           },
         },
-        classes: {
-          create: {
-            name: 'Unassigned',
-            academicYear: currentAcademicYear,
-            grade: 'Unassigned',
-          },
-        },
-      },
-      include: {
-        schoolBilling: true,
-        users: {
-          where: { role: 'SCHOOL_ADMIN' },
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
-    })
+      })
+    }
 
     return NextResponse.json({ school }, { status: 201 })
   } catch (error) {

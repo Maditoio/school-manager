@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getVideoCoursesEnabledForSchool } from '@/lib/video-courses-feature'
 
 // POST /api/courses/[id]/enroll - student subscribes (free preview or paid)
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -11,11 +12,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const { id: courseId } = await params
 
-  const settings = await prisma.schoolSettings.findUnique({
-    where: { schoolId: session.user.schoolId! },
-    select: { videoCoursesEnabled: true },
-  })
-  if (settings?.videoCoursesEnabled === false) {
+  const featureEnabled = await getVideoCoursesEnabledForSchool(session.user.schoolId!)
+  if (!featureEnabled) {
     return NextResponse.json(
       { error: 'Video courses are currently disabled for your school.', code: 'FEATURE_DISABLED' },
       { status: 403 }

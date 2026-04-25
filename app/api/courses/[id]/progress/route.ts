@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getVideoCoursesEnabledForSchool } from '@/lib/video-courses-feature'
 
 // POST /api/courses/[id]/progress - save lesson progress
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -9,11 +10,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
-  const settings = await prisma.schoolSettings.findUnique({
-    where: { schoolId: session.user.schoolId! },
-    select: { videoCoursesEnabled: true },
-  })
-  if (settings?.videoCoursesEnabled === false) {
+  const featureEnabled = await getVideoCoursesEnabledForSchool(session.user.schoolId!)
+  if (!featureEnabled) {
     return NextResponse.json(
       { error: 'Video courses are currently disabled for your school.', code: 'FEATURE_DISABLED' },
       { status: 403 }
@@ -62,11 +60,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
-  const settings = await prisma.schoolSettings.findUnique({
-    where: { schoolId: session.user.schoolId! },
-    select: { videoCoursesEnabled: true },
-  })
-  if (settings?.videoCoursesEnabled === false) {
+  const featureEnabled = await getVideoCoursesEnabledForSchool(session.user.schoolId!)
+  if (!featureEnabled) {
     return NextResponse.json({ progress: [], featureEnabled: false })
   }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { hasRole } from '@/lib/auth-utils'
+import { isMissingVideoCoursesEnabledColumn } from '@/lib/video-courses-feature'
 
 async function resolveSchoolId(sessionUser: { id?: string | null; email?: string | null; schoolId?: string | null; role?: string | null }) {
   if (sessionUser.schoolId) return sessionUser.schoolId
@@ -28,7 +29,56 @@ export async function GET() {
     const schoolId = await resolveSchoolId(session.user)
     if (!schoolId) return NextResponse.json({ error: 'School not found' }, { status: 400 })
 
-    const settings = await prisma.schoolSettings.findUnique({ where: { schoolId } })
+    let settings: {
+      expenseApprovalThreshold: number
+      minimumPassRatePerSubject: number
+      currency: string
+      logoUrl: string | null
+      reportTemplate: number
+      autoInvoiceEnabled: boolean
+      invoiceDayOfMonth: number
+      feesDueDayOfMonth: number
+      invoiceActiveMonths: number[]
+      allowCrossSchoolCourses: boolean
+      videoCoursesEnabled?: boolean
+    } | null
+
+    try {
+      settings = await prisma.schoolSettings.findUnique({
+        where: { schoolId },
+        select: {
+          expenseApprovalThreshold: true,
+          minimumPassRatePerSubject: true,
+          currency: true,
+          logoUrl: true,
+          reportTemplate: true,
+          autoInvoiceEnabled: true,
+          invoiceDayOfMonth: true,
+          feesDueDayOfMonth: true,
+          invoiceActiveMonths: true,
+          allowCrossSchoolCourses: true,
+          videoCoursesEnabled: true,
+        },
+      })
+    } catch (error) {
+      if (!isMissingVideoCoursesEnabledColumn(error)) throw error
+
+      settings = await prisma.schoolSettings.findUnique({
+        where: { schoolId },
+        select: {
+          expenseApprovalThreshold: true,
+          minimumPassRatePerSubject: true,
+          currency: true,
+          logoUrl: true,
+          reportTemplate: true,
+          autoInvoiceEnabled: true,
+          invoiceDayOfMonth: true,
+          feesDueDayOfMonth: true,
+          invoiceActiveMonths: true,
+          allowCrossSchoolCourses: true,
+        },
+      })
+    }
 
     return NextResponse.json({
       expenseApprovalThreshold: settings?.expenseApprovalThreshold ?? 0,
@@ -157,11 +207,24 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
     }
 
-    const settings = await prisma.schoolSettings.upsert({
-      where: { schoolId },
-      update: updateData,
-      create: { schoolId, expenseApprovalThreshold: 0, currency: 'ZAR', ...updateData },
-    })
+    let settings
+    try {
+      settings = await prisma.schoolSettings.upsert({
+        where: { schoolId },
+        update: updateData,
+        create: { schoolId, expenseApprovalThreshold: 0, currency: 'ZAR', ...updateData },
+      })
+    } catch (error) {
+      if (!isMissingVideoCoursesEnabledColumn(error)) throw error
+
+      const { videoCoursesEnabled, ...legacyUpdateData } = updateData
+
+      settings = await prisma.schoolSettings.upsert({
+        where: { schoolId },
+        update: legacyUpdateData,
+        create: { schoolId, expenseApprovalThreshold: 0, currency: 'ZAR', ...legacyUpdateData },
+      })
+    }
 
     return NextResponse.json({
       expenseApprovalThreshold: settings.expenseApprovalThreshold,
@@ -174,7 +237,7 @@ export async function PATCH(request: NextRequest) {
       feesDueDayOfMonth: settings.feesDueDayOfMonth,
       invoiceActiveMonths: settings.invoiceActiveMonths,
       allowCrossSchoolCourses: (settings as Record<string, unknown>).allowCrossSchoolCourses ?? false,
-      videoCoursesEnabled: settings.videoCoursesEnabled,
+      videoCoursesEnabled: (settings as Record<string, unknown>).videoCoursesEnabled ?? true,
     })
   } catch (error) {
     console.error('Error updating school settings:', error)

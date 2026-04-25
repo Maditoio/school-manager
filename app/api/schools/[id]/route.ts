@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { isMissingVideoCoursesEnabledColumn } from '@/lib/video-courses-feature'
 
 // GET /api/schools/[id] - Get school details
 export async function GET(
@@ -68,65 +69,83 @@ export async function PATCH(
       ? body.enabledModules.map((item: unknown) => String(item).trim()).filter(Boolean)
       : undefined
 
-    const school = await prisma.school.update({
-      where: { id: schoolId },
-      data: {
-        name: body.name,
-        plan: body.plan,
-        active: body.active,
-        schoolBilling: {
-          upsert: {
-            create: {
-              onboardingFee: Number(body.onboardingFee ?? 0),
-              onboardingStatus: body.onboardingStatus ?? 'PENDING',
-              annualPricePerStudent: Number(body.annualPricePerStudent ?? 0),
-              licensedStudentCount: Number(body.licensedStudentCount ?? 0),
-              billingYear: Number(body.billingYear ?? new Date().getFullYear()),
-              licenseStartDate: body.licenseStartDate ? new Date(body.licenseStartDate) : null,
-              licenseEndDate: body.licenseEndDate ? new Date(body.licenseEndDate) : null,
-              enabledModules: enabledModules ?? [],
-              notes: typeof body.billingNotes === 'string' ? body.billingNotes.trim() || null : null,
-            },
-            update: {
-              onboardingFee: Number(body.onboardingFee ?? 0),
-              onboardingStatus: body.onboardingStatus ?? 'PENDING',
-              annualPricePerStudent: Number(body.annualPricePerStudent ?? 0),
-              licensedStudentCount: Number(body.licensedStudentCount ?? 0),
-              billingYear: Number(body.billingYear ?? new Date().getFullYear()),
-              licenseStartDate: body.licenseStartDate ? new Date(body.licenseStartDate) : null,
-              licenseEndDate: body.licenseEndDate ? new Date(body.licenseEndDate) : null,
-              enabledModules: enabledModules ?? [],
-              notes: typeof body.billingNotes === 'string' ? body.billingNotes.trim() || null : null,
-            },
+    const settingsCreate: Record<string, unknown> = {
+      slogan: typeof body.slogan === 'string' ? body.slogan.trim() || null : null,
+    }
+    const settingsUpdate: Record<string, unknown> = {
+      slogan: typeof body.slogan === 'string' ? body.slogan.trim() || null : null,
+    }
+
+    if (body.allowCrossSchoolCourses !== undefined) {
+      settingsCreate.allowCrossSchoolCourses = Boolean(body.allowCrossSchoolCourses)
+      settingsUpdate.allowCrossSchoolCourses = Boolean(body.allowCrossSchoolCourses)
+    }
+    if (body.videoCoursesEnabled !== undefined) {
+      settingsCreate.videoCoursesEnabled = Boolean(body.videoCoursesEnabled)
+      settingsUpdate.videoCoursesEnabled = Boolean(body.videoCoursesEnabled)
+    }
+
+    const updateData = {
+      name: body.name,
+      plan: body.plan,
+      active: body.active,
+      schoolBilling: {
+        upsert: {
+          create: {
+            onboardingFee: Number(body.onboardingFee ?? 0),
+            onboardingStatus: body.onboardingStatus ?? 'PENDING',
+            annualPricePerStudent: Number(body.annualPricePerStudent ?? 0),
+            licensedStudentCount: Number(body.licensedStudentCount ?? 0),
+            billingYear: Number(body.billingYear ?? new Date().getFullYear()),
+            licenseStartDate: body.licenseStartDate ? new Date(body.licenseStartDate) : null,
+            licenseEndDate: body.licenseEndDate ? new Date(body.licenseEndDate) : null,
+            enabledModules: enabledModules ?? [],
+            notes: typeof body.billingNotes === 'string' ? body.billingNotes.trim() || null : null,
           },
-        },
-        schoolSettings: {
-          upsert: {
-            create: {
-              slogan: typeof body.slogan === 'string' ? body.slogan.trim() || null : null,
-              ...(body.allowCrossSchoolCourses !== undefined && {
-                allowCrossSchoolCourses: Boolean(body.allowCrossSchoolCourses),
-              }),
-              ...(body.videoCoursesEnabled !== undefined && {
-                videoCoursesEnabled: Boolean(body.videoCoursesEnabled),
-              }),
-            },
-            update: {
-              slogan: typeof body.slogan === 'string' ? body.slogan.trim() || null : null,
-              ...(body.allowCrossSchoolCourses !== undefined && {
-                allowCrossSchoolCourses: Boolean(body.allowCrossSchoolCourses),
-              }),
-              ...(body.videoCoursesEnabled !== undefined && {
-                videoCoursesEnabled: Boolean(body.videoCoursesEnabled),
-              }),
-            },
+          update: {
+            onboardingFee: Number(body.onboardingFee ?? 0),
+            onboardingStatus: body.onboardingStatus ?? 'PENDING',
+            annualPricePerStudent: Number(body.annualPricePerStudent ?? 0),
+            licensedStudentCount: Number(body.licensedStudentCount ?? 0),
+            billingYear: Number(body.billingYear ?? new Date().getFullYear()),
+            licenseStartDate: body.licenseStartDate ? new Date(body.licenseStartDate) : null,
+            licenseEndDate: body.licenseEndDate ? new Date(body.licenseEndDate) : null,
+            enabledModules: enabledModules ?? [],
+            notes: typeof body.billingNotes === 'string' ? body.billingNotes.trim() || null : null,
           },
         },
       },
-      include: {
-        schoolBilling: true,
+      schoolSettings: {
+        upsert: {
+          create: settingsCreate,
+          update: settingsUpdate,
+        },
       },
-    })
+    }
+
+    let school
+    try {
+      school = await prisma.school.update({
+        where: { id: schoolId },
+        data: updateData as any,
+        include: {
+          schoolBilling: true,
+        },
+      })
+    } catch (error) {
+      if (!isMissingVideoCoursesEnabledColumn(error)) throw error
+
+      delete settingsCreate.videoCoursesEnabled
+      delete settingsUpdate.videoCoursesEnabled
+
+      school = await prisma.school.update({
+        where: { id: schoolId },
+        data: updateData as any,
+        include: {
+          schoolBilling: true,
+        },
+      })
+    }
 
     return NextResponse.json({ school })
   } catch (error) {
