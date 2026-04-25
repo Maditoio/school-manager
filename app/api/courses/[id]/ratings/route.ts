@@ -13,6 +13,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const body = await request.json()
   const { rating, review } = body
 
+  const settings = await prisma.schoolSettings.findUnique({
+    where: { schoolId: session.user.schoolId! },
+    select: { videoCoursesEnabled: true },
+  })
+  if (settings?.videoCoursesEnabled === false) {
+    return NextResponse.json(
+      { error: 'Video courses are currently disabled for your school.', code: 'FEATURE_DISABLED' },
+      { status: 403 }
+    )
+  }
+
   if (typeof rating !== 'number' || rating < 1 || rating > 5) {
     return NextResponse.json({ error: 'Rating must be 1–5' }, { status: 400 })
   }

@@ -11,8 +11,29 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const { id: courseId } = await params
 
+  const settings = await prisma.schoolSettings.findUnique({
+    where: { schoolId: session.user.schoolId! },
+    select: { videoCoursesEnabled: true },
+  })
+  if (settings?.videoCoursesEnabled === false) {
+    return NextResponse.json(
+      { error: 'Video courses are currently disabled for your school.', code: 'FEATURE_DISABLED' },
+      { status: 403 }
+    )
+  }
+
   const course = await prisma.videoCourse.findFirst({
-    where: { id: courseId, schoolId: session.user.schoolId!, published: true },
+    where: {
+      id: courseId,
+      published: true,
+      OR: [
+        { schoolId: session.user.schoolId! },
+        {
+          allSchools: true,
+          school: { schoolSettings: { allowCrossSchoolCourses: true } },
+        },
+      ],
+    },
   })
   if (!course) return NextResponse.json({ error: 'Course not found' }, { status: 404 })
 

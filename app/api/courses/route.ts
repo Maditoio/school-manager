@@ -23,8 +23,58 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ courses })
   }
 
-  // Public browse — published courses for the school + cross-school courses
   const schoolId = session.user.schoolId!
+
+  if (session.user.role === 'STUDENT') {
+    const settings = await prisma.schoolSettings.findUnique({
+      where: { schoolId },
+      select: { videoCoursesEnabled: true },
+    })
+
+    if (settings?.videoCoursesEnabled === false) {
+      return NextResponse.json({
+        courses: [],
+        featureEnabled: false,
+        message: 'Video courses are currently disabled for your school.',
+      })
+    }
+
+    const student = await prisma.student.findFirst({
+      where: { userId: session.user.id, schoolId },
+      select: { id: true },
+    })
+
+    const enrolledCourseIds = student
+      ? (await prisma.courseEnrollment.findMany({
+          where: { studentId: student.id },
+          select: { courseId: true },
+        })).map((item) => item.courseId)
+      : []
+
+    const courses = await prisma.videoCourse.findMany({
+      where: {
+        published: true,
+        id: { notIn: enrolledCourseIds },
+        OR: [
+          { schoolId },
+          {
+            allSchools: true,
+            school: { schoolSettings: { allowCrossSchoolCourses: true } },
+          },
+        ],
+      },
+      include: {
+        teacher: { select: { firstName: true, lastName: true } },
+        school: { select: { id: true, name: true } },
+        lessons: { select: { id: true, isFreePreview: true, duration: true } },
+        _count: { select: { enrollments: true, ratings: true } },
+        ratings: { select: { rating: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return NextResponse.json({ courses, featureEnabled: true })
+  }
 
   // Get all published courses: own school + any school-shared from schools that allow it
   const courses = await prisma.videoCourse.findMany({

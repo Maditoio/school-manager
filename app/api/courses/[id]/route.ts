@@ -9,8 +9,35 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params
 
+  if (session.user.role === 'STUDENT') {
+    const settings = await prisma.schoolSettings.findUnique({
+      where: { schoolId: session.user.schoolId! },
+      select: { videoCoursesEnabled: true },
+    })
+
+    if (settings?.videoCoursesEnabled === false) {
+      return NextResponse.json(
+        { error: 'Video courses are currently disabled for your school.', code: 'FEATURE_DISABLED' },
+        { status: 403 }
+      )
+    }
+  }
+
   const course = await prisma.videoCourse.findFirst({
-    where: { id, schoolId: session.user.schoolId! },
+    where:
+      session.user.role === 'STUDENT'
+        ? {
+            id,
+            published: true,
+            OR: [
+              { schoolId: session.user.schoolId! },
+              {
+                allSchools: true,
+                school: { schoolSettings: { allowCrossSchoolCourses: true } },
+              },
+            ],
+          }
+        : { id, schoolId: session.user.schoolId! },
     include: {
       teacher: { select: { firstName: true, lastName: true } },
       lessons: { orderBy: { lessonOrder: 'asc' } },

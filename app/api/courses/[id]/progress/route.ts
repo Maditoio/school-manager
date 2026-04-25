@@ -9,6 +9,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
+  const settings = await prisma.schoolSettings.findUnique({
+    where: { schoolId: session.user.schoolId! },
+    select: { videoCoursesEnabled: true },
+  })
+  if (settings?.videoCoursesEnabled === false) {
+    return NextResponse.json(
+      { error: 'Video courses are currently disabled for your school.', code: 'FEATURE_DISABLED' },
+      { status: 403 }
+    )
+  }
+
   const { id: courseId } = await params
   const body = await request.json()
   const { lessonId, lastPosition, completed } = body
@@ -49,6 +60,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const session = await auth()
   if (!session?.user || session.user.role !== 'STUDENT') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+  }
+
+  const settings = await prisma.schoolSettings.findUnique({
+    where: { schoolId: session.user.schoolId! },
+    select: { videoCoursesEnabled: true },
+  })
+  if (settings?.videoCoursesEnabled === false) {
+    return NextResponse.json({ progress: [], featureEnabled: false })
   }
 
   const { id: courseId } = await params

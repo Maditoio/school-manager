@@ -58,6 +58,8 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
   const [progress, setProgress] = useState<ProgressEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [enrolling, setEnrolling] = useState(false)
+  const [featureEnabled, setFeatureEnabled] = useState(true)
+  const [featureMessage, setFeatureMessage] = useState('Video courses are currently unavailable for your school.')
 
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -77,8 +79,18 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
     setLoading(true)
     try {
       const res = await fetch(`/api/courses/${courseId}`)
-      if (!res.ok) { router.push('/student/hub'); return }
       const data = await res.json()
+      if (!res.ok) {
+        if (res.status === 403 && data?.code === 'FEATURE_DISABLED') {
+          setFeatureEnabled(false)
+          setFeatureMessage(data?.error || featureMessage)
+          return
+        }
+        router.push('/student/hub')
+        return
+      }
+
+      setFeatureEnabled(true)
       setCourse(data.course)
       setEnrollment(data.enrollment ?? null)
       setHasFullAccess(data.hasFullAccess ?? false)
@@ -94,7 +106,7 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
     } finally {
       setLoading(false)
     }
-  }, [courseId, router, searchParams])
+  }, [courseId, router, searchParams, featureMessage])
 
   const fetchProgress = useCallback(async () => {
     const res = await fetch(`/api/courses/${courseId}/progress`)
@@ -216,6 +228,12 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
 
         {loading ? (
           <div className="text-center py-16 ui-text-secondary text-sm">Loading course…</div>
+        ) : !featureEnabled ? (
+          <div className="text-center py-16 ui-text-secondary">
+            <div className="mb-3"><MaterialIcon name="block" className="text-6xl" /></div>
+            <p className="font-medium ui-text-primary">Course feature unavailable</p>
+            <p className="text-sm mt-1">{featureMessage}</p>
+          </div>
         ) : !course ? null : (
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Main: Video + Info */}
@@ -298,6 +316,12 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                   by {[course.teacher.firstName, course.teacher.lastName].filter(Boolean).join(' ') || 'Instructor'}
                   {' · '}{course._count.enrollments} students
                 </p>
+                {enrollment && (
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium w-fit">
+                    <MaterialIcon name="check_circle" className="text-[14px]" />
+                    Enrolled
+                  </span>
+                )}
                 {course.description && <p className="text-sm ui-text-secondary">{course.description}</p>}
               </div>
 
@@ -345,9 +369,14 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                         <span className="text-sm font-medium ui-text-primary">
                           {r.student.firstName} {r.student.lastName}
                         </span>
-                        <span className="text-amber-400 inline-flex items-center gap-0.5">
+                        <span className="inline-flex items-center gap-0.5">
                           {Array.from({ length: 5 }).map((_, i) => (
-                            <MaterialIcon key={i} name="star" filled={i < r.rating} className="text-[14px]" />
+                            <MaterialIcon
+                              key={i}
+                              name="star"
+                              filled={i < r.rating}
+                              className={`text-[14px] ${i < r.rating ? 'text-amber-400' : 'text-gray-300'}`}
+                            />
                           ))}
                         </span>
                       </div>

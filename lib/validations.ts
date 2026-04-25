@@ -38,6 +38,7 @@ export const createSchoolSchema = z.object({
   billingNotes: z.string().optional(),
   slogan: z.string().optional(),
   allowCrossSchoolCourses: z.boolean().optional(),
+  videoCoursesEnabled: z.boolean().optional(),
 })
 
 export const createStudentSchema = z.object({

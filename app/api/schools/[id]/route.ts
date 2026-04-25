@@ -107,11 +107,17 @@ export async function PATCH(
               ...(body.allowCrossSchoolCourses !== undefined && {
                 allowCrossSchoolCourses: Boolean(body.allowCrossSchoolCourses),
               }),
+              ...(body.videoCoursesEnabled !== undefined && {
+                videoCoursesEnabled: Boolean(body.videoCoursesEnabled),
+              }),
             },
             update: {
               slogan: typeof body.slogan === 'string' ? body.slogan.trim() || null : null,
               ...(body.allowCrossSchoolCourses !== undefined && {
                 allowCrossSchoolCourses: Boolean(body.allowCrossSchoolCourses),
+              }),
+              ...(body.videoCoursesEnabled !== undefined && {
+                videoCoursesEnabled: Boolean(body.videoCoursesEnabled),
               }),
             },
           },

@@ -43,6 +43,8 @@ export default function StudentHubPage() {
   const [loading, setLoading] = useState(true)
   const [enrolling, setEnrolling] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [featureEnabled, setFeatureEnabled] = useState(true)
+  const [featureMessage, setFeatureMessage] = useState('Video courses are currently unavailable for your school.')
 
   useEffect(() => {
     if (status === 'unauthenticated') redirect('/login')
@@ -55,6 +57,10 @@ export default function StudentHubPage() {
       const res = await fetch('/api/courses')
       const data = await res.json()
       setCourses(data.courses ?? [])
+      setFeatureEnabled(data.featureEnabled !== false)
+      if (typeof data.message === 'string' && data.message.trim()) {
+        setFeatureMessage(data.message)
+      }
     } finally {
       setLoading(false)
     }
@@ -107,22 +113,30 @@ export default function StudentHubPage() {
         </div>
 
         {/* Search */}
-        <input
-          type="text"
-          className="ui-input"
-          placeholder="Search courses…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+        {featureEnabled && (
+          <input
+            type="text"
+            className="ui-input"
+            placeholder="Search courses…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        )}
 
         {/* Course Grid */}
         {loading ? (
           <div className="text-center py-12 ui-text-secondary text-sm">Loading courses…</div>
+        ) : !featureEnabled ? (
+          <div className="text-center py-16 ui-text-secondary">
+            <div className="mb-3"><MaterialIcon name="block" className="text-6xl" /></div>
+            <p className="font-medium ui-text-primary">Course feature unavailable</p>
+            <p className="text-sm mt-1">{featureMessage}</p>
+          </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 ui-text-secondary">
             <div className="mb-3"><MaterialIcon name="play_circle" className="text-6xl" /></div>
-            <p className="font-medium ui-text-primary">No courses available yet</p>
-            <p className="text-sm mt-1">Check back when your teachers publish courses</p>
+            <p className="font-medium ui-text-primary">No new courses available</p>
+            <p className="text-sm mt-1">Enrolled courses move to My Courses automatically</p>
           </div>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

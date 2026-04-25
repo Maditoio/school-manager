@@ -29,6 +29,7 @@ interface School {
   schoolSettings?: {
     slogan: string | null
     allowCrossSchoolCourses: boolean
+    videoCoursesEnabled: boolean
   } | null
   schoolBilling?: {
     id: string
@@ -108,6 +109,7 @@ export default function SchoolsPage() {
     billingNotes: '',
     slogan: '',
     allowCrossSchoolCourses: false,
+    videoCoursesEnabled: true,
   })
 
   useEffect(() => {
@@ -164,6 +166,7 @@ export default function SchoolsPage() {
             billingNotes: formData.billingNotes,
             slogan: formData.slogan,
             allowCrossSchoolCourses: formData.allowCrossSchoolCourses,
+            videoCoursesEnabled: formData.videoCoursesEnabled,
           }),
         })
 
@@ -189,6 +192,7 @@ export default function SchoolsPage() {
             billingYear: Number(formData.billingYear || new Date().getFullYear()),
             enabledModules: formData.enabledModules.split(',').map((item) => item.trim()).filter(Boolean),
             allowCrossSchoolCourses: formData.allowCrossSchoolCourses,
+            videoCoursesEnabled: formData.videoCoursesEnabled,
           }),
         })
 
@@ -228,6 +232,7 @@ export default function SchoolsPage() {
       billingNotes: school.schoolBilling?.notes ?? '',
       slogan: school.schoolSettings?.slogan ?? '',
       allowCrossSchoolCourses: school.schoolSettings?.allowCrossSchoolCourses ?? false,
+      videoCoursesEnabled: school.schoolSettings?.videoCoursesEnabled ?? true,
     })
     setShowModal(true)
   }
@@ -399,6 +404,7 @@ export default function SchoolsPage() {
       billingNotes: '',
       slogan: '',
       allowCrossSchoolCourses: false,
+      videoCoursesEnabled: true,
     })
     setEditingSchool(null)
   }
@@ -489,6 +495,7 @@ export default function SchoolsPage() {
                     <p>👥 Licensed Students: {school.schoolBilling?.licensedStudentCount ?? 0}</p>
                     <p>💰 Annual / Student: {school.schoolBilling?.annualPricePerStudent ?? 0}</p>
                     <p>🧭 Onboarding: {school.schoolBilling?.onboardingStatus ?? 'PENDING'}</p>
+                    <p>🎓 Student courses: {school.schoolSettings?.videoCoursesEnabled !== false ? 'Enabled' : 'Disabled'}</p>
                     <p>🎥 Inter-school courses: {school.schoolSettings?.allowCrossSchoolCourses ? 'Enabled' : 'Disabled'}</p>
                                       {school.suspended && school.suspensionReason && (
                                         <p className="text-orange-700 font-medium">Reason: {school.suspensionReason}</p>
@@ -540,6 +547,25 @@ export default function SchoolsPage() {
                   onChange={(e) => setFormData({ ...formData, slogan: e.target.value })}
                   placeholder="e.g. Excellence · Integrity · Growth"
                 />
+                <div className="rounded-lg border border-gray-200 p-3 bg-gray-50">
+                  <label className="flex items-center justify-between gap-3 cursor-pointer">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">Enable Student Video Courses</p>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        Students in this school can browse, enroll, and watch course content.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={formData.videoCoursesEnabled}
+                      onClick={() => setFormData((prev) => ({ ...prev, videoCoursesEnabled: !prev.videoCoursesEnabled }))}
+                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${formData.videoCoursesEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${formData.videoCoursesEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </label>
+                </div>
                 <div className="rounded-lg border border-gray-200 p-3 bg-gray-50">
                   <label className="flex items-center justify-between gap-3 cursor-pointer">
                     <div>

@@ -41,6 +41,7 @@ export async function GET() {
       feesDueDayOfMonth: settings?.feesDueDayOfMonth ?? 15,
       invoiceActiveMonths: settings?.invoiceActiveMonths ?? [],
       allowCrossSchoolCourses: settings?.allowCrossSchoolCourses ?? false,
+      videoCoursesEnabled: settings?.videoCoursesEnabled ?? true,
     })
   } catch (error) {
     console.error('Error fetching school settings:', error)
@@ -70,6 +71,7 @@ export async function PATCH(request: NextRequest) {
       invoiceDayOfMonth?: number
       feesDueDayOfMonth?: number
       invoiceActiveMonths?: number[]
+      videoCoursesEnabled?: boolean
     } = {}
 
     if (body.expenseApprovalThreshold !== undefined) {
@@ -120,6 +122,10 @@ export async function PATCH(request: NextRequest) {
       (updateData as Record<string, unknown>).allowCrossSchoolCourses = Boolean(body.allowCrossSchoolCourses)
     }
 
+    if (body.videoCoursesEnabled !== undefined) {
+      updateData.videoCoursesEnabled = Boolean(body.videoCoursesEnabled)
+    }
+
     if (body.invoiceDayOfMonth !== undefined) {
       const d = Number(body.invoiceDayOfMonth)
       if (!Number.isInteger(d) || d < 1 || d > 28) {
@@ -168,6 +174,7 @@ export async function PATCH(request: NextRequest) {
       feesDueDayOfMonth: settings.feesDueDayOfMonth,
       invoiceActiveMonths: settings.invoiceActiveMonths,
       allowCrossSchoolCourses: (settings as Record<string, unknown>).allowCrossSchoolCourses ?? false,
+      videoCoursesEnabled: settings.videoCoursesEnabled,
     })
   } catch (error) {
     console.error('Error updating school settings:', error)

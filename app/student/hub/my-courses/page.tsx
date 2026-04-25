@@ -54,6 +54,8 @@ export default function MyCoursesPage() {
 
   const [courses, setCourses] = useState<MyCourse[]>([])
   const [loading, setLoading] = useState(true)
+  const [featureEnabled, setFeatureEnabled] = useState(true)
+  const [featureMessage, setFeatureMessage] = useState('Video courses are currently unavailable for your school.')
 
   useEffect(() => {
     if (status === 'unauthenticated') redirect('/login')
@@ -66,6 +68,10 @@ export default function MyCoursesPage() {
       const res = await fetch('/api/courses/my-courses')
       const data = await res.json()
       setCourses(data.courses ?? [])
+      setFeatureEnabled(data.featureEnabled !== false)
+      if (typeof data.message === 'string' && data.message.trim()) {
+        setFeatureMessage(data.message)
+      }
     } finally {
       setLoading(false)
     }
@@ -118,6 +124,12 @@ export default function MyCoursesPage() {
         {/* Course List */}
         {loading ? (
           <div className="text-center py-12 ui-text-secondary text-sm">Loading…</div>
+        ) : !featureEnabled ? (
+          <div className="text-center py-16 ui-text-secondary">
+            <div className="mb-3"><MaterialIcon name="block" className="text-6xl" /></div>
+            <p className="font-medium ui-text-primary">Course feature unavailable</p>
+            <p className="text-sm mt-1">{featureMessage}</p>
+          </div>
         ) : courses.length === 0 ? (
           <div className="text-center py-16 ui-text-secondary">
             <div className="mb-3"><MaterialIcon name="library_books" className="text-6xl" /></div>

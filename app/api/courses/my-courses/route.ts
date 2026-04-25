@@ -9,6 +9,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
+  const settings = await prisma.schoolSettings.findUnique({
+    where: { schoolId: session.user.schoolId! },
+    select: { videoCoursesEnabled: true },
+  })
+
+  if (settings?.videoCoursesEnabled === false) {
+    return NextResponse.json({
+      courses: [],
+      featureEnabled: false,
+      message: 'Video courses are currently disabled for your school.',
+    })
+  }
+
   const student = await prisma.student.findFirst({
     where: { userId: session.user.id, schoolId: session.user.schoolId! },
   })
@@ -54,5 +67,5 @@ export async function GET(request: NextRequest) {
     }
   })
 
-  return NextResponse.json({ courses: result })
+  return NextResponse.json({ courses: result, featureEnabled: true })
 }
