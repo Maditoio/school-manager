@@ -95,6 +95,7 @@ export default function SuperAdminSystemSettingsPage() {
     { label: t('navigation.schools'), href: '/super-admin/schools', icon: '🏢' },
     { label: t('navigation.users'), href: '/super-admin/users', icon: '👥' },
     { label: t('navigation.analytics'), href: '/super-admin/analytics', icon: '📈' },
+    { label: 'Payments', href: '/super-admin/payments', icon: '💳' },
     { label: 'Settings', href: '/super-admin/settings', icon: '⚙️' },
   ]
 

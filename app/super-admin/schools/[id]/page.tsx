@@ -57,6 +57,14 @@ interface LedgerPayment {
   recordedBy: { id: string; firstName: string | null; lastName: string | null; email: string } | null
 }
 
+function usd(value: number) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
 function daysUntil(dateValue: string | null | undefined) {
   if (!dateValue) return null
   const end = new Date(dateValue)
@@ -209,6 +217,7 @@ export default function SuperAdminSchoolDetailPage({ params }: { params: Promise
     { label: t('navigation.schools'), href: '/super-admin/schools', icon: '🏢' },
     { label: t('navigation.users'), href: '/super-admin/users', icon: '👥' },
     { label: t('navigation.analytics'), href: '/super-admin/analytics', icon: '📈' },
+    { label: 'Payments', href: '/super-admin/payments', icon: '💳' },
     { label: 'Settings', href: '/super-admin/settings', icon: '⚙️' },
   ]
 
@@ -249,7 +258,7 @@ export default function SuperAdminSchoolDetailPage({ params }: { params: Promise
               </Card>
               <Card className="p-4">
                 <p className="text-xs text-gray-500 uppercase tracking-wide">Annual due</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{annualDue.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{usd(annualDue)}</p>
               </Card>
               <Card className="p-4">
                 <p className="text-xs text-gray-500 uppercase tracking-wide">License renewal</p>
@@ -298,13 +307,13 @@ export default function SuperAdminSchoolDetailPage({ params }: { params: Promise
               <Card className="p-5">
                 <h2 className="text-lg font-semibold text-gray-900">License & billing</h2>
                 <div className="space-y-2 text-sm mt-4">
-                  <p><span className="text-gray-500">Onboarding fee:</span> <span className="font-medium">{(billing?.onboardingFee ?? 0).toLocaleString()}</span></p>
                   <p><span className="text-gray-500">Onboarding status:</span> <span className="font-medium">{billing?.onboardingStatus ?? 'PENDING'}</span></p>
-                  <p><span className="text-gray-500">Annual / student:</span> <span className="font-medium">{(billing?.annualPricePerStudent ?? 0).toLocaleString()}</span></p>
+                  <p><span className="text-gray-500">Onboarding fee (USD):</span> <span className="font-medium">{usd(billing?.onboardingFee ?? 0)}</span></p>
+                  <p><span className="text-gray-500">Annual / student (USD):</span> <span className="font-medium">{usd(billing?.annualPricePerStudent ?? 0)}</span></p>
                   <p><span className="text-gray-500">Billing year:</span> <span className="font-medium">{billing?.billingYear ?? new Date().getFullYear()}</span></p>
                   <p><span className="text-gray-500">License start:</span> <span className="font-medium">{billing?.licenseStartDate ? new Date(billing.licenseStartDate).toLocaleDateString() : 'N/A'}</span></p>
                   <p><span className="text-gray-500">License end:</span> <span className="font-medium">{billing?.licenseEndDate ? new Date(billing.licenseEndDate).toLocaleDateString() : 'N/A'}</span></p>
-                  <p><span className="text-gray-500">Payments total:</span> <span className="font-medium">{totalPaid.toLocaleString()}</span></p>
+                  <p><span className="text-gray-500">Payments total (USD):</span> <span className="font-medium">{usd(totalPaid)}</span></p>
                 </div>
               </Card>
             </div>
@@ -351,7 +360,7 @@ export default function SuperAdminSchoolDetailPage({ params }: { params: Promise
                             }`}>
                               {payment.paymentType}
                             </span>
-                            <span className="text-sm font-semibold text-gray-900">{Number(payment.amount).toLocaleString()}</span>
+                            <span className="text-sm font-semibold text-gray-900">{usd(Number(payment.amount))}</span>
                           </div>
                           <p className="text-xs text-gray-500 mt-1">
                             {new Date(payment.paymentDate).toLocaleDateString()}

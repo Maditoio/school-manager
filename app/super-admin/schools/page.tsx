@@ -49,6 +49,14 @@ interface School {
   } | null
 }
 
+function usd(value: number) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
 export default function SchoolsPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
@@ -313,6 +321,7 @@ export default function SchoolsPage() {
     { label: t('navigation.schools'), href: '/super-admin/schools', icon: '🏢' },
     { label: t('navigation.users'), href: '/super-admin/users', icon: '👥' },
     { label: t('navigation.analytics'), href: '/super-admin/analytics', icon: '📈' },
+    { label: 'Payments', href: '/super-admin/payments', icon: '💳' },
     { label: 'Settings', href: '/super-admin/settings', icon: '⚙️' },
   ]
 
@@ -349,6 +358,7 @@ export default function SchoolsPage() {
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Status</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Students</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Licensed</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Fees (USD)</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Courses</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Created</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Actions</th>
@@ -377,6 +387,12 @@ export default function SchoolsPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">{school._count?.students ?? 0}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{school.schoolBilling?.licensedStudentCount ?? 0}</td>
+                      <td className="px-4 py-3 text-xs text-gray-700">
+                        <div className="flex flex-col gap-1">
+                          <span>Annual/student: {usd(school.schoolBilling?.annualPricePerStudent ?? 0)}</span>
+                          <span>Onboarding: {usd(school.schoolBilling?.onboardingFee ?? 0)}</span>
+                        </div>
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-col gap-1 text-xs">
                           <span className={`font-medium ${school.schoolSettings?.videoCoursesEnabled !== false ? 'text-green-700' : 'text-red-700'}`}>
