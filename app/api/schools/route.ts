@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { createSchoolSchema } from "@/lib/validations"
 import { isMissingVideoCoursesEnabledColumn } from '@/lib/video-courses-feature'
+import { UserRole } from '@prisma/client'
 import { hash } from "bcryptjs"
 
 // GET /api/schools - List all schools (Super Admin only)
@@ -156,7 +157,7 @@ export async function POST(request: NextRequest) {
           password: hashedPassword,
           firstName: adminFirstName,
           lastName: adminLastName,
-          role: 'SCHOOL_ADMIN',
+          role: UserRole.SCHOOL_ADMIN,
         },
       },
       classes: {

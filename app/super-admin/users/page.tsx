@@ -423,7 +423,7 @@ export default function SuperAdminUsersPage() {
                           </span>
                         )}
                         {user.suspended && user.suspensionReason && (
-                          <p className="text-xs text-gray-500 mt-1 max-w-[140px] truncate" title={user.suspensionReason}>
+                          <p className="text-xs text-gray-500 mt-1 max-w-35 truncate" title={user.suspensionReason}>
                             {user.suspensionReason}
                           </p>
                         )}
