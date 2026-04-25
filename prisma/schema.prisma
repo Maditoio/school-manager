@@ -58,6 +58,16 @@ model School {
   @@map("schools")
 }
 
+model GlobalSystemSettings {
+  id                          String   @id @default(uuid())
+  key                         String   @unique
+  videoCoursesGloballyEnabled Boolean  @default(true) @map("video_courses_globally_enabled")
+  createdAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                   DateTime @updatedAt @map("updated_at")
+
+  @@map("global_system_settings")
+}
+
 model SchoolSettings {
   id                        String          @id @default(uuid())
   schoolId                  String          @unique @map("school_id")

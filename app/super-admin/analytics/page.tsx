@@ -114,6 +114,7 @@ export default function AnalyticsPage() {
     { label: t('navigation.schools'), href: '/super-admin/schools', icon: '🏢' },
     { label: t('navigation.users'), href: '/super-admin/users', icon: '👥' },
     { label: t('navigation.analytics'), href: '/super-admin/analytics', icon: '📈' },
+    { label: 'Settings', href: '/super-admin/settings', icon: '⚙️' },
   ]
 
   return (

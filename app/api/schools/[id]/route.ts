@@ -22,20 +22,62 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const school = await prisma.school.findUnique({
-      where: { id: schoolId },
-      include: {
-        schoolBilling: true,
-        _count: {
-          select: {
-            users: true,
-            students: true,
-            classes: true,
-            subjects: true,
+    let school
+    try {
+      school = await prisma.school.findUnique({
+        where: { id: schoolId },
+        include: {
+          schoolBilling: true,
+          schoolSettings: {
+            select: {
+              slogan: true,
+              allowCrossSchoolCourses: true,
+              videoCoursesEnabled: true,
+            },
+          },
+          _count: {
+            select: {
+              users: true,
+              students: true,
+              classes: true,
+              subjects: true,
+            },
           },
         },
-      },
-    })
+      })
+    } catch (error) {
+      if (!isMissingVideoCoursesEnabledColumn(error)) throw error
+
+      school = await prisma.school.findUnique({
+        where: { id: schoolId },
+        include: {
+          schoolBilling: true,
+          schoolSettings: {
+            select: {
+              slogan: true,
+              allowCrossSchoolCourses: true,
+            },
+          },
+          _count: {
+            select: {
+              users: true,
+              students: true,
+              classes: true,
+              subjects: true,
+            },
+          },
+        },
+      })
+
+      school = school
+        ? {
+            ...school,
+            schoolSettings: school.schoolSettings
+              ? { ...school.schoolSettings, videoCoursesEnabled: true }
+              : school.schoolSettings,
+          }
+        : school
+    }
 
     if (!school) {
       return NextResponse.json({ error: 'School not found' }, { status: 404 })
