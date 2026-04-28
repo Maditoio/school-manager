@@ -54,6 +54,7 @@ model School {
   teacher_off_days             teacher_off_days[]
   terms                        terms[]
   users                        User[]
+  StudentCourseProfile         StudentCourseProfile[]
 
   @@map("schools")
 }
@@ -93,21 +94,21 @@ model SchoolSettings {
 }
 
 model SchoolBilling {
-  id                   String                 @id @default(uuid())
-  schoolId             String                 @unique @map("school_id")
-  onboardingFee        Float                  @default(0) @map("onboarding_fee")
-  onboardingStatus     SchoolOnboardingStatus @default(PENDING) @map("onboarding_status")
-  annualPricePerStudent Float                 @default(0) @map("annual_price_per_student")
-  licensedStudentCount Int                    @default(0) @map("licensed_student_count")
-  billingYear          Int                    @default(0) @map("billing_year")
-  licenseStartDate     DateTime?              @map("license_start_date") @db.Date
-  licenseEndDate       DateTime?              @map("license_end_date") @db.Date
-  enabledModules       String[]               @default([]) @map("enabled_modules")
-  notes                String?
-  createdAt            DateTime               @default(now()) @map("created_at")
-  updatedAt            DateTime               @updatedAt @map("updated_at")
-  school               School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  payments             SchoolBillingPayment[]
+  id                    String                 @id @default(uuid())
+  schoolId              String                 @unique @map("school_id")
+  onboardingFee         Float                  @default(0) @map("onboarding_fee")
+  onboardingStatus      SchoolOnboardingStatus @default(PENDING) @map("onboarding_status")
+  annualPricePerStudent Float                  @default(0) @map("annual_price_per_student")
+  licensedStudentCount  Int                    @default(0) @map("licensed_student_count")
+  billingYear           Int                    @default(0) @map("billing_year")
+  licenseStartDate      DateTime?              @map("license_start_date") @db.Date
+  licenseEndDate        DateTime?              @map("license_end_date") @db.Date
+  enabledModules        String[]               @default([]) @map("enabled_modules")
+  notes                 String?
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
+  school                School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  payments              SchoolBillingPayment[]
 
   @@index([billingYear])
   @@map("school_billing")
@@ -125,19 +126,19 @@ enum StudentLicenseSource {
 }
 
 model SchoolBillingPayment {
-  id            String             @id @default(uuid())
-  billingId     String             @map("billing_id")
-  amount        Float
-  paymentType   BillingPaymentType @map("payment_type")
-  paymentDate   DateTime           @map("payment_date") @db.Date
-  paymentMethod String?            @map("payment_method")
-  referenceNumber String?          @map("reference_number")
-  notes         String?
-  recordedById  String?            @map("recorded_by_id")
-  createdAt     DateTime           @default(now()) @map("created_at")
-  updatedAt     DateTime           @updatedAt @map("updated_at")
-  billing       SchoolBilling      @relation(fields: [billingId], references: [id], onDelete: Cascade)
-  recordedBy    User?              @relation("BillingPaymentRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  id              String             @id @default(uuid())
+  billingId       String             @map("billing_id")
+  amount          Float
+  paymentType     BillingPaymentType @map("payment_type")
+  paymentDate     DateTime           @map("payment_date") @db.Date
+  paymentMethod   String?            @map("payment_method")
+  referenceNumber String?            @map("reference_number")
+  notes           String?
+  recordedById    String?            @map("recorded_by_id")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+  billing         SchoolBilling      @relation(fields: [billingId], references: [id], onDelete: Cascade)
+  recordedBy      User?              @relation("BillingPaymentRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
 
   @@index([billingId])
   @@index([paymentDate])
@@ -145,61 +146,61 @@ model SchoolBillingPayment {
 }
 
 model User {
-  id                       String                 @id @default(uuid())
-  schoolId                 String?                @map("school_id")
-  email                    String                 @unique
-  username                 String?                @unique
-  password                 String
-  mustResetPassword        Boolean                @default(false) @map("must_reset_password")
-  role                     UserRole
-  preferredLanguage        String                 @default("en") @map("preferred_language")
-  firstName                String?                @map("first_name")
-  lastName                 String?                @map("last_name")
-  title                    String?
-  phone                    String?
-  suspended                Boolean                @default(false)
-  suspendedAt              DateTime?              @map("suspended_at")
-  suspensionReason         String?                @map("suspension_reason")
-  studentId                String?                @unique @map("student_id")
-  createdAt                DateTime               @default(now()) @map("created_at")
-  updatedAt                DateTime               @updatedAt @map("updated_at")
-  announcements            Announcement[]         @relation("AnnouncementCreator")
-  assessmentsCreated       Assessment[]           @relation("TeacherAssessments")
-  classAnnouncements       ClassAnnouncement[]    @relation("ClassAnnouncementCreator")
-  teachingAssignments      ClassSubjectTeacher[]  @relation("TeacherSubjectAssignments")
-  teacherClasses           Class[]                @relation("TeacherClasses")
-  deletionRequestsApproved DeletionRequest[]      @relation("DeleteRequestsApproved")
-  deletionRequestsCreated  DeletionRequest[]      @relation("DeleteRequestsCreated")
-  expenseAuditLogs         ExpenseAuditLog[]      @relation("ExpenseAuditActor")
-  expensesCreated          Expense[]              @relation("ExpenseCreatedBy")
-  expensesUpdated          Expense[]              @relation("ExpenseUpdatedBy")
-  billingPaymentsRecorded  SchoolBillingPayment[] @relation("BillingPaymentRecorder")
-  fundRequestsCreated      FundRequest[]          @relation("FundRequestedBy")
-  fundRequestsReviewed     FundRequest[]          @relation("FundRequestReviewedBy")
-  feePaymentsReceived      FeePayment[]           @relation("FeePaymentReceivedBy")
+  id                             String                  @id @default(uuid())
+  schoolId                       String?                 @map("school_id")
+  email                          String                  @unique
+  username                       String?                 @unique
+  password                       String
+  mustResetPassword              Boolean                 @default(false) @map("must_reset_password")
+  role                           UserRole
+  preferredLanguage              String                  @default("en") @map("preferred_language")
+  firstName                      String?                 @map("first_name")
+  lastName                       String?                 @map("last_name")
+  title                          String?
+  phone                          String?
+  suspended                      Boolean                 @default(false)
+  suspendedAt                    DateTime?               @map("suspended_at")
+  suspensionReason               String?                 @map("suspension_reason")
+  studentId                      String?                 @unique @map("student_id")
+  createdAt                      DateTime                @default(now()) @map("created_at")
+  updatedAt                      DateTime                @updatedAt @map("updated_at")
+  announcements                  Announcement[]          @relation("AnnouncementCreator")
+  assessmentsCreated             Assessment[]            @relation("TeacherAssessments")
+  classAnnouncements             ClassAnnouncement[]     @relation("ClassAnnouncementCreator")
+  teachingAssignments            ClassSubjectTeacher[]   @relation("TeacherSubjectAssignments")
+  teacherClasses                 Class[]                 @relation("TeacherClasses")
+  deletionRequestsApproved       DeletionRequest[]       @relation("DeleteRequestsApproved")
+  deletionRequestsCreated        DeletionRequest[]       @relation("DeleteRequestsCreated")
+  expenseAuditLogs               ExpenseAuditLog[]       @relation("ExpenseAuditActor")
+  expensesCreated                Expense[]               @relation("ExpenseCreatedBy")
+  expensesUpdated                Expense[]               @relation("ExpenseUpdatedBy")
+  billingPaymentsRecorded        SchoolBillingPayment[]  @relation("BillingPaymentRecorder")
+  fundRequestsCreated            FundRequest[]           @relation("FundRequestedBy")
+  fundRequestsReviewed           FundRequest[]           @relation("FundRequestReviewedBy")
+  feePaymentsReceived            FeePayment[]            @relation("FeePaymentReceivedBy")
   studentLicensePaymentsRecorded StudentLicensePayment[] @relation("StudentLicensePaymentRecorder")
-  feeSchedulesApproved     FeeSchedule[]          @relation("FeeScheduleApprovedBy")
-  feeSchedulesCreated      FeeSchedule[]          @relation("FeeScheduleCreatedBy")
-  feeAdjustmentsCreated    FeeAdjustment[]        @relation("FeeAdjustmentCreatedBy")
-  receivedMessages         Message[]              @relation("ReceivedMessages")
-  sentMessages             Message[]              @relation("SentMessages")
-  parentComplaints         ParentComplaint[]      @relation("ParentComplaints")
-  parentInteractions       ParentInteraction[]    @relation("ParentInteractions")
-  classHistoryChanges      StudentClassHistory[]  @relation("ClassHistoryChangedBy")
-  studentStatusChanges     StudentStatusHistory[] @relation("StudentStatusChangedBy")
-  students                 Student[]              @relation("ParentStudents")
-  teacherContracts         TeacherContract[]      @relation("TeacherContracts")
-  teacherSalaries          TeacherSalary[]        @relation("TeacherSalaries")
-  salariesRecorded         TeacherSalary[]        @relation("SalaryRecordedBy")
-  teacherSalaryConfig      TeacherSalaryConfig?   @relation("TeacherSalaryConfig")
-  salaryConfigsUpdated     TeacherSalaryConfig[]  @relation("SalaryConfigUpdatedBy")
-  teacher_off_days         teacher_off_days[]
-  reportTemplatesCreated   ReportTemplate[]       @relation("ReportTemplateCreator")
-  settings                 UserSettings?
-  linkedStudent            Student?               @relation("StudentUser")
-  timetableSlotsTeaching   TimetableSlot[]        @relation("TimetableSlots")
-  coursesCreated           VideoCourse[]          @relation("TeacherCourses")
-  school                   School?                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  feeSchedulesApproved           FeeSchedule[]           @relation("FeeScheduleApprovedBy")
+  feeSchedulesCreated            FeeSchedule[]           @relation("FeeScheduleCreatedBy")
+  feeAdjustmentsCreated          FeeAdjustment[]         @relation("FeeAdjustmentCreatedBy")
+  receivedMessages               Message[]               @relation("ReceivedMessages")
+  sentMessages                   Message[]               @relation("SentMessages")
+  parentComplaints               ParentComplaint[]       @relation("ParentComplaints")
+  parentInteractions             ParentInteraction[]     @relation("ParentInteractions")
+  classHistoryChanges            StudentClassHistory[]   @relation("ClassHistoryChangedBy")
+  studentStatusChanges           StudentStatusHistory[]  @relation("StudentStatusChangedBy")
+  students                       Student[]               @relation("ParentStudents")
+  teacherContracts               TeacherContract[]       @relation("TeacherContracts")
+  teacherSalaries                TeacherSalary[]         @relation("TeacherSalaries")
+  salariesRecorded               TeacherSalary[]         @relation("SalaryRecordedBy")
+  teacherSalaryConfig            TeacherSalaryConfig?    @relation("TeacherSalaryConfig")
+  salaryConfigsUpdated           TeacherSalaryConfig[]   @relation("SalaryConfigUpdatedBy")
+  teacher_off_days               teacher_off_days[]
+  reportTemplatesCreated         ReportTemplate[]        @relation("ReportTemplateCreator")
+  settings                       UserSettings?
+  linkedStudent                  Student?                @relation("StudentUser")
+  timetableSlotsTeaching         TimetableSlot[]         @relation("TimetableSlots")
+  coursesCreated                 VideoCourse[]           @relation("TeacherCourses")
+  school                         School?                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([schoolId])
   @@index([email])
@@ -218,28 +219,28 @@ model UserSettings {
 }
 
 model Class {
-  id                 String                @id @default(uuid())
-  schoolId           String                @map("school_id")
-  name               String
-  academicYear       Int                   @map("academic_year")
-  academicYearId     String?               @map("academic_year_id")
-  teacherId          String?               @map("teacher_id")
-  grade              String?
-  createdAt          DateTime              @default(now()) @map("created_at")
-  updatedAt          DateTime              @updatedAt @map("updated_at")
-  capacity           Int?                  @map("capacity")
-  assessments        Assessment[]
-  announcements      ClassAnnouncement[]
-  subjectAssignments ClassSubjectTeacher[]
-  school             School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  teacher            User?                 @relation("TeacherClasses", fields: [teacherId], references: [id])
-  academicYearRecord academic_years?       @relation(fields: [academicYearId], references: [id])
-  classHistoryFrom   StudentClassHistory[] @relation("ClassHistoryFrom")
-  classHistoryTo     StudentClassHistory[] @relation("ClassHistoryTo")
-  feeSchedules       FeeSchedule[]       @relation("FeeScheduleClass")
-  students           Student[]
+  id                    String                   @id @default(uuid())
+  schoolId              String                   @map("school_id")
+  name                  String
+  academicYear          Int                      @map("academic_year")
+  academicYearId        String?                  @map("academic_year_id")
+  teacherId             String?                  @map("teacher_id")
+  grade                 String?
+  createdAt             DateTime                 @default(now()) @map("created_at")
+  updatedAt             DateTime                 @updatedAt @map("updated_at")
+  capacity              Int?                     @map("capacity")
+  assessments           Assessment[]
+  announcements         ClassAnnouncement[]
+  subjectAssignments    ClassSubjectTeacher[]
+  school                School                   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teacher               User?                    @relation("TeacherClasses", fields: [teacherId], references: [id])
+  academicYearRecord    academic_years?          @relation(fields: [academicYearId], references: [id])
+  classHistoryFrom      StudentClassHistory[]    @relation("ClassHistoryFrom")
+  classHistoryTo        StudentClassHistory[]    @relation("ClassHistoryTo")
+  feeSchedules          FeeSchedule[]            @relation("FeeScheduleClass")
+  students              Student[]
   additionalEnrollments StudentAdditionalClass[]
-  timetableSlots     TimetableSlot[]
+  timetableSlots        TimetableSlot[]
 
   @@unique([schoolId, name, academicYear])
   @@index([schoolId])
@@ -273,23 +274,23 @@ model TeacherContract {
 }
 
 model TeacherSalary {
-  id          String              @id @default(uuid())
-  schoolId    String              @map("school_id")
-  teacherId   String              @map("teacher_id")
-  amount      Float
-  paidAmount  Float               @default(0) @map("paid_amount")
-  month       Int
-  year        Int
-  paymentDate DateTime?           @map("payment_date") @db.Date
-  status      TeacherSalaryStatus @default(PENDING)
-  paidAt      DateTime?           @map("paid_at")
-  notes       String?
-  recordedBy  String              @map("recorded_by")
-  createdAt   DateTime            @default(now()) @map("created_at")
-  updatedAt   DateTime            @updatedAt @map("updated_at")
-  school      School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  teacher     User                @relation("TeacherSalaries", fields: [teacherId], references: [id], onDelete: Cascade)
-  recordedByUser User             @relation("SalaryRecordedBy", fields: [recordedBy], references: [id])
+  id             String              @id @default(uuid())
+  schoolId       String              @map("school_id")
+  teacherId      String              @map("teacher_id")
+  amount         Float
+  paidAmount     Float               @default(0) @map("paid_amount")
+  month          Int
+  year           Int
+  paymentDate    DateTime?           @map("payment_date") @db.Date
+  status         TeacherSalaryStatus @default(PENDING)
+  paidAt         DateTime?           @map("paid_at")
+  notes          String?
+  recordedBy     String              @map("recorded_by")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+  school         School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teacher        User                @relation("TeacherSalaries", fields: [teacherId], references: [id], onDelete: Cascade)
+  recordedByUser User                @relation("SalaryRecordedBy", fields: [recordedBy], references: [id])
 
   @@unique([teacherId, month, year])
   @@index([schoolId])
@@ -300,17 +301,17 @@ model TeacherSalary {
 }
 
 model TeacherSalaryConfig {
-  id           String   @id @default(uuid())
-  schoolId     String   @map("school_id")
-  teacherId    String   @unique @map("teacher_id")
-  baseAmount   Float    @map("base_amount")
-  notes        String?
-  updatedBy    String   @map("updated_by")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  teacher      User     @relation("TeacherSalaryConfig", fields: [teacherId], references: [id], onDelete: Cascade)
-  updatedByUser User    @relation("SalaryConfigUpdatedBy", fields: [updatedBy], references: [id])
+  id            String   @id @default(uuid())
+  schoolId      String   @map("school_id")
+  teacherId     String   @unique @map("teacher_id")
+  baseAmount    Float    @map("base_amount")
+  notes         String?
+  updatedBy     String   @map("updated_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teacher       User     @relation("TeacherSalaryConfig", fields: [teacherId], references: [id], onDelete: Cascade)
+  updatedByUser User     @relation("SalaryConfigUpdatedBy", fields: [updatedBy], references: [id])
 
   @@index([schoolId])
   @@map("teacher_salary_configs")
@@ -341,46 +342,47 @@ model ParentComplaint {
 }
 
 model Student {
-  id                    String                  @id @default(uuid())
-  schoolId              String                  @map("school_id")
-  classId               String                  @map("class_id")
-  parentId              String?                 @map("parent_id")
-  parentName            String?                 @map("parent_name")
-  parentEmail           String?                 @map("parent_email")
-  parentPhone           String?                 @map("parent_phone")
-  emergencyContactName  String?                 @map("emergency_contact_name")
-  emergencyContactPhone String?                 @map("emergency_contact_phone")
-  firstName             String                  @map("first_name")
-  lastName              String                  @map("last_name")
-  dateOfBirth           DateTime?               @map("date_of_birth")
-  admissionNumber       String?                 @map("admission_number")
-  status                StudentEnrollmentStatus @default(ACTIVE)
-  statusReason          StudentLeaveReason?     @map("status_reason")
-  statusDate            DateTime?               @map("status_date")
-  statusNotes           String?                 @map("status_notes")
-  academicYear          Int                     @map("academic_year")
-  userId                String?                 @unique @map("user_id")
-  createdAt             DateTime                @default(now()) @map("created_at")
-  updatedAt             DateTime                @updatedAt @map("updated_at")
-  studentAssessments    StudentAssessment[]
-  attendance            Attendance[]
-  feePayments           FeePayment[]
-  feeAdjustments        FeeAdjustment[]
-  feeInvoices           FeeInvoice[]
-  studentLicenses       StudentLicense[]
+  id                     String                   @id @default(uuid())
+  schoolId               String                   @map("school_id")
+  classId                String                   @map("class_id")
+  parentId               String?                  @map("parent_id")
+  parentName             String?                  @map("parent_name")
+  parentEmail            String?                  @map("parent_email")
+  parentPhone            String?                  @map("parent_phone")
+  emergencyContactName   String?                  @map("emergency_contact_name")
+  emergencyContactPhone  String?                  @map("emergency_contact_phone")
+  firstName              String                   @map("first_name")
+  lastName               String                   @map("last_name")
+  dateOfBirth            DateTime?                @map("date_of_birth")
+  admissionNumber        String?                  @map("admission_number")
+  status                 StudentEnrollmentStatus  @default(ACTIVE)
+  statusReason           StudentLeaveReason?      @map("status_reason")
+  statusDate             DateTime?                @map("status_date")
+  statusNotes            String?                  @map("status_notes")
+  academicYear           Int                      @map("academic_year")
+  userId                 String?                  @unique @map("user_id")
+  createdAt              DateTime                 @default(now()) @map("created_at")
+  updatedAt              DateTime                 @updatedAt @map("updated_at")
+  studentAssessments     StudentAssessment[]
+  attendance             Attendance[]
+  feePayments            FeePayment[]
+  feeAdjustments         FeeAdjustment[]
+  feeInvoices            FeeInvoice[]
+  studentLicenses        StudentLicense[]
   studentLicensePayments StudentLicensePayment[]
-  complaints            ParentComplaint[]
-  results               Result[]
-  classHistory          StudentClassHistory[]
-  additionalClasses     StudentAdditionalClass[]
-  expenses              Expense[]
-  statusHistory         StudentStatusHistory[]
-  courseEnrollments     CourseEnrollment[]
-  courseRatings         CourseRating[]
-  class                 Class                   @relation(fields: [classId], references: [id])
-  parent                User?                   @relation("ParentStudents", fields: [parentId], references: [id])
-  user                  User?                   @relation("StudentUser", fields: [userId], references: [id])
-  school                School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  complaints             ParentComplaint[]
+  results                Result[]
+  classHistory           StudentClassHistory[]
+  additionalClasses      StudentAdditionalClass[]
+  expenses               Expense[]
+  statusHistory          StudentStatusHistory[]
+  courseEnrollments      CourseEnrollment[]
+  courseRatings          CourseRating[]
+  studentCourseProfiles  StudentCourseProfile[]
+  class                  Class                    @relation(fields: [classId], references: [id])
+  parent                 User?                    @relation("ParentStudents", fields: [parentId], references: [id])
+  user                   User?                    @relation("StudentUser", fields: [userId], references: [id])
+  school                 School                   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, admissionNumber, academicYear])
   @@index([schoolId])
@@ -391,6 +393,32 @@ model Student {
   @@index([schoolId, academicYear])
   @@index([schoolId, createdAt])
   @@map("students")
+}
+
+model StudentCourseProfile {
+  id                 String   @id @default(uuid())
+  schoolId           String   @map("school_id")
+  studentId          String   @map("student_id")
+  termId             String   @map("term_id")
+  academicYear       Int      @map("academic_year")
+  termName           String   @map("term_name")
+  termAverage        Float    @default(0) @map("term_average")
+  overallPassRate    Float    @default(0) @map("overall_pass_rate")
+  subjectAverages    Json     @map("subject_averages")
+  strongSubjects     Json     @map("strong_subjects")
+  weakSubjects       Json     @map("weak_subjects")
+  recommendationTags String[] @default([]) @map("recommendation_tags")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  student            Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  school             School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  term               terms    @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, termId])
+  @@index([schoolId])
+  @@index([studentId])
+  @@index([termId])
+  @@map("student_course_profiles")
 }
 
 model StudentStatusHistory {
@@ -494,7 +522,7 @@ model Assessment {
   classId             String              @map("class_id")
   subjectId           String              @map("subject_id")
   teacherId           String              @map("teacher_id")
-  termId              String?              @map("term_id")
+  termId              String?             @map("term_id")
   academicYear        Int                 @map("academic_year")
   term                String
   title               String
@@ -586,7 +614,7 @@ model Attendance {
   id        String           @id @default(uuid())
   schoolId  String           @map("school_id")
   studentId String           @map("student_id")
-  termId    String?           @map("term_id")
+  termId    String?          @map("term_id")
   date      DateTime         @db.Date
   status    AttendanceStatus
   notes     String?
@@ -594,7 +622,7 @@ model Attendance {
   updatedAt DateTime         @updatedAt @map("updated_at")
   school    School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  terms     terms?            @relation(fields: [termId], references: [id])
+  terms     terms?           @relation(fields: [termId], references: [id])
 
   @@unique([studentId, date])
   @@index([schoolId])
@@ -638,19 +666,19 @@ model Result {
 }
 
 model Announcement {
-  id        String   @id @default(uuid())
-  schoolId  String   @map("school_id")
+  id        String    @id @default(uuid())
+  schoolId  String    @map("school_id")
   title     String
   message   String
-  startDate DateTime @map("start_date")
+  startDate DateTime  @map("start_date")
   endDate   DateTime? @map("end_date")
-  imageUrl  String?  @map("image_url")
-  createdBy String   @map("created_by")
-  priority  String   @default("normal")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  creator   User     @relation("AnnouncementCreator", fields: [createdBy], references: [id])
-  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  imageUrl  String?   @map("image_url")
+  createdBy String    @map("created_by")
+  priority  String    @default("normal")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  creator   User      @relation("AnnouncementCreator", fields: [createdBy], references: [id])
+  school    School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([schoolId])
   @@index([createdAt])
@@ -746,27 +774,27 @@ model ParentInteraction {
 }
 
 model FeeSchedule {
-  id           String              @id @default(uuid())
-  schoolId     String              @map("school_id")
-  classId      String?             @map("class_id")
-  periodType   FeePeriodType       @map("period_type")
-  year         Int
-  month        Int?
-  semester     Int?
-  amountDue    Float               @map("amount_due")
-  status       FeeScheduleStatus   @default(PENDING_APPROVAL) @map("status")
-  approvedBy   String?             @map("approved_by")
-  approvedAt   DateTime?           @map("approved_at")
-  createdBy    String              @map("created_by")
-  createdAt    DateTime            @default(now()) @map("created_at")
-  updatedAt    DateTime            @updatedAt @map("updated_at")
-  payments     FeePayment[]
-  adjustments  FeeAdjustment[]
-  invoices     FeeInvoice[]
-  approver       User?               @relation("FeeScheduleApprovedBy", fields: [approvedBy], references: [id])
-  scheduledClass Class?              @relation("FeeScheduleClass", fields: [classId], references: [id])
-  creator        User                @relation("FeeScheduleCreatedBy", fields: [createdBy], references: [id])
-  school       School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  id             String            @id @default(uuid())
+  schoolId       String            @map("school_id")
+  classId        String?           @map("class_id")
+  periodType     FeePeriodType     @map("period_type")
+  year           Int
+  month          Int?
+  semester       Int?
+  amountDue      Float             @map("amount_due")
+  status         FeeScheduleStatus @default(PENDING_APPROVAL) @map("status")
+  approvedBy     String?           @map("approved_by")
+  approvedAt     DateTime?         @map("approved_at")
+  createdBy      String            @map("created_by")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  payments       FeePayment[]
+  adjustments    FeeAdjustment[]
+  invoices       FeeInvoice[]
+  approver       User?             @relation("FeeScheduleApprovedBy", fields: [approvedBy], references: [id])
+  scheduledClass Class?            @relation("FeeScheduleClass", fields: [classId], references: [id])
+  creator        User              @relation("FeeScheduleCreatedBy", fields: [createdBy], references: [id])
+  school         School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, classId, periodType, year, month, semester])
   @@index([schoolId])
@@ -777,28 +805,28 @@ model FeeSchedule {
 }
 
 model FeePayment {
-  id             String        @id @default(uuid())
-  schoolId       String        @map("school_id")
-  scheduleId     String        @map("schedule_id")
-  studentId      String        @map("student_id")
-  termId         String?       @map("term_id")
-  paymentNumber  String        @unique @map("payment_number")
-  amountPaid     Float         @map("amount_paid")
-  paymentDate    DateTime      @map("payment_date")
-  notes          String?
-  receiptUrl     String?       @map("receipt_url")
-  receiptFileName String?      @map("receipt_file_name")
-  receiptMimeType String?      @map("receipt_mime_type")
-  receivedBy     String        @map("received_by")
-  createdAt      DateTime      @default(now()) @map("created_at")
-  paymentMethod  PaymentMethod @default(OTHER) @map("payment_method")
-  invoiceId      String?       @map("invoice_id")
-  receiver       User          @relation("FeePaymentReceivedBy", fields: [receivedBy], references: [id])
-  schedule       FeeSchedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
-  school         School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  student        Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  terms          terms?        @relation(fields: [termId], references: [id])
-  invoice        FeeInvoice?   @relation(fields: [invoiceId], references: [id])
+  id              String        @id @default(uuid())
+  schoolId        String        @map("school_id")
+  scheduleId      String        @map("schedule_id")
+  studentId       String        @map("student_id")
+  termId          String?       @map("term_id")
+  paymentNumber   String        @unique @map("payment_number")
+  amountPaid      Float         @map("amount_paid")
+  paymentDate     DateTime      @map("payment_date")
+  notes           String?
+  receiptUrl      String?       @map("receipt_url")
+  receiptFileName String?       @map("receipt_file_name")
+  receiptMimeType String?       @map("receipt_mime_type")
+  receivedBy      String        @map("received_by")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  paymentMethod   PaymentMethod @default(OTHER) @map("payment_method")
+  invoiceId       String?       @map("invoice_id")
+  receiver        User          @relation("FeePaymentReceivedBy", fields: [receivedBy], references: [id])
+  schedule        FeeSchedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  school          School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  terms           terms?        @relation(fields: [termId], references: [id])
+  invoice         FeeInvoice?   @relation(fields: [invoiceId], references: [id])
 
   @@index([schoolId])
   @@index([scheduleId])
@@ -815,7 +843,7 @@ model FeeAdjustment {
   schoolId   String      @map("school_id")
   scheduleId String      @map("schedule_id")
   studentId  String      @map("student_id")
-  amount     Float       // negative = discount/waiver, positive = extra charge
+  amount     Float // negative = discount/waiver, positive = extra charge
   reason     String?
   createdBy  String      @map("created_by")
   createdAt  DateTime    @default(now()) @map("created_at")
@@ -906,32 +934,32 @@ model StudentLicense {
 }
 
 model Expense {
-  id              String          @id @default(uuid())
-  schoolId        String          @map("school_id")
+  id              String            @id @default(uuid())
+  schoolId        String            @map("school_id")
   title           String
   description     String?
   category        ExpenseCategory
   amount          Float
-  expenseDate     DateTime        @map("expense_date") @db.Date
-  paymentMethod   PaymentMethod?  @map("payment_method")
-  vendorName      String?         @map("vendor_name")
-  referenceNumber String?         @map("reference_number")
-  invoiceUrl      String?         @map("invoice_url")
-  invoiceFileName String?         @map("invoice_file_name")
-  invoiceMimeType String?         @map("invoice_mime_type")
-  beneficiaryName String?         @map("beneficiary_name")
-  studentId       String?         @map("student_id")
-  status          ExpenseStatus   @default(RECORDED)
-  createdById     String          @map("created_by_id")
-  updatedById     String?         @map("updated_by_id")
-  createdAt       DateTime        @default(now()) @map("created_at")
-  updatedAt       DateTime        @updatedAt @map("updated_at")
+  expenseDate     DateTime          @map("expense_date") @db.Date
+  paymentMethod   PaymentMethod?    @map("payment_method")
+  vendorName      String?           @map("vendor_name")
+  referenceNumber String?           @map("reference_number")
+  invoiceUrl      String?           @map("invoice_url")
+  invoiceFileName String?           @map("invoice_file_name")
+  invoiceMimeType String?           @map("invoice_mime_type")
+  beneficiaryName String?           @map("beneficiary_name")
+  studentId       String?           @map("student_id")
+  status          ExpenseStatus     @default(RECORDED)
+  createdById     String            @map("created_by_id")
+  updatedById     String?           @map("updated_by_id")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
   auditLogs       ExpenseAuditLog[]
   fundRequest     FundRequest?
-  createdBy       User            @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
-  school          School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  student         Student?        @relation(fields: [studentId], references: [id])
-  updatedBy       User?           @relation("ExpenseUpdatedBy", fields: [updatedById], references: [id])
+  createdBy       User              @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
+  school          School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student         Student?          @relation(fields: [studentId], references: [id])
+  updatedBy       User?             @relation("ExpenseUpdatedBy", fields: [updatedById], references: [id])
 
   @@index([schoolId])
   @@index([category])
@@ -945,16 +973,16 @@ model Expense {
 }
 
 model ExpenseAuditLog {
-  id         String            @id @default(uuid())
-  schoolId   String            @map("school_id")
-  expenseId  String            @map("expense_id")
-  actorId    String?           @map("actor_id")
-  action     ExpenseAuditAction
-  details    Json?
-  createdAt  DateTime          @default(now()) @map("created_at")
-  actor      User?             @relation("ExpenseAuditActor", fields: [actorId], references: [id])
-  expense    Expense           @relation(fields: [expenseId], references: [id], onDelete: Cascade)
-  school     School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  id        String             @id @default(uuid())
+  schoolId  String             @map("school_id")
+  expenseId String             @map("expense_id")
+  actorId   String?            @map("actor_id")
+  action    ExpenseAuditAction
+  details   Json?
+  createdAt DateTime           @default(now()) @map("created_at")
+  actor     User?              @relation("ExpenseAuditActor", fields: [actorId], references: [id])
+  expense   Expense            @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  school    School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([schoolId])
   @@index([expenseId])
@@ -1089,6 +1117,7 @@ model terms {
   timetableSlots               TimetableSlot[]
   academic_years               academic_years                @relation(fields: [academic_year_id], references: [id], onDelete: Cascade)
   schools                      School                        @relation(fields: [school_id], references: [id], onDelete: Cascade)
+  StudentCourseProfile         StudentCourseProfile[]
 
   @@unique([academic_year_id, name])
   @@index([academic_year_id])
@@ -1231,19 +1260,19 @@ enum PaymentMethod {
 }
 
 model ReportTemplate {
-  id           String          @id @default(uuid())
-  schoolId     String?         @map("school_id")
-  name         String
-  description  String?
-  htmlContent  String          @map("html_content") @db.Text
-  cssContent   String?         @map("css_content") @db.Text
-  isSystem     Boolean         @default(false) @map("is_system")
-  sortOrder    Int             @default(0) @map("sort_order")
-  createdById  String?         @map("created_by_id")
-  createdAt    DateTime        @default(now()) @map("created_at")
-  updatedAt    DateTime        @updatedAt @map("updated_at")
-  school       School?         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  createdBy    User?           @relation("ReportTemplateCreator", fields: [createdById], references: [id])
+  id               String           @id @default(uuid())
+  schoolId         String?          @map("school_id")
+  name             String
+  description      String?
+  htmlContent      String           @map("html_content") @db.Text
+  cssContent       String?          @map("css_content") @db.Text
+  isSystem         Boolean          @default(false) @map("is_system")
+  sortOrder        Int              @default(0) @map("sort_order")
+  createdById      String?          @map("created_by_id")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+  school           School?          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  createdBy        User?            @relation("ReportTemplateCreator", fields: [createdById], references: [id])
   activeForSchools SchoolSettings[] @relation("ActiveTemplate")
 
   @@index([schoolId])
@@ -1252,23 +1281,23 @@ model ReportTemplate {
 }
 
 model TimetableSlot {
-  id          String   @id @default(uuid())
-  schoolId    String   @map("school_id")
-  classId     String   @map("class_id")
-  subjectId   String   @map("subject_id")
-  teacherId   String   @map("teacher_id")
-  termId      String?  @map("term_id")
-  dayOfWeek   Int      @map("day_of_week")
-  startTime   String   @map("start_time")
-  endTime     String   @map("end_time")
-  room        String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  teacher     User     @relation("TimetableSlots", fields: [teacherId], references: [id])
-  term        terms?   @relation(fields: [termId], references: [id])
+  id        String   @id @default(uuid())
+  schoolId  String   @map("school_id")
+  classId   String   @map("class_id")
+  subjectId String   @map("subject_id")
+  teacherId String   @map("teacher_id")
+  termId    String?  @map("term_id")
+  dayOfWeek Int      @map("day_of_week")
+  startTime String   @map("start_time")
+  endTime   String   @map("end_time")
+  room      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher   User     @relation("TimetableSlots", fields: [teacherId], references: [id])
+  term      terms?   @relation(fields: [termId], references: [id])
 
   @@unique([classId, dayOfWeek, startTime])
   @@index([schoolId])
@@ -1348,16 +1377,16 @@ model CourseEnrollment {
 }
 
 model LessonProgress {
-  id             String           @id @default(uuid())
-  enrollmentId   String           @map("enrollment_id")
-  lessonId       String           @map("lesson_id")
-  studentId      String           @map("student_id")
-  completed      Boolean          @default(false)
-  lastPosition   Int              @default(0) @map("last_position")
-  completedAt    DateTime?        @map("completed_at")
-  updatedAt      DateTime         @updatedAt @map("updated_at")
-  enrollment     CourseEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-  lesson         VideoLesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  id           String           @id @default(uuid())
+  enrollmentId String           @map("enrollment_id")
+  lessonId     String           @map("lesson_id")
+  studentId    String           @map("student_id")
+  completed    Boolean          @default(false)
+  lastPosition Int              @default(0) @map("last_position")
+  completedAt  DateTime?        @map("completed_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+  enrollment   CourseEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lesson       VideoLesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   @@unique([enrollmentId, lessonId])
   @@index([enrollmentId])

@@ -28,6 +28,35 @@ interface StudentAssessmentResult {
   }
 }
 
+interface StudentCourseProfile {
+  termId: string
+  termName: string
+  academicYear: number
+  termAverage: number
+  overallPassRate: number
+  subjectAverages: Array<{
+    subjectId: string
+    subjectName: string
+    average: number
+    passRate: number
+    attempts: number
+    passedCount: number
+  }>
+  strongSubjects: Array<{
+    subjectId: string
+    subjectName: string
+    average: number
+    passRate: number
+  }>
+  weakSubjects: Array<{
+    subjectId: string
+    subjectName: string
+    average: number
+    passRate: number
+  }>
+  recommendationTags: string[]
+}
+
 interface MeResponse {
   student: {
     id: string
@@ -61,6 +90,7 @@ interface MeResponse {
       rate: number
     }
   }
+  studentCourseProfile?: StudentCourseProfile | null
 }
 
 const typeColors: Record<string, string> = {
@@ -143,6 +173,9 @@ export default function StudentDashboardPage() {
   const isFr = locale === 'fr'
   const isSw = locale === 'sw'
   const restrictedFeaturesBlocked = Boolean(session.user.paymentAccessBlocked)
+  const profile = data?.studentCourseProfile
+  const topWeakSubject = profile?.weakSubjects?.[0]
+  const topStrongSubject = profile?.strongSubjects?.[0]
 
   const typeLabels: Record<string, string> = {
     QUIZ: isFr ? 'Interro' : isSw ? 'Jaribio Fupi' : 'Quiz',
@@ -248,6 +281,32 @@ export default function StudentDashboardPage() {
                   {s.gender && <Field label={t('Gender')} value={genderLabels[s.gender] ?? s.gender} />}
                 </div>
               </div>
+
+              {profile && (
+                <div className="ui-surface p-5">
+                  <p className="text-xs font-semibold uppercase tracking-wider ui-text-secondary mb-3">
+                    {t('Learning Profile')}
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-2xl border border-(--border-subtle) p-4">
+                      <p className="text-[11px] ui-text-secondary">{t('Term Average')}</p>
+                      <p className="mt-2 text-2xl font-semibold ui-text-primary">{profile.termAverage}%</p>
+                      <p className="text-[11px] ui-text-secondary mt-2">{profile.termName}</p>
+                    </div>
+                    <div className="rounded-2xl border border-(--border-subtle) p-4">
+                      <p className="text-[11px] ui-text-secondary">{t('Pass Rate')}</p>
+                      <p className="mt-2 text-2xl font-semibold ui-text-primary">{profile.overallPassRate}%</p>
+                      <p className="text-[11px] ui-text-secondary mt-2">{t('Based on current subjects')}</p>
+                    </div>
+                    <div className="rounded-2xl border border-(--border-subtle) p-4">
+                      <p className="text-[11px] ui-text-secondary">{t('Focus')}</p>
+                      <p className="mt-2 text-sm ui-text-primary">
+                        {topWeakSubject ? t('Support in') + ` ${topWeakSubject.subjectName}` : t('No weak subject')}</p>
+                      <p className="text-[11px] ui-text-secondary mt-2">{topStrongSubject ? t('Strong in') + ` ${topStrongSubject.subjectName}` : t('No strong subject yet')}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Attendance */}
               <div className="ui-surface p-5">

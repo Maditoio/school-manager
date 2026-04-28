@@ -285,16 +285,20 @@ export default function SuperAdminSchoolDetailPage({ params }: { params: Promise
                     <p className="font-medium text-gray-900">{new Date(school.createdAt).toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Users / Classes / Subjects</p>
-                    <p className="font-medium text-gray-900">{school._count.users} / {school._count.classes} / {school._count.subjects}</p>
+                    <p className="text-slate-500">Users / Classes / Subjects</p>
+                    <p className="font-medium text-slate-900">{school._count.users} / {school._count.classes} / {school._count.subjects}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Student courses</p>
-                    <p className="font-medium text-gray-900">{school.schoolSettings?.videoCoursesEnabled !== false ? 'Enabled' : 'Disabled'}</p>
+                    <p className="text-slate-500">School slogan</p>
+                    <p className="font-medium text-slate-900">{school.schoolSettings?.slogan || 'No slogan set'}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Inter-school courses</p>
-                    <p className="font-medium text-gray-900">{school.schoolSettings?.allowCrossSchoolCourses ? 'Enabled' : 'Disabled'}</p>
+                    <p className="text-slate-500">Student courses</p>
+                    <p className="font-medium text-slate-900">{school.schoolSettings?.videoCoursesEnabled !== false ? 'Enabled' : 'Disabled'}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500">Inter-school courses</p>
+                    <p className="font-medium text-slate-900">{school.schoolSettings?.allowCrossSchoolCourses ? 'Enabled' : 'Disabled'}</p>
                   </div>
                 </div>
                 {school.suspensionReason && (
@@ -307,13 +311,19 @@ export default function SuperAdminSchoolDetailPage({ params }: { params: Promise
               <Card className="p-5">
                 <h2 className="text-lg font-semibold text-gray-900">License & billing</h2>
                 <div className="space-y-2 text-sm mt-4">
-                  <p><span className="text-gray-500">Onboarding status:</span> <span className="font-medium">{billing?.onboardingStatus ?? 'PENDING'}</span></p>
-                  <p><span className="text-gray-500">Onboarding fee (USD):</span> <span className="font-medium">{usd(billing?.onboardingFee ?? 0)}</span></p>
-                  <p><span className="text-gray-500">Annual / student (USD):</span> <span className="font-medium">{usd(billing?.annualPricePerStudent ?? 0)}</span></p>
-                  <p><span className="text-gray-500">Billing year:</span> <span className="font-medium">{billing?.billingYear ?? new Date().getFullYear()}</span></p>
-                  <p><span className="text-gray-500">License start:</span> <span className="font-medium">{billing?.licenseStartDate ? new Date(billing.licenseStartDate).toLocaleDateString() : 'N/A'}</span></p>
-                  <p><span className="text-gray-500">License end:</span> <span className="font-medium">{billing?.licenseEndDate ? new Date(billing.licenseEndDate).toLocaleDateString() : 'N/A'}</span></p>
-                  <p><span className="text-gray-500">Payments total (USD):</span> <span className="font-medium">{usd(totalPaid)}</span></p>
+                  <p><span className="text-slate-500">Onboarding status:</span> <span className="font-medium text-slate-900">{billing?.onboardingStatus ?? 'PENDING'}</span></p>
+                  <p><span className="text-slate-500">Onboarding fee (USD):</span> <span className="font-medium text-slate-900">{usd(billing?.onboardingFee ?? 0)}</span></p>
+                  <p><span className="text-slate-500">Annual / student (USD):</span> <span className="font-medium text-slate-900">{usd(billing?.annualPricePerStudent ?? 0)}</span></p>
+                  <p><span className="text-slate-500">Billing year:</span> <span className="font-medium text-slate-900">{billing?.billingYear ?? new Date().getFullYear()}</span></p>
+                  <p><span className="text-slate-500">License start:</span> <span className="font-medium text-slate-900">{billing?.licenseStartDate ? new Date(billing.licenseStartDate).toLocaleDateString() : 'N/A'}</span></p>
+                  <p><span className="text-slate-500">License end:</span> <span className="font-medium text-slate-900">{billing?.licenseEndDate ? new Date(billing.licenseEndDate).toLocaleDateString() : 'N/A'}</span></p>
+                  <p><span className="text-slate-500">Payments total (USD):</span> <span className="font-medium text-slate-900">{usd(totalPaid)}</span></p>
+                  {billing?.enabledModules?.length ? (
+                    <p><span className="text-slate-500">Enabled modules:</span> <span className="font-medium text-slate-900">{billing.enabledModules.join(', ')}</span></p>
+                  ) : null}
+                  {billing?.notes ? (
+                    <p><span className="text-slate-500">Billing notes:</span> <span className="font-medium text-slate-900">{billing.notes}</span></p>
+                  ) : null}
                 </div>
               </Card>
             </div>
@@ -348,26 +358,26 @@ export default function SuperAdminSchoolDetailPage({ params }: { params: Promise
                     <p className="text-sm text-gray-500">No payments recorded yet.</p>
                   ) : (
                     payments.map((payment) => (
-                      <div key={payment.id} className="flex items-start justify-between gap-4 rounded-lg border p-3 bg-white">
+                      <div key={payment.id} className="flex items-start justify-between gap-4 rounded-lg border border-slate-200 p-3 bg-slate-50">
                         <div>
                           <div className="flex items-center gap-2">
                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                               payment.paymentType === 'ONBOARDING'
                                 ? 'bg-blue-100 text-blue-700'
                                 : payment.paymentType === 'ANNUAL'
-                                  ? 'bg-green-100 text-green-700'
-                                  : 'bg-purple-100 text-purple-700'
+                                  ? 'bg-emerald-100 text-emerald-700'
+                                  : 'bg-violet-100 text-violet-700'
                             }`}>
                               {payment.paymentType}
                             </span>
-                            <span className="text-sm font-semibold text-gray-900">{usd(Number(payment.amount))}</span>
+                            <span className="text-sm font-semibold text-slate-900">{usd(Number(payment.amount))}</span>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-slate-500 mt-1">
                             {new Date(payment.paymentDate).toLocaleDateString()}
                             {payment.paymentMethod ? ` · ${payment.paymentMethod}` : ''}
                             {payment.referenceNumber ? ` · #${payment.referenceNumber}` : ''}
                           </p>
-                          {payment.notes && <p className="text-xs text-gray-500 mt-1">{payment.notes}</p>}
+                          {payment.notes && <p className="text-xs text-slate-500 mt-1">{payment.notes}</p>}
                         </div>
                         <button className="text-xs text-red-600 hover:text-red-800" onClick={() => handleDeletePayment(payment.id)}>
                           Delete

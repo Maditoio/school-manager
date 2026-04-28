@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -55,6 +56,24 @@ export async function GET() {
     return NextResponse.json({ error: 'Student not found' }, { status: 404 })
   }
 
+  let studentCourseProfile = null
+  try {
+    studentCourseProfile = await prisma.studentCourseProfile.findFirst({
+      where: { studentId },
+      orderBy: { updatedAt: 'desc' },
+    })
+  } catch (error: unknown) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2021'
+    ) {
+      console.warn('StudentCourseProfile table is missing, returning null profile', error)
+      studentCourseProfile = null
+    } else {
+      throw error
+    }
+  }
+
   const totalAttendance = student.attendance.length
   const presentCount = student.attendance.filter(a => a.status === 'PRESENT').length
   const attendanceRate = totalAttendance > 0
@@ -77,5 +96,6 @@ export async function GET() {
         rate: restrictedFeaturesBlocked ? 0 : attendanceRate,
       },
     },
+    studentCourseProfile: studentCourseProfile || null,
   })
 }

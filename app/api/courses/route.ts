@@ -49,16 +49,23 @@ export async function GET(request: NextRequest) {
         })).map((item) => item.courseId)
       : []
 
+    // Check if the school allows cross-school courses for viewing
+    const schoolSettings = await prisma.schoolSettings.findUnique({
+      where: { schoolId },
+      select: { allowCrossSchoolCourses: true },
+    })
+    const allowCrossSchool = schoolSettings?.allowCrossSchoolCourses === true
+
     const courses = await prisma.videoCourse.findMany({
       where: {
         published: true,
         id: { notIn: enrolledCourseIds },
         OR: [
           { schoolId },
-          {
+          ...(allowCrossSchool ? [{
             allSchools: true,
             school: { schoolSettings: { allowCrossSchoolCourses: true } },
-          },
+          }] : []),
         ],
       },
       include: {
@@ -75,15 +82,22 @@ export async function GET(request: NextRequest) {
   }
 
   // Get all published courses: own school + any school-shared from schools that allow it
+  // But only if this school allows cross-school courses
+  const schoolSettings = await prisma.schoolSettings.findUnique({
+    where: { schoolId },
+    select: { allowCrossSchoolCourses: true },
+  })
+  const allowCrossSchool = schoolSettings?.allowCrossSchoolCourses === true
+
   const courses = await prisma.videoCourse.findMany({
     where: {
       published: true,
       OR: [
         { schoolId },
-        {
+        ...(allowCrossSchool ? [{
           allSchools: true,
           school: { schoolSettings: { allowCrossSchoolCourses: true } },
-        },
+        }] : []),
       ],
     },
     include: {

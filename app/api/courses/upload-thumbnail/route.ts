@@ -7,6 +7,14 @@ const MAX_BYTES = 5 * 1024 * 1024
 
 // POST /api/courses/upload-thumbnail
 export async function POST(request: NextRequest) {
+  const token = process.env.BLOB_READ_WRITE_TOKEN
+  if (!token) {
+    return NextResponse.json(
+      { error: 'Upload service not configured' },
+      { status: 500 }
+    )
+  }
+
   const session = await auth()
   if (!session?.user || session.user.role !== 'TEACHER') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
@@ -33,6 +41,7 @@ export async function POST(request: NextRequest) {
     access: 'public',
     allowOverwrite: false,
     contentType: file.type,
+    token,
   })
 
   return NextResponse.json({ url: blob.url }, { status: 201 })

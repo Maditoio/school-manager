@@ -11,6 +11,10 @@ type AggregationRow = {
   createdAt: Date
   updatedAt: Date
   subjectPassRate: number | null
+  subject: {
+    id: string
+    name: string
+  }
   student: {
     class: {
       name: string
@@ -89,7 +93,11 @@ async function getTermAggregationRows(params: {
       createdAt: true,
       updatedAt: true,
       subject: {
-        select: { passRate: true },
+        select: {
+          id: true,
+          name: true,
+          passRate: true,
+        },
       },
       student: {
         select: {
@@ -111,6 +119,10 @@ async function getTermAggregationRows(params: {
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       subjectPassRate: row.subject?.passRate ?? null,
+      subject: {
+        id: row.subject?.id ?? '',
+        name: row.subject?.name ?? 'Unknown',
+      },
       student: row.student,
     })) as AggregationRow[]
   }
@@ -142,7 +154,11 @@ async function getTermAggregationRows(params: {
         select: {
           totalMarks: true,
           subject: {
-            select: { passRate: true },
+            select: {
+              id: true,
+              name: true,
+              passRate: true,
+            },
           },
         },
       },
@@ -165,6 +181,10 @@ async function getTermAggregationRows(params: {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     subjectPassRate: row.assessment.subject?.passRate ?? null,
+    subject: {
+      id: row.assessment.subject?.id ?? '',
+      name: row.assessment.subject?.name ?? 'Unknown',
+    },
     student: row.student,
   })) as AggregationRow[]
 }
@@ -206,6 +226,264 @@ async function getCurrentOrRequestedTerm(schoolId: string, termId?: string | nul
       year: term.academic_years.year,
     },
   }
+}
+
+type StudentProfileSubjectAverage = {
+  subjectId: string
+  subjectName: string
+  average: number
+  passRate: number
+  attempts: number
+  passedCount: number
+}
+
+async function getTermAggregationRowsForStudent(params: {
+  schoolId: string
+  termId: string
+  termName: string
+  academicYear: number
+  studentId: string
+}) {
+  const resultRows = await prisma.result.findMany({
+    where: {
+      schoolId: params.schoolId,
+      termId: params.termId,
+      studentId: params.studentId,
+    },
+    select: {
+      totalScore: true,
+      maxScore: true,
+      createdAt: true,
+      updatedAt: true,
+      subject: {
+        select: {
+          id: true,
+          name: true,
+          passRate: true,
+        },
+      },
+      student: {
+        select: {
+          class: {
+            select: {
+              name: true,
+              grade: true,
+            },
+          },
+        },
+      },
+    },
+  })
+
+  if (resultRows.length > 0) {
+    return resultRows.map((row) => ({
+      totalScore: row.totalScore,
+      maxScore: row.maxScore,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      subjectPassRate: row.subject?.passRate ?? null,
+      subject: {
+        id: row.subject?.id ?? '',
+        name: row.subject?.name ?? 'Unknown',
+      },
+      student: row.student,
+    })) as AggregationRow[]
+  }
+
+  const assessmentRows = await prisma.studentAssessment.findMany({
+    where: {
+      studentId: params.studentId,
+      score: {
+        not: null,
+      },
+      assessment: {
+        schoolId: params.schoolId,
+        OR: [
+          {
+            termId: params.termId,
+          },
+          {
+            termId: null,
+            term: params.termName,
+            academicYear: params.academicYear,
+          },
+        ],
+      },
+    },
+    select: {
+      score: true,
+      createdAt: true,
+      updatedAt: true,
+      assessment: {
+        select: {
+          totalMarks: true,
+          subject: {
+            select: {
+              id: true,
+              name: true,
+              passRate: true,
+            },
+          },
+        },
+      },
+      student: {
+        select: {
+          class: {
+            select: {
+              name: true,
+              grade: true,
+            },
+          },
+        },
+      },
+    },
+  })
+
+  return assessmentRows.map((row) => ({
+    totalScore: row.score,
+    maxScore: Number(row.assessment.totalMarks),
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    subjectPassRate: row.assessment.subject?.passRate ?? null,
+    subject: {
+      id: row.assessment.subject?.id ?? '',
+      name: row.assessment.subject?.name ?? 'Unknown',
+    },
+    student: row.student,
+  })) as AggregationRow[]
+}
+
+export async function recomputeStudentCourseProfile(params: { schoolId: string; studentId: string; termId?: string | null }) {
+  const term = await getCurrentOrRequestedTerm(params.schoolId, params.termId)
+  if (!term) {
+    return { updated: false, reason: 'term-not-found' }
+  }
+
+  const schoolSettings = await prisma.schoolSettings.findUnique({
+    where: { schoolId: params.schoolId },
+    select: { minimumPassRatePerSubject: true },
+  })
+
+  const schoolPassMark = schoolSettings?.minimumPassRatePerSubject ?? PASS_MARK_PERCENT
+  const rows = await getTermAggregationRowsForStudent({
+    schoolId: params.schoolId,
+    termId: term.id,
+    termName: term.name,
+    academicYear: term.academicYear.year,
+    studentId: params.studentId,
+  })
+
+  const validPercents: number[] = []
+  let passCount = 0
+  const subjectAcc = new Map<string, {
+    subjectName: string
+    passRate: number
+    sum: number
+    count: number
+    passedCount: number
+  }>()
+
+  for (const row of rows) {
+    const percent = resultPercent(row.totalScore, row.maxScore)
+    if (percent === null) continue
+
+    const rowPassMark = row.subjectPassRate ?? schoolPassMark
+    validPercents.push(percent)
+    if (percent >= rowPassMark) passCount += 1
+
+    const existing = subjectAcc.get(row.subject.id) || {
+      subjectName: row.subject.name,
+      passRate: rowPassMark,
+      sum: 0,
+      count: 0,
+      passedCount: 0,
+    }
+
+    existing.sum += percent
+    existing.count += 1
+    existing.passRate = Math.max(existing.passRate, rowPassMark)
+    if (percent >= rowPassMark) existing.passedCount += 1
+    subjectAcc.set(row.subject.id, existing)
+  }
+
+  const subjectAverages = Array.from(subjectAcc.entries()).map(([subjectId, acc]) => ({
+    subjectId,
+    subjectName: acc.subjectName,
+    average: acc.count > 0 ? roundOne(acc.sum / acc.count) : 0,
+    passRate: acc.passRate,
+    attempts: acc.count,
+    passedCount: acc.passedCount,
+  }))
+
+  const strongSubjects = subjectAverages
+    .filter((subject) => subject.average >= Math.max(80, subject.passRate))
+    .map(({ subjectId, subjectName, average, passRate }) => ({ subjectId, subjectName, average, passRate }))
+
+  const weakSubjects = subjectAverages
+    .filter((subject) => subject.average < subject.passRate || subject.average < 50)
+    .map(({ subjectId, subjectName, average, passRate }) => ({ subjectId, subjectName, average, passRate }))
+
+  const recommendationTags: string[] = []
+  if (weakSubjects.length > 0) {
+    recommendationTags.push(...weakSubjects.slice(0, 3).map((subject) => `Needs support in ${subject.subjectName}`))
+  }
+  if (strongSubjects.length > 0) {
+    recommendationTags.push(...strongSubjects.slice(0, 3).map((subject) => `Strong in ${subject.subjectName}`))
+  }
+  if (validPercents.length === 0) {
+    recommendationTags.push('No results available yet')
+  }
+
+  const termAverage = validPercents.length > 0
+    ? roundOne(validPercents.reduce((sum, value) => sum + value, 0) / validPercents.length)
+    : 0
+
+  const overallPassRate = validPercents.length > 0
+    ? roundOne((passCount / validPercents.length) * 100)
+    : 0
+
+  let profile
+  try {
+    profile = await prisma.studentCourseProfile.upsert({
+      where: { studentId_termId: { studentId: params.studentId, termId: term.id } },
+      update: {
+        academicYear: term.academicYear.year,
+        termName: term.name,
+        termAverage,
+        overallPassRate,
+        subjectAverages: subjectAverages as unknown as Prisma.JsonArray,
+        strongSubjects: strongSubjects as unknown as Prisma.JsonArray,
+        weakSubjects: weakSubjects as unknown as Prisma.JsonArray,
+        recommendationTags,
+        updatedAt: new Date(),
+      },
+      create: {
+        id: randomUUID(),
+        schoolId: params.schoolId,
+        studentId: params.studentId,
+        termId: term.id,
+        academicYear: term.academicYear.year,
+        termName: term.name,
+        termAverage,
+        overallPassRate,
+        subjectAverages: subjectAverages as unknown as Prisma.JsonArray,
+        strongSubjects: strongSubjects as unknown as Prisma.JsonArray,
+        weakSubjects: weakSubjects as unknown as Prisma.JsonArray,
+        recommendationTags,
+        updatedAt: new Date(),
+      },
+    })
+  } catch (error: unknown) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2021'
+    ) {
+      return { updated: false, reason: 'missing-profile-table' }
+    }
+    throw error
+  }
+
+  return { updated: true, termId: term.id, profile }
 }
 
 export async function recomputeAcademicSummaryForTerm(params: { schoolId: string; termId?: string | null }) {

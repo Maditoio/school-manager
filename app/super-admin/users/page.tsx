@@ -392,9 +392,9 @@ export default function SuperAdminUsersPage() {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
+                <tbody className="divide-y divide-gray-100">
                   {users.map((user) => (
-                    <tr key={user.id} className={user.suspended ? 'bg-red-50' : ''}>
+                    <tr key={user.id} className={`bg-gray-100 hover:bg-gray-200 ${user.suspended ? 'bg-red-50' : ''}`}>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {user.firstName} {user.lastName}
                       </td>

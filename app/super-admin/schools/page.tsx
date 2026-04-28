@@ -352,59 +352,37 @@ export default function SchoolsPage() {
             <div className="overflow-x-auto">
               <table className="min-w-full">
                 <thead>
-                  <tr className="bg-gray-50 border-b">
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">School</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Plan</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Status</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Students</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Licensed</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Fees (USD)</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Courses</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Created</th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">Actions</th>
+                  <tr className="bg-slate-100 border-b border-slate-200">
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">School</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Plan</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Status</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Students</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Licensed</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Created</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {schools.map((school) => (
-                    <tr key={school.id} className="border-b last:border-b-0 hover:bg-gray-50/60">
-                      <td className="px-4 py-3 align-top">
-                        <p className="text-sm font-semibold text-gray-900">{school.name}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{school.email || 'No email'}</p>
-                        {school.suspended && school.suspensionReason && (
-                          <p className="text-xs text-orange-700 mt-1">Reason: {school.suspensionReason}</p>
-                        )}
+                    <tr key={school.id} className="border-b last:border-b-0 bg-gray-100 hover:bg-gray-200">
+                      <td className="px-4 py-4 align-top">
+                        <p className="text-sm font-semibold text-slate-900">{school.name}</p>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{school.subscriptionPlan}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-4 text-sm text-slate-700">{school.subscriptionPlan}</td>
+                      <td className="px-4 py-4">
                         <div className="flex flex-wrap gap-1.5">
-                          <span className={`px-2 py-0.5 text-xs rounded ${school.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          <span className={`px-2 py-0.5 text-xs rounded ${school.active ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
                             {school.active ? 'Active' : 'Inactive'}
                           </span>
                           {school.suspended && (
-                            <span className="px-2 py-0.5 text-xs rounded bg-orange-100 text-orange-800">Suspended</span>
+                            <span className="px-2 py-0.5 text-xs rounded bg-amber-100 text-amber-800">Suspended</span>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{school._count?.students ?? 0}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{school.schoolBilling?.licensedStudentCount ?? 0}</td>
-                      <td className="px-4 py-3 text-xs text-gray-700">
-                        <div className="flex flex-col gap-1">
-                          <span>Annual/student: {usd(school.schoolBilling?.annualPricePerStudent ?? 0)}</span>
-                          <span>Onboarding: {usd(school.schoolBilling?.onboardingFee ?? 0)}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col gap-1 text-xs">
-                          <span className={`font-medium ${school.schoolSettings?.videoCoursesEnabled !== false ? 'text-green-700' : 'text-red-700'}`}>
-                            Student courses: {school.schoolSettings?.videoCoursesEnabled !== false ? 'On' : 'Off'}
-                          </span>
-                          <span className={`font-medium ${school.schoolSettings?.allowCrossSchoolCourses ? 'text-blue-700' : 'text-gray-500'}`}>
-                            Cross-school: {school.schoolSettings?.allowCrossSchoolCourses ? 'On' : 'Off'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{new Date(school.createdAt).toLocaleDateString()}</td>
-                      <td className="px-4 py-3 text-right relative">
+                      <td className="px-4 py-4 text-sm text-slate-700">{school._count?.students ?? 0}</td>
+                      <td className="px-4 py-4 text-sm text-slate-700">{school.schoolBilling?.licensedStudentCount ?? 0}</td>
+                      <td className="px-4 py-4 text-sm text-slate-700">{new Date(school.createdAt).toLocaleDateString()}</td>
+                      <td className="px-4 py-4 text-right relative">
                         <button
                           type="button"
                           className="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 hover:bg-gray-100"
@@ -413,10 +391,10 @@ export default function SchoolsPage() {
                           ⋮
                         </button>
                         {activeMenuSchoolId === school.id && (
-                          <div className="absolute right-4 mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-md z-20 text-left">
+                          <div className="absolute right-4 mt-1 w-44 bg-slate-50 border border-slate-200 rounded-lg shadow-md z-20 text-left">
                             <button
                               type="button"
-                              className="w-full px-3 py-2 text-sm hover:bg-gray-50"
+                              className="w-full px-3 py-2 text-sm hover:bg-slate-100"
                               onClick={() => {
                                 setActiveMenuSchoolId(null)
                                 router.push(`/super-admin/schools/${school.id}`)
@@ -426,7 +404,7 @@ export default function SchoolsPage() {
                             </button>
                             <button
                               type="button"
-                              className="w-full px-3 py-2 text-sm hover:bg-gray-50"
+                              className="w-full px-3 py-2 text-sm hover:bg-slate-100"
                               onClick={() => {
                                 setActiveMenuSchoolId(null)
                                 handleEdit(school)
@@ -436,7 +414,7 @@ export default function SchoolsPage() {
                             </button>
                             <button
                               type="button"
-                              className="w-full px-3 py-2 text-sm hover:bg-gray-50"
+                              className="w-full px-3 py-2 text-sm hover:bg-slate-100"
                               onClick={() => {
                                 setActiveMenuSchoolId(null)
                                 openSuspensionModal(school.id, school.suspended ? 'unsuspend' : 'suspend')

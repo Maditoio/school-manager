@@ -21,21 +21,33 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
   }
 
+  let courseWhere: any
+
+  if (session.user.role === 'STUDENT') {
+    // Check if the school allows cross-school courses for viewing
+    const schoolSettings = await prisma.schoolSettings.findUnique({
+      where: { schoolId: session.user.schoolId! },
+      select: { allowCrossSchoolCourses: true },
+    })
+    const allowCrossSchool = schoolSettings?.allowCrossSchoolCourses === true
+
+    courseWhere = {
+      id,
+      published: true,
+      OR: [
+        { schoolId: session.user.schoolId! },
+        ...(allowCrossSchool ? [{
+          allSchools: true,
+          school: { schoolSettings: { allowCrossSchoolCourses: true } },
+        }] : []),
+      ],
+    }
+  } else {
+    courseWhere = { id, schoolId: session.user.schoolId! }
+  }
+
   const course = await prisma.videoCourse.findFirst({
-    where:
-      session.user.role === 'STUDENT'
-        ? {
-            id,
-            published: true,
-            OR: [
-              { schoolId: session.user.schoolId! },
-              {
-                allSchools: true,
-                school: { schoolSettings: { allowCrossSchoolCourses: true } },
-              },
-            ],
-          }
-        : { id, schoolId: session.user.schoolId! },
+    where: courseWhere,
     include: {
       teacher: { select: { firstName: true, lastName: true } },
       lessons: { orderBy: { lessonOrder: 'asc' } },

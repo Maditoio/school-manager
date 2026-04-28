@@ -16,7 +16,7 @@ async function resolveSchoolId(sessionUser: { id?: string | null; email?: string
   return user?.schoolId ?? null
 }
 
-const VALID_CURRENCIES = ['USD', 'ZAR', 'FCFA', 'CDF'] as const
+const VALID_CURRENCIES = ['USD', 'ZAR', 'FCFA', 'CDF', 'TZH'] as const
 
 // GET /api/schools/settings — fetch school settings (all staff roles)
 export async function GET() {

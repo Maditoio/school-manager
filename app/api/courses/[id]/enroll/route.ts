@@ -20,16 +20,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     )
   }
 
+  // Check if the school allows cross-school courses for viewing
+  const schoolSettings = await prisma.schoolSettings.findUnique({
+    where: { schoolId: session.user.schoolId! },
+    select: { allowCrossSchoolCourses: true },
+  })
+  const allowCrossSchool = schoolSettings?.allowCrossSchoolCourses === true
+
   const course = await prisma.videoCourse.findFirst({
     where: {
       id: courseId,
       published: true,
       OR: [
         { schoolId: session.user.schoolId! },
-        {
+        ...(allowCrossSchool ? [{
           allSchools: true,
           school: { schoolSettings: { allowCrossSchoolCourses: true } },
-        },
+        }] : []),
       ],
     },
   })
