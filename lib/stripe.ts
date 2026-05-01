@@ -20,20 +20,26 @@ async function stripeRequest(path: string, method: 'GET' | 'POST', body?: Record
 
   const searchParams = new URLSearchParams()
   if (body) {
-    for (const [key, value] of Object.entries(body)) {
-      if (value === undefined || value === null) continue
-      if (typeof value === 'object' && !Array.isArray(value)) {
-        for (const [nestedKey, nestedValue] of Object.entries(value as Record<string, unknown>)) {
-          if (nestedValue !== undefined && nestedValue !== null) {
-            searchParams.append(`${key}[${nestedKey}]`, String(nestedValue))
-          }
+    function appendParams(obj: Record<string, unknown>, prefix = '') {
+      for (const [key, value] of Object.entries(obj)) {
+        const fullKey = prefix ? `${prefix}[${key}]` : key
+        if (value === undefined || value === null) continue
+        if (typeof value === 'object' && !Array.isArray(value)) {
+          appendParams(value as Record<string, unknown>, fullKey)
+        } else if (Array.isArray(value)) {
+          value.forEach((item, index) => {
+            if (typeof item === 'object' && item !== null) {
+              appendParams(item as Record<string, unknown>, `${fullKey}[${index}]`)
+            } else {
+              searchParams.append(`${fullKey}[${index}]`, String(item))
+            }
+          })
+        } else {
+          searchParams.append(fullKey, String(value))
         }
-      } else if (Array.isArray(value)) {
-        value.forEach((item) => searchParams.append(`${key}[]`, String(item)))
-      } else {
-        searchParams.append(key, String(value))
       }
     }
+    appendParams(body)
   }
 
   const response = await fetch(`${stripeApiBase}${path}`, {
