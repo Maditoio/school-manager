@@ -41,6 +41,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     },
   })
   if (!course) return NextResponse.json({ error: 'Course not found' }, { status: 404 })
+  if (course.price > 0) {
+    return NextResponse.json(
+      { error: 'This course requires payment. Please complete the purchase using Stripe.' },
+      { status: 402 }
+    )
+  }
 
   const student = await prisma.student.findFirst({
     where: { userId: session.user.id, schoolId: session.user.schoolId! },
@@ -57,7 +63,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       courseId,
       studentId: student.id,
       schoolId: session.user.schoolId!,
-      paid: course.price === 0,
+      paid: true,
+      paidAt: new Date(),
       amountPaid: 0,
     },
   })

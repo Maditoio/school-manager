@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { hasRole } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
@@ -19,11 +20,14 @@ export async function GET(
 ) {
   try {
     const session = await auth()
-    if (!session?.user || session.user.role !== 'SUPER_ADMIN') {
+    if (!session?.user || !hasRole(session.user.role, ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { id } = await params
+    if (session.user.role !== 'SUPER_ADMIN' && session.user.schoolId !== id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const billing = await prisma.schoolBilling.findUnique({
       where: { schoolId: id },
@@ -92,11 +96,15 @@ export async function POST(
 ) {
   try {
     const session = await auth()
-    if (!session?.user || session.user.role !== 'SUPER_ADMIN') {
+    if (!session?.user || !hasRole(session.user.role, ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { id } = await params
+    if (session.user.role !== 'SUPER_ADMIN' && session.user.schoolId !== id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await request.json()
     const validation = createPaymentSchema.safeParse(body)
 

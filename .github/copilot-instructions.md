@@ -1,0 +1,1 @@
+See .cursorrules for the full UI design system. Follow those rules on every component and page.

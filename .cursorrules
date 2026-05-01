@@ -1,0 +1,61 @@
+## UI Design System — follow these rules on every component, page, and edit
+
+### Colors
+--color-brand: #635bff;
+--color-brand-hover: #5146e8;
+--color-brand-light: #f0effe;
+--color-bg: #f6f9fc;
+--color-surface: #ffffff;
+--color-border: #e0e6ed;
+--color-text-primary: #0a2540;
+--color-text-muted: #8898aa;
+--color-success: #3ecf8e;
+--color-danger: #fa755a;
+
+### Typography
+- Font: system-ui, -apple-system, 'Segoe UI', sans-serif
+- Page title: 20px / 600 weight
+- Body: 14px / 400 weight
+- Labels/meta: 11–12px uppercase, letter-spacing 0.07em, muted color
+
+### Layout & shape
+- Border radius: 6px components, 10px cards
+- Border: 1px solid #e0e6ed
+- Card padding: 16–20px
+- Page background: #f6f9fc, surface/card background: #ffffff
+
+### Sidenav
+- Width 220px, white bg, right border
+- Active item: #f0effe bg + 3px left border in brand color + brand text
+- Hover: #f6f9fc bg
+
+### Buttons
+- Primary: brand bg, white text, 8px 16px padding, 6px radius, hover darken
+- Active press: scale(0.97)
+- Transition: all 0.15s ease
+
+### Cards
+- White bg, 1px border, 10px radius
+- Hover: box-shadow 0 4px 16px rgba(0,0,0,0.07)
+
+### Status badges
+- Success: bg #eafaf3, text #1b8a5a
+- Pending: bg #fff8e6, text #b07d00
+- Failed: bg #fff0ee, text #c0392b
+- Shape: 3px 10px padding, 20px border-radius
+
+### Motion
+- Entrance: opacity 0→1 + translateY(10px)→0, staggered 80ms per element
+- All transitions: 0.15s ease
+
+### Rules — never break these
+- No gradients, no heavy shadows, no blurs anywhere
+- Flat white cards on light gray page background
+- One primary CTA button per view, secondary actions as text links in brand color
+- Text links: brand color, font-weight 500, append " →" for navigation
+- Data tables: 11px uppercase muted headers, row hover tinted bg, amounts in font-weight 600
+
+## Consistency rule
+When editing an existing page, always match the existing component patterns exactly.
+When adding a new page or component, refer back to this file before writing any styles.
+Never introduce a new color, font size, or spacing value not listed here.
