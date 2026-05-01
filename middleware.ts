@@ -37,23 +37,34 @@ function isBlockedStudentNonFeesPath(pathname: string) {
 }
 
 export async function middleware(request: NextRequest) {
-  const session = await auth()
-
   const { pathname } = request.nextUrl
 
-  // Public routes
-  const publicRoutes = ['/login', '/manifest.json', '/sw.js', '/favicon.ico', '/api/auth']
+  // Public routes that don't require authentication
+  const publicRoutes = [
+    '/login',
+    '/reset-password',
+    '/manifest.json',
+    '/sw.js',
+    '/favicon.ico',
+    '/api/auth',
+    '/_next',
+    '/public'
+  ]
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
 
   if (isPublicRoute) {
     return NextResponse.next()
   }
 
+  // Get session
+  const session = await auth()
+
   // Check if user is authenticated
   if (!session?.user) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
+  // Handle password reset flow
   if (session.user.mustResetPassword) {
     const allowedDuringReset =
       pathname.startsWith('/reset-password') ||

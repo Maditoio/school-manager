@@ -43,15 +43,19 @@ export default function LoginPage() {
           setError('Your account has been suspended. Please contact the administrator.')
         } else if (errorCode === 'school_inactive') {
           setError('Your school account is currently inactive. Please contact the administrator.')
+        } else if (result?.error) {
+          setError(result.error)
         } else {
-          setError('Invalid email or password')
+          setError('Invalid email or password. Please check your credentials and try again.')
         }
       } else {
+        // Successful login - redirect will happen automatically
         router.push('/')
         router.refresh()
       }
-    } catch {
-      setError('An error occurred. Please try again.')
+    } catch (err) {
+      console.error('Login error:', err)
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setIsLoading(false)
     }
