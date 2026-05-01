@@ -16,7 +16,7 @@ const createPaymentSchema = z.object({
 // GET /api/schools/[id]/billing-payments
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ schoolId: string }> }
 ) {
   try {
     const session = await auth()
@@ -24,13 +24,13 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id } = await params
-    if (session.user.role !== 'SUPER_ADMIN' && session.user.schoolId !== id) {
+    const { schoolId } = await params
+    if (session.user.role !== 'SUPER_ADMIN' && session.user.schoolId !== schoolId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const billing = await prisma.schoolBilling.findUnique({
-      where: { schoolId: id },
+      where: { schoolId },
       select: { id: true, onboardingFee: true, onboardingStatus: true, annualPricePerStudent: true, licensedStudentCount: true, billingYear: true },
     })
 
@@ -92,7 +92,7 @@ export async function GET(
 // POST /api/schools/[id]/billing-payments
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ schoolId: string }> }
 ) {
   try {
     const session = await auth()
@@ -100,8 +100,8 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id } = await params
-    if (session.user.role !== 'SUPER_ADMIN' && session.user.schoolId !== id) {
+    const { schoolId } = await params
+    if (session.user.role !== 'SUPER_ADMIN' && session.user.schoolId !== schoolId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -116,8 +116,8 @@ export async function POST(
 
     // Ensure billing record exists (upsert if needed)
     const billing = await prisma.schoolBilling.upsert({
-      where: { schoolId: id },
-      create: { schoolId: id },
+      where: { schoolId },
+      create: { schoolId },
       update: {},
       select: {
         id: true,

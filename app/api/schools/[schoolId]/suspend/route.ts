@@ -5,10 +5,10 @@ import { hasRole } from '@/lib/auth-utils'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ schoolId: string }> }
 ) {
   try {
-      const { id } = await params
+      const { schoolId } = await params
     const session = await auth()
 
     if (!session?.user || !hasRole(session.user.role, ['SUPER_ADMIN'])) {
@@ -28,7 +28,7 @@ export async function PUT(
 
     // Verify school exists
     const school = await prisma.school.findUnique({
-      where: { id },
+      where: { id: schoolId },
       select: { id: true, name: true },
     })
 
@@ -38,7 +38,7 @@ export async function PUT(
 
     // Update school suspension status
     const updatedSchool = await prisma.school.update({
-      where: { id },
+      where: { id: schoolId },
       data: {
         suspended,
         suspensionReason: suspended ? suspensionReason.trim() : null,

@@ -6,7 +6,7 @@ import { isMissingVideoCoursesEnabledColumn } from '@/lib/video-courses-feature'
 // GET /api/schools/[id] - Get school details
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ schoolId: string }> }
 ) {
   try {
     const session = await auth()
@@ -15,7 +15,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id: schoolId } = await params
+    const { schoolId } = await params
 
     // Check access
     if (session.user.role !== 'SUPER_ADMIN' && session.user.schoolId !== schoolId) {
@@ -96,7 +96,7 @@ export async function GET(
 // PATCH /api/schools/[id] - Update school (Super Admin only)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ schoolId: string }> }
 ) {
   try {
     const session = await auth()
@@ -106,7 +106,7 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { id: schoolId } = await params
+    const { schoolId } = await params
     const enabledModules = Array.isArray(body.enabledModules)
       ? body.enabledModules.map((item: unknown) => String(item).trim()).filter(Boolean)
       : undefined
@@ -202,7 +202,7 @@ export async function PATCH(
 // DELETE /api/schools/[id] - Delete school (Super Admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ schoolId: string }> }
 ) {
   try {
     const session = await auth()
@@ -211,7 +211,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id: schoolId } = await params
+    const { schoolId } = await params
 
     await prisma.school.delete({
       where: { id: schoolId },

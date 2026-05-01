@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 // DELETE /api/schools/[id]/billing-payments/[paymentId]
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string; paymentId: string }> }
+  { params }: { params: Promise<{ schoolId: string; paymentId: string }> }
 ) {
   try {
     const session = await auth()
