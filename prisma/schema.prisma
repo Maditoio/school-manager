@@ -1256,6 +1256,7 @@ enum PaymentMethod {
   BANK_TRANSFER
   M_PESA
   ORANGE_MONEY
+  STRIPE
   OTHER
 }
 

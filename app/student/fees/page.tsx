@@ -4,39 +4,9 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { Button } from '@/components/ui/Button'
+import { MaterialIcon } from '@/components/ui/MaterialIcon'
 import { STUDENT_NAV_ITEMS } from '@/lib/admin-nav'
-
-interface FeePayment {
-  id: string
-  amountPaid: number
-  paymentDate: string
-  paymentMethod: string | null
-  paymentNumber: string | null
-  notes: string | null
-  receiptUrl: string | null
-  receiptFileName: string | null
-}
-
-interface FeeSchedule {
-  id: string
-  periodType: string
-  year: number
-  month: number | null
-  semester: number | null
-  amountDue: number
-  createdAt: string
-  payments: FeePayment[]
-  totalPaid: number
-  balance: number
-  feeStatus: 'PAID' | 'PARTIAL' | 'UNPAID'
-}
-
-interface FeesResponse {
-  schedules: FeeSchedule[]
-  totalOutstanding: number
-}
-
-type InvoiceStatus = 'PENDING' | 'OVERDUE' | 'PAID' | 'PARTIAL'
 
 interface Invoice {
   id: string
@@ -46,44 +16,38 @@ interface Invoice {
   semester: number | null
   amountDue: number
   dueDate: string
-  status: InvoiceStatus
+  status: 'PENDING' | 'OVERDUE' | 'PAID' | 'PARTIAL'
   totalPaid: number
   balance: number
-  payments: { id: string; amountPaid: number; paymentDate: string; paymentMethod: string }[]
+  payments: Array<{ id: string; amountPaid: number; paymentDate: string; paymentMethod: string }>
 }
 
-const statusStyle: Record<string, string> = {
+type InvoiceStatus = 'PENDING' | 'OVERDUE' | 'PAID' | 'PARTIAL'
+
+const statusStyle: Record<InvoiceStatus, string> = {
   PAID: 'bg-green-100 text-green-700',
   PARTIAL: 'bg-amber-100 text-amber-700',
-  UNPAID: 'bg-red-100 text-red-700',
+  PENDING: 'bg-slate-100 text-slate-700',
+  OVERDUE: 'bg-rose-100 text-rose-700',
 }
 
-const statusLabels: Record<string, string> = {
-  PAID: 'PAYÉ',
-  PARTIAL: 'PARTIEL',
-  UNPAID: 'IMPAYÉ',
+const statusLabels: Record<InvoiceStatus, string> = {
+  PAID: 'Paid',
+  PARTIAL: 'Partial',
+  PENDING: 'Pending',
+  OVERDUE: 'Overdue',
 }
 
-const periodTypeLabels: Record<string, string> = {
-  MONTHLY: 'Mensuel',
-  SEMESTER: 'Semestriel',
-  YEARLY: 'Annuel',
-  ANNUAL: 'Annuel',
-  TERM: 'Trimestre',
-  WEEKLY: 'Hebdomadaire',
+function formatUSD(amount: number): string {
+  return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-export default function StudentFeesPage() {
+export default function StudentFeesPaymentPage() {
   const { data: session, status } = useSession()
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [data, setData] = useState<FeesResponse | null>(null)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-
-  // Invoice history
   const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [invoicesLoading, setInvoicesLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'schedules' | 'invoices'>('invoices')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [payingInvoice, setPayingInvoice] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') redirect('/login')
@@ -91,272 +55,200 @@ export default function StudentFeesPage() {
   }, [session, status])
 
   useEffect(() => {
-    const load = async () => {
+    const fetchInvoices = async () => {
       if (!session?.user) return
+      setLoading(true)
+      setError(null)
       try {
-        setLoading(true)
-        setError('')
-        const res = await fetch('/api/student/fees')
+        const res = await fetch('/api/student/fees/invoices')
         if (!res.ok) {
-          const body = await res.json().catch(() => ({}))
-          setError(body.error || 'Échec du chargement des frais')
-          return
+          throw new Error('Failed to load invoices')
         }
-        setData(await res.json())
-      } catch {
-        setError('Échec du chargement des frais')
+        const data = await res.json()
+        setInvoices(Array.isArray(data.invoices) ? data.invoices : [])
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load invoices')
       } finally {
         setLoading(false)
       }
     }
-    load()
+
+    if (session?.user) {
+      fetchInvoices()
+    }
   }, [session])
 
-  useEffect(() => {
-    const loadInvoices = async () => {
-      if (!session?.user) return
-      setInvoicesLoading(true)
-      try {
-        const res = await fetch('/api/student/fees/invoices')
-        if (res.ok) {
-          const body = await res.json()
-          setInvoices(Array.isArray(body.invoices) ? body.invoices : [])
-        }
-      } catch {
-        // non-critical
-      } finally {
-        setInvoicesLoading(false)
+  const handlePayNow = async (invoiceId: string) => {
+    setPayingInvoice(invoiceId)
+    try {
+      const res = await fetch(`/api/student/fees/${invoiceId}/checkout`, {
+        method: 'POST',
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(`Payment Error: ${data.error || 'Failed to initiate payment'}`)
+        setPayingInvoice(null)
+        return
       }
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch (err) {
+      alert('Failed to initiate payment. Please try again.')
+      setPayingInvoice(null)
     }
-    loadInvoices()
-  }, [session])
+  }
 
   if (status === 'loading' || !session) return null
 
-  const fmt = (n: number) =>
-    new Intl.NumberFormat('fr-FR', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+  const totalOutstanding = invoices
+    .filter((inv) => inv.status !== 'PAID')
+    .reduce((sum, inv) => sum + inv.balance, 0)
 
   return (
     <DashboardLayout
       user={{
-        name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Étudiant',
-        role: 'Étudiant',
+        name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Student',
+        role: 'Student',
         email: session.user.email,
       }}
       navItems={STUDENT_NAV_ITEMS}
     >
-      <div className="space-y-4">
-        <h1 className="text-lg font-semibold ui-text-primary">Frais Scolaires</h1>
-
-        {/* Tab switcher */}
-        <div className="flex gap-1 rounded-lg p-1 w-fit" style={{ background: 'var(--surface-soft)' }}>
-          <button
-            onClick={() => setActiveTab('invoices')}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'invoices' ? 'bg-blue-600 text-white' : 'ui-text-secondary hover:ui-text-primary'}`}
-          >
-            Factures Mensuelles
-          </button>
-          <button
-            onClick={() => setActiveTab('schedules')}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'schedules' ? 'bg-blue-600 text-white' : 'ui-text-secondary hover:ui-text-primary'}`}
-          >
-            Échéanciers
-          </button>
+      <div className="p-4 sm:p-6 space-y-6 max-w-4xl mx-auto">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold ui-text-primary">School Fees</h1>
+          <p className="text-sm ui-text-secondary mt-1">View and pay your outstanding school fees</p>
         </div>
 
-        {loading ? (
-          <div className="ui-surface p-6 flex items-center gap-3">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-(--border-subtle) border-t-(--accent)" />
-            <p className="text-sm ui-text-secondary">Chargement des frais...</p>
-          </div>
-        ) : error ? (
-          <div className="ui-surface p-5">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
-        ) : activeTab === 'invoices' ? (
-          /* ── Invoice history ────────────────────────────────────── */
-          <>
-            {invoicesLoading ? (
-              <div className="ui-surface p-6 flex items-center gap-3">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-(--border-subtle) border-t-(--accent)" />
-                <p className="text-sm ui-text-secondary">Chargement des factures...</p>
-              </div>
-            ) : invoices.length === 0 ? (
-              <div className="ui-surface p-8 text-center">
-                <p className="text-sm ui-text-secondary">Aucune facture générée pour le moment.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto ui-surface rounded-xl">
-                <table className="min-w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ui-text-secondary">Période</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ui-text-secondary">Échéance</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider ui-text-secondary">Montant Dû</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider ui-text-secondary">Payé</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider ui-text-secondary">Solde</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ui-text-secondary">Statut</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invoices.map((inv) => {
-                      const MONTH_NAMES_FR = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc']
-                      const periodLabel = inv.month != null
-                        ? `${MONTH_NAMES_FR[inv.month - 1]} ${inv.year}`
-                        : inv.semester != null
-                        ? `Sem ${inv.semester} · ${inv.year}`
-                        : `${inv.year}`
-
-                      const STATUS_STYLE: Record<InvoiceStatus, string> = {
-                        PENDING: 'bg-slate-500/20 text-slate-400',
-                        OVERDUE: 'bg-rose-500/20 text-rose-400',
-                        PAID: 'bg-emerald-500/20 text-emerald-400',
-                        PARTIAL: 'bg-amber-500/20 text-amber-400',
-                      }
-                      const STATUS_LABEL: Record<InvoiceStatus, string> = {
-                        PENDING: 'En attente',
-                        OVERDUE: 'En retard',
-                        PAID: 'Payé',
-                        PARTIAL: 'Partiel',
-                      }
-
-                      return (
-                        <tr key={inv.id} className="border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-                          <td className="px-4 py-3 font-medium ui-text-primary">{periodLabel}</td>
-                          <td className="px-4 py-3 ui-text-secondary">{new Date(inv.dueDate).toLocaleDateString('fr-FR')}</td>
-                          <td className="px-4 py-3 text-right ui-text-primary">{fmt(inv.amountDue)}</td>
-                          <td className="px-4 py-3 text-right text-emerald-500">{fmt(inv.totalPaid)}</td>
-                          <td className="px-4 py-3 text-right">
-                            <span className={inv.balance > 0 ? 'text-rose-400' : 'text-emerald-400'}>{fmt(inv.balance)}</span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[inv.status]}`}>
-                              {STATUS_LABEL[inv.status]}
-                            </span>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
-        ) : data ? (
-          <>
-            {/* Summary banner */}
-            <div className="ui-surface p-4 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider ui-text-secondary">Total Dû</p>
-                <p className={`text-xl font-bold mt-0.5 ${data.totalOutstanding > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                  {data.totalOutstanding > 0 ? `${fmt(data.totalOutstanding)}` : 'Tous les frais sont réglés'}
-                </p>
-              </div>
-              <div className="flex gap-3 text-center">
-                <div>
-                  <p className="text-lg font-bold ui-text-primary">{data.schedules.length}</p>
-                  <p className="text-[11px] ui-text-secondary">Échéanciers</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-green-600">
-                    {data.schedules.filter(s => s.feeStatus === 'PAID').length}
-                  </p>
-                  <p className="text-[11px] ui-text-secondary">Payé</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-red-600">
-                    {data.schedules.filter(s => s.feeStatus !== 'PAID').length}
-                  </p>
-                  <p className="text-[11px] ui-text-secondary">Impayé</p>
-                </div>
-              </div>
+        {/* Summary Cards */}
+        {!loading && invoices.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="ui-card p-4 rounded-lg">
+              <p className="text-xs ui-text-secondary font-medium uppercase tracking-wide">Total Outstanding</p>
+              <p className="text-2xl font-bold ui-text-primary mt-1">{formatUSD(totalOutstanding)}</p>
             </div>
+            <div className="ui-card p-4 rounded-lg">
+              <p className="text-xs ui-text-secondary font-medium uppercase tracking-wide">Invoices</p>
+              <p className="text-2xl font-bold ui-text-primary mt-1">{invoices.length}</p>
+            </div>
+            <div className="ui-card p-4 rounded-lg">
+              <p className="text-xs ui-text-secondary font-medium uppercase tracking-wide">Total Paid</p>
+              <p className="text-2xl font-bold text-emerald-600 mt-1">
+                {formatUSD(invoices.reduce((sum, inv) => sum + inv.totalPaid, 0))}
+              </p>
+            </div>
+          </div>
+        )}
 
-            {data.schedules.length === 0 ? (
-              <div className="ui-surface p-8 text-center">
-                <p className="text-sm ui-text-secondary">Aucun échéancier trouvé.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {data.schedules.map(schedule => (
-                  <div key={schedule.id} className="ui-surface overflow-hidden">
-                    {/* Schedule header */}
-                    <button
-                      onClick={() => setExpandedId(expandedId === schedule.id ? null : schedule.id)}
-                      className="w-full p-4 flex items-center justify-between gap-3 text-left hover:opacity-80 transition-opacity"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold ui-text-primary">
-                          {periodTypeLabels[schedule.periodType] ?? schedule.periodType} · {schedule.year}
-                          {schedule.month != null ? ` · Mois ${schedule.month}` : ''}
-                          {schedule.semester != null ? ` · Semestre ${schedule.semester}` : ''}
-                        </p>
-                        <p className="text-xs ui-text-secondary mt-0.5">
-                          Créé le {new Date(schedule.createdAt).toLocaleDateString('fr-FR')}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <div className="text-right">
-                          <p className="text-sm font-semibold ui-text-primary">{fmt(schedule.amountDue)}</p>
-                          <p className="text-[11px] ui-text-secondary">Solde : {fmt(schedule.balance)}</p>
-                        </div>
-                        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${statusStyle[schedule.feeStatus]}`}>
-                          {statusLabels[schedule.feeStatus] ?? schedule.feeStatus}
-                        </span>
-                        <span className="text-xs ui-text-secondary">{expandedId === schedule.id ? '▲' : '▼'}</span>
-                      </div>
-                    </button>
+        {/* Invoices Table */}
+        {loading ? (
+          <div className="text-center py-12 ui-text-secondary">Loading invoices...</div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">{error}</div>
+        ) : invoices.length === 0 ? (
+          <div className="text-center py-12">
+            <MaterialIcon name="check_circle" className="text-6xl text-emerald-500 mx-auto mb-3" />
+            <p className="font-medium ui-text-primary">No outstanding fees</p>
+            <p className="text-sm ui-text-secondary mt-1">Your school fees are all paid up</p>
+          </div>
+        ) : (
+          <div className="ui-card rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="ui-text-secondary border-b ui-border bg-opacity-50">
+                  <tr className="text-left">
+                    <th className="p-4 font-semibold">Period</th>
+                    <th className="p-4 font-semibold">Due Date</th>
+                    <th className="p-4 font-semibold text-right">Amount Due</th>
+                    <th className="p-4 font-semibold text-right">Balance</th>
+                    <th className="p-4 font-semibold">Status</th>
+                    <th className="p-4 font-semibold text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y ui-border">
+                  {invoices.map((invoice) => {
+                    const periodLabel =
+                      invoice.month != null
+                        ? new Date(invoice.year, invoice.month - 1, 1).toLocaleDateString('en-US', {
+                            month: 'short',
+                            year: 'numeric',
+                          })
+                        : invoice.semester != null
+                          ? `Semester ${invoice.semester} ${invoice.year}`
+                          : `Year ${invoice.year}`
 
-                    {/* Payment history */}
-                    {expandedId === schedule.id && (
-                      <div className="border-t border-(--border-subtle) px-4 pb-4 pt-3">
-                        <p className="text-xs font-semibold uppercase tracking-wider ui-text-secondary mb-2">
-                          Historique des paiements
-                        </p>
-                        {schedule.payments.length === 0 ? (
-                          <p className="text-sm ui-text-secondary py-2">Aucun paiement enregistré.</p>
-                        ) : (
-                          <div className="overflow-auto rounded-lg border border-(--border-subtle)">
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="border-b border-(--border-subtle)" style={{ background: 'var(--surface-soft)' }}>
-                                  <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Date</th>
-                                  <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Mode</th>
-                                  <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Réf. #</th>
-                                  <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Montant</th>
-                                  <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Facture</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {schedule.payments.map(p => (
-                                  <tr key={p.id} className="border-b border-(--border-subtle) last:border-0">
-                                    <td className="px-3 py-2.5 text-xs ui-text-primary">{new Date(p.paymentDate).toLocaleDateString('fr-FR')}</td>
-                                    <td className="px-3 py-2.5 text-xs ui-text-secondary">{p.paymentMethod ?? 'N/A'}</td>
-                                    <td className="px-3 py-2.5 text-xs ui-text-secondary">{p.paymentNumber ?? '-'}</td>
-                                    <td className="px-3 py-2.5 text-right text-sm font-semibold text-green-600">{fmt(p.amountPaid)}</td>
-                                    <td className="px-3 py-2.5 text-right text-xs">
-                                      <a href={`/student/fees/invoice/${p.id}`} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">
-                                        Voir
-                                      </a>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-                        <div className="mt-3 flex justify-end gap-6 text-sm">
-                          <span className="ui-text-secondary">Total payé : <strong className="text-green-600">{fmt(schedule.totalPaid)}</strong></span>
-                          <span className="ui-text-secondary">Solde : <strong className={schedule.balance > 0 ? 'text-red-600' : 'text-green-600'}>{fmt(schedule.balance)}</strong></span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        ) : null}
+                    return (
+                      <tr key={invoice.id} className="hover:bg-opacity-50 transition-colors">
+                        <td className="p-4 font-medium ui-text-primary">{periodLabel}</td>
+                        <td className="p-4 ui-text-secondary">
+                          {new Date(invoice.dueDate).toLocaleDateString('en-US')}
+                        </td>
+                        <td className="p-4 text-right ui-text-primary font-medium">
+                          {formatUSD(invoice.amountDue)}
+                        </td>
+                        <td className="p-4 text-right font-bold">
+                          <span className={invoice.balance > 0 ? 'text-red-600' : 'text-emerald-600'}>
+                            {formatUSD(invoice.balance)}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <span
+                            className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium ${
+                              statusStyle[invoice.status]
+                            }`}
+                          >
+                            <MaterialIcon
+                              name={
+                                invoice.status === 'PAID'
+                                  ? 'check_circle'
+                                  : invoice.status === 'PARTIAL'
+                                    ? 'schedule'
+                                    : invoice.status === 'OVERDUE'
+                                      ? 'priority_high'
+                                      : 'schedule'
+                              }
+                              className="text-[14px]"
+                            />
+                            {statusLabels[invoice.status]}
+                          </span>
+                        </td>
+                        <td className="p-4 text-right">
+                          {invoice.balance > 0 && invoice.status !== 'PAID' ? (
+                            <Button
+                              size="sm"
+                              onClick={() => handlePayNow(invoice.id)}
+                              isLoading={payingInvoice === invoice.id}
+                              disabled={payingInvoice !== null && payingInvoice !== invoice.id}
+                            >
+                              Pay Now
+                            </Button>
+                          ) : (
+                            <span className="text-xs ui-text-secondary">Paid</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Payment Notification */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex gap-3">
+            <MaterialIcon name="info" className="text-blue-600 text-[20px] shrink-0 mt-0.5" />
+            <div className="text-sm ui-text-secondary">
+              <p className="font-medium text-blue-900 mb-1">Payment Processing</p>
+              <p>
+                Your payment is processed securely through Stripe. After successful payment, your invoice status will update
+                automatically.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   )

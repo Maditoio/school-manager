@@ -21,11 +21,12 @@ function formatDelta(delta: number, reference: string) {
   return `${sign}${rounded}% vs ${reference}`
 }
 
-function paymentMethodLabel(method: 'CASH' | 'BANK_TRANSFER' | 'M_PESA' | 'ORANGE_MONEY' | 'OTHER') {
+function paymentMethodLabel(method: 'CASH' | 'BANK_TRANSFER' | 'M_PESA' | 'ORANGE_MONEY' | 'STRIPE' | 'OTHER') {
   if (method === 'CASH') return 'Cash'
   if (method === 'BANK_TRANSFER') return 'Bank Transfer'
   if (method === 'M_PESA') return 'M-Pesa'
   if (method === 'ORANGE_MONEY') return 'Orange Money'
+  if (method === 'STRIPE') return 'Stripe'
   return 'Other'
 }
 
