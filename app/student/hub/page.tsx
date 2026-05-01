@@ -35,6 +35,10 @@ function formatDuration(seconds: number) {
   return `${m}m`
 }
 
+function formatUSD(amount: number): string {
+  return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
 export default function StudentHubPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -70,11 +74,30 @@ export default function StudentHubPage() {
     if (status === 'authenticated') fetchCourses()
   }, [status, fetchCourses])
 
-  async function handleEnroll(courseId: string) {
+  async function handleEnroll(courseId: string, price: number) {
     setEnrolling(courseId)
     try {
+      if (price > 0) {
+        const res = await fetch(`/api/courses/${courseId}/checkout`, { method: 'POST' })
+        const data = await res.json()
+        if (!res.ok) {
+          const errorMsg = data?.error || 'Failed to create payment session'
+          alert(`Payment Error: ${errorMsg}`)
+          console.error(errorMsg)
+          return
+        }
+        if (data.url) {
+          window.location.href = data.url
+          return
+        }
+
+        alert('Unable to start Stripe checkout. Please try again.')
+        return
+      }
+
       const res = await fetch(`/api/courses/${courseId}/enroll`, { method: 'POST' })
       if (res.ok) router.push(`/student/hub/course/${courseId}`)
+      else alert('Failed to enroll in course')
     } finally {
       setEnrolling(null)
     }
@@ -205,7 +228,7 @@ export default function StudentHubPage() {
                     )}
                     <div className="flex items-center justify-between pt-1 mt-auto">
                       <span className="font-bold ui-text-primary">
-                        {course.price === 0 ? 'Free' : `${course.price}`}
+                        {course.price === 0 ? 'Free' : formatUSD(course.price)}
                       </span>
                       <div className="flex gap-2">
                         <Button size="sm" variant="ghost" onClick={() => router.push(`/student/hub/course/${course.id}`)}>
@@ -213,7 +236,7 @@ export default function StudentHubPage() {
                         </Button>
                         <Button
                           size="sm"
-                          onClick={() => handleEnroll(course.id)}
+                          onClick={() => handleEnroll(course.id, course.price)}
                           isLoading={enrolling === course.id}
                         >
                           {course.price === 0 ? 'Enroll Free' : 'Subscribe'}

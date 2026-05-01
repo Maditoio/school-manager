@@ -8,6 +8,10 @@ import { Button } from '@/components/ui/Button'
 import { MaterialIcon } from '@/components/ui/MaterialIcon'
 import { STUDENT_NAV_ITEMS } from '@/lib/admin-nav'
 
+function formatUSD(amount: number): string {
+  return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
 interface Lesson {
   id: string
   title: string
@@ -121,6 +125,34 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
     }
   }, [status, fetchCourse, fetchProgress])
 
+  useEffect(() => {
+    const sessionId = searchParams.get('session_id')
+    if (!sessionId || !course || enrollment || !course.price || status !== 'authenticated') return
+
+    const completePurchase = async () => {
+      try {
+        const res = await fetch(`/api/courses/${courseId}/checkout/complete?sessionId=${encodeURIComponent(sessionId)}`)
+        const data = await res.json()
+        if (!res.ok) {
+          console.error('Failed to complete checkout session:', data?.error)
+          return
+        }
+
+        if (data.enrollment) {
+          setEnrollment(data.enrollment)
+          setHasFullAccess(true)
+          const url = new URL(window.location.href)
+          url.searchParams.delete('session_id')
+          window.history.replaceState({}, '', url.toString())
+        }
+      } catch (error) {
+        console.error('Could not finalize Stripe enrollment:', error)
+      }
+    }
+
+    completePurchase()
+  }, [course, enrollment, courseId, searchParams, status])
+
   // Restore video position when lesson changes
   useEffect(() => {
     if (!videoRef.current || !activeLessonId) return
@@ -170,12 +202,33 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
   }
 
   async function handleEnroll() {
+    if (!course) return
     setEnrolling(true)
     try {
+      if (course.price > 0) {
+        const res = await fetch(`/api/courses/${courseId}/checkout`, { method: 'POST' })
+        const data = await res.json()
+        if (!res.ok) {
+          const errorMsg = data?.error || 'Failed to create checkout session'
+          alert(`Payment Error: ${errorMsg}`)
+          console.error(errorMsg)
+          return
+        }
+        if (data.url) {
+          window.location.href = data.url
+          return
+        }
+
+        alert('Unable to start Stripe checkout. Please try again.')
+        return
+      }
+
       const res = await fetch(`/api/courses/${courseId}/enroll`, { method: 'POST' })
       if (res.ok) {
         fetchCourse()
         fetchProgress()
+      } else {
+        alert('Failed to enroll in course')
       }
     } finally {
       setEnrolling(false)
@@ -310,18 +363,33 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
               )}
 
               {/* Course info */}
-              <div className="ui-surface border ui-border rounded-xl p-4 space-y-2">
-                <h1 className="text-lg font-bold ui-text-primary">{course.title}</h1>
-                <p className="text-xs ui-text-secondary">
-                  by {[course.teacher.firstName, course.teacher.lastName].filter(Boolean).join(' ') || 'Instructor'}
-                  {' · '}{course._count.enrollments} students
-                </p>
-                {enrollment && (
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium w-fit">
-                    <MaterialIcon name="check_circle" className="text-[14px]" />
-                    Enrolled
-                  </span>
-                )}
+              <div className="ui-surface border ui-border rounded-xl p-4 space-y-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <h1 className="text-lg font-bold ui-text-primary">{course.title}</h1>
+                    <p className="text-xs ui-text-secondary mt-1">
+                      by {[course.teacher.firstName, course.teacher.lastName].filter(Boolean).join(' ') || 'Instructor'}
+                      {' · '}{course._count.enrollments} students
+                    </p>
+                  </div>
+                  {course.price > 0 && (
+                    <span className="text-sm font-semibold ui-text-primary shrink-0">{formatUSD(course.price)}</span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {enrollment && (
+                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">
+                      <MaterialIcon name="check_circle" className="text-[14px]" />
+                      Enrolled
+                    </span>
+                  )}
+                  {course.price === 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
+                      <MaterialIcon name="currency_exchange" className="text-[14px]" />
+                      Free
+                    </span>
+                  )}
+                </div>
                 {course.description && <p className="text-sm ui-text-secondary">{course.description}</p>}
               </div>
 
