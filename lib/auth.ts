@@ -55,6 +55,14 @@ declare module "next-auth" {
   }
 }
 
+const NEXTAUTH_URL =
+  process.env.NEXTAUTH_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || 'unsafe-development-secret'
+
+process.env.NEXTAUTH_URL = process.env.NEXTAUTH_URL || NEXTAUTH_URL
+process.env.NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || NEXTAUTH_SECRET
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
