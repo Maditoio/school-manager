@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduCore | School Management System</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-strong: #e2e8f0;
+      --text: #0f172a;
+      --muted: #475569;
+      --primary: #0ea5e9;
+      --primary-dark: #0284c7;
+      --border: rgba(15, 23, 42, 0.08);
+      --shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+      --radius: 28px;
+      font-family: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      scroll-behavior: smooth;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, rgba(14, 165, 233, 0.12), transparent 28%),
+        linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    .page {
+      overflow-x: hidden;
+    }
+
+    .container {
+      width: min(1120px, calc(100% - 2rem));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 1rem 1.5rem;
+      backdrop-filter: blur(16px);
+      background: rgba(255, 255, 255, 0.7);
+      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+      transition: transform 0.3s ease, background 0.3s ease, padding 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .topbar.solid {
+      background: rgba(15, 23, 42, 0.94);
+      color: #fff;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      text-decoration: none;
+      color: inherit;
+      font-weight: 700;
+    }
+
+    .logo svg {
+      width: 2.2rem;
+      height: 2.2rem;
+      flex-shrink: 0;
+    }
+
+    .logo span {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.35rem;
+      letter-spacing: -0.03em;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    nav a {
+      color: inherit;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+
+    nav a:hover {
+      color: var(--primary);
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn,
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      padding: 0.95rem 1.5rem;
+      border-radius: 999px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      transition: transform 0.3s ease, background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+      background: var(--primary);
+      color: #fff;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn:hover,
+    .btn-ghost:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border-color: rgba(15, 23, 42, 0.16);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(14, 165, 233, 0.08);
+      color: var(--primary-dark);
+    }
+
+    .mobile-toggle {
+      display: none;
+      width: 2.7rem;
+      height: 2.7rem;
+      border-radius: 16px;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .hero {
+      position: relative;
+      padding: 7rem 0 5rem;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle at top left, rgba(14, 165, 233, 0.12) 0%, transparent 20%),
+        linear-gradient(135deg, rgba(14, 165, 233, 0.08), transparent 55%);
+      pointer-events: none;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 2.5rem;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-copy {
+      max-width: 620px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--primary);
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(3rem, 5vw, 4.5rem);
+      line-height: 0.95;
+      max-width: 12ch;
+      letter-spacing: -0.06em;
+    }
+
+    .hero p {
+      max-width: 46rem;
+      margin: 1.5rem 0 2rem;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .dashboard-card {
+      position: relative;
+      min-height: 520px;
+      padding: 2rem;
+      border-radius: 36px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.9), #f8fbff 100%);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      overflow: hidden;
+    }
+
+    .dashboard-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(180deg, rgba(14, 165, 233, 0.14), transparent 45%),
+        radial-gradient(circle at top right, rgba(14, 165, 233, 0.14), transparent 20%);
+      pointer-events: none;
+    }
+
+    .dashboard-window {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 1.6rem;
+    }
+
+    .window-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .window-pill {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .window-pill span {
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 50%;
+      background: #a5b4fc;
+    }
+
+    .window-tabs {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .window-tabs span {
+      padding: 0.65rem 1rem;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.04);
+    }
+
+    .dashboard-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.2rem;
+      align-items: end;
+      height: 100%;
+    }
+
+    .stat-block {
+      padding: 1.35rem 1.4rem;
+      border-radius: 28px;
+      background: rgba(15, 23, 42, 0.02);
+      border: 1px solid rgba(15, 23, 42, 0.06);
+    }
+
+    .stat-block strong {
+      display: block;
+      font-size: 2rem;
+      margin-bottom: 0.4rem;
+      color: var(--text);
+    }
+
+    .stat-block span {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .dashboard-preview {
+      grid-column: 1 / -1;
+      height: 220px;
+      border-radius: 28px;
+      background: radial-gradient(circle at top, rgba(14, 165, 233, 0.16), transparent 40%),
+        linear-gradient(135deg, #ffffff, #f1faff);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      padding: 1.5rem;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 1rem;
+    }
+
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .preview-graph {
+      height: 100%;
+      background: linear-gradient(180deg, #0ea5e9 0%, rgba(14, 165, 233, 0.2) 100%);
+      border-radius: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview-graph::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(45deg, rgba(255,255,255,0.22) 0%, transparent 40%),
+        linear-gradient(0deg, rgba(255,255,255,0.12), transparent 70%);
+    }
+
+    .preview-footer {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.9rem;
+    }
+
+    .preview-tile {
+      padding: 0.9rem 1rem;
+      border-radius: 20px;
+      background: #fff;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1rem;
+      margin: 2rem auto 0;
+      padding: 1.5rem;
+      background: #fff;
+      border-radius: 32px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(15, 23, 42, 0.06);
+    }
+
+    .stat-card {
+      padding: 1.3rem 1.2rem;
+      border-radius: 24px;
+      background: rgba(14, 165, 233, 0.05);
+      text-align: center;
+    }
+
+    .stat-number {
+      margin: 0;
+      font-size: clamp(1.75rem, 2vw, 2.5rem);
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .stat-label {
+      margin: 0.5rem 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    section {
+      padding: 5rem 0;
+    }
+
+    .section-heading {
+      text-align: center;
+      max-width: 720px;
+      margin: 0 auto 3rem;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(2.5rem, 4vw, 3.25rem);
+      letter-spacing: -0.05em;
+    }
+
+    .section-heading p {
+      margin: 1rem auto 0;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      padding: 2rem;
+      border-radius: 28px;
+      background: #fff;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.04);
+      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 28px 70px rgba(15, 23, 42, 0.1);
+      border-color: rgba(14, 165, 233, 0.2);
+    }
+
+    .feature-icon {
+      width: 3rem;
+      height: 3rem;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: rgba(14, 165, 233, 0.12);
+      margin-bottom: 1.35rem;
+    }
+
+    .feature-icon svg {
+      width: 1.5rem;
+      height: 1.5rem;
+      color: var(--primary-dark);
+    }
+
+    .feature-card h3 {
+      margin: 0 0 0.75rem;
+      font-size: 1.15rem;
+    }
+
+    .feature-card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .process {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1.5rem;
+      position: relative;
+      padding: 1.5rem 0;
+    }
+
+    .process::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 4.5rem;
+      right: 4.5rem;
+      height: 2px;
+      background: rgba(15, 23, 42, 0.08);
+      transform: translateY(-50%);
+      z-index: 0;
+    }
+
+    .step-card {
+      position: relative;
+      z-index: 1;
+      padding: 2rem;
+      border-radius: 28px;
+      background: #fff;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      text-align: center;
+      box-shadow: 0 22px 40px rgba(15, 23, 42, 0.05);
+    }
+
+    .step-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 3rem;
+      height: 3rem;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 700;
+      margin-bottom: 1.2rem;
+      font-size: 1.05rem;
+    }
+
+    .step-card h3 {
+      margin: 0 0 0.75rem;
+      font-size: 1.2rem;
+    }
+
+    .step-card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1.5rem;
+    }
+
+    .testimonial-card {
+      padding: 2rem;
+      border-radius: 32px;
+      background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: var(--shadow);
+    }
+
+    .testimonial-stars {
+      display: flex;
+      gap: 0.3rem;
+      margin-bottom: 1rem;
+    }
+
+    .testimonial-stars span {
+      color: #0ea5e9;
+      font-size: 1rem;
+    }
+
+    .testimonial-card p {
+      margin: 0 0 1.4rem;
+      color: var(--text);
+    }
+
+    .testimonial-author {
+      display: grid;
+      gap: 0.3rem;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1.5rem;
+    }
+
+    .plan-card {
+      padding: 2rem;
+      border-radius: 32px;
+      background: #fff;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .plan-card.popular {
+      border-color: rgba(14, 165, 233, 0.24);
+      background: linear-gradient(180deg, #f8fcff 0%, #fff 100%);
+    }
+
+    .plan-card.popular {
+      transform: scale(1.03);
+    }
+
+    .plan-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.55rem 1rem;
+      border-radius: 999px;
+      background: rgba(14, 165, 233, 0.12);
+      color: var(--primary-dark);
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+
+    .plan-card h3 {
+      margin: 0;
+      font-size: 1.4rem;
+    }
+
+    .plan-price {
+      margin: 1rem 0 1.35rem;
+      font-size: 2.75rem;
+      font-weight: 700;
+    }
+
+    .plan-price span {
+      display: block;
+      margin-top: 0.4rem;
+      font-size: 0.95rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .plan-features {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 1.75rem;
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .plan-features li {
+      display: flex;
+      gap: 0.75rem;
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+
+    .plan-features li::before {
+      content: '✓';
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .plan-card .btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .cta-banner {
+      padding: 3.5rem 2rem;
+      border-radius: 32px;
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(255,255,255,0.92));
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+
+    .cta-banner h2 {
+      margin: 0;
+      font-size: clamp(2rem, 3vw, 2.5rem);
+      line-height: 1.05;
+    }
+
+    .cta-links {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    footer {
+      padding: 4rem 0 2rem;
+      background: #0f172a;
+      color: #fff;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    .footer-logo span {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.45rem;
+      font-weight: 700;
+    }
+
+    .footer-copy,
+    .footer-links a,
+    .footer-links p {
+      color: rgba(255, 255, 255, 0.74);
+      margin: 0;
+      text-decoration: none;
+    }
+
+    .footer-links {
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    .footer-links h4 {
+      margin: 0 0 1rem;
+      font-size: 1rem;
+      color: #fff;
+    }
+
+    .footer-links a:hover {
+      color: var(--primary);
+    }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      padding-top: 1.5rem;
+      text-align: center;
+      color: rgba(255,255,255,0.62);
+      font-size: 0.95rem;
+    }
+
+    .fade-in {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 1120px) {
+      .hero-grid,
+      .pricing-grid,
+      .testimonials-grid,
+      .features-grid,
+      .stats-bar,
+      .footer-grid,
+      .process {
+        grid-template-columns: 1fr;
+      }
+
+      .dashboard-content {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-footer {
+        grid-template-columns: 1fr;
+      }
+
+      .cta-banner {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .cta-links {
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 800px) {
+      nav {
+        display: none;
+      }
+
+      .actions {
+        display: none;
+      }
+
+      .mobile-toggle {
+        display: inline-flex;
+      }
+
+      .topbar {
+        padding: 1rem 1rem;
+      }
+
+      .hero {
+        padding-top: 6.5rem;
+      }
+
+      .hero-grid {
+        gap: 2rem;
+      }
+    }
+
+    .mobile-menu {
+      position: fixed;
+      inset: 0;
+      display: none;
+      background: rgba(15, 23, 42, 0.92);
+      color: #fff;
+      padding: 4rem 1.5rem 2rem;
+      z-index: 60;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .mobile-menu.open {
+      display: flex;
+    }
+
+    .mobile-menu a {
+      color: #fff;
+      font-size: 1.1rem;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .mobile-menu .mobile-cta {
+      display: inline-flex;
+      padding: 0.95rem 1.4rem;
+      border-radius: 999px;
+      background: var(--primary);
+      color: #fff;
+      text-decoration: none;
+      width: fit-content;
+    }
+
+    @media (max-width: 620px) {
+      .topbar,
+      .cta-banner,
+      section {
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+
+      .hero {
+        padding: 5.5rem 0 3rem;
+      }
+
+      .feature-card,
+      .plan-card,
+      .testimonial-card,
+      .step-card {
+        padding: 1.5rem;
+      }
+
+      .stats-bar {
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar" id="navbar">
+      <a class="logo" href="#home">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M24 6L8 14v18l16 8 16-8V14L24 6Z" fill="#0EA5E9" />
+          <path d="M24 38V22" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+          <path d="M16 18h16" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+          <path d="M16 26h16" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <span>EduCore</span>
+      </a>
+      <nav>
+        <a href="#features">Features</a>
+        <a href="#about">About</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <div class="actions">
+        <a class="btn" href="/login">Login →</a>
+      </div>
+      <button class="mobile-toggle" id="mobileToggle" aria-label="Open navigation">
+        <svg viewBox="0 0 24 24" fill="none" width="22" height="22" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 7h16M4 12h16M4 17h16" stroke="#0f172a" stroke-width="2" stroke-linecap="round" />
+        </svg>
+      </button>
+    </header>
+
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="#features" class="mobile-link">Features</a>
+      <a href="#about" class="mobile-link">About</a>
+      <a href="#pricing" class="mobile-link">Pricing</a>
+      <a href="#contact" class="mobile-link">Contact</a>
+      <a class="mobile-cta" href="/login">Login →</a>
+    </div>
+
+    <main>
+      <section class="hero container fade-in" id="home">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <div class="eyebrow">School Management, Simplified</div>
+            <h1>The Smarter Way to Manage Your School</h1>
+            <p>EduCore combines enrollment, attendance, grading, finance, and parent communication into one secure, modern platform for educators and administrators.</p>
+            <div class="hero-actions">
+              <a class="btn" href="#pricing">Get Started Free</a>
+              <a class="btn btn-ghost" href="#about">Watch Demo</a>
+            </div>
+          </div>
+          <div class="dashboard-card">
+            <div class="dashboard-window">
+              <div class="window-header">
+                <div class="window-pill">
+                  <span></span><span></span><span></span>
+                </div>
+                <div class="window-tabs">
+                  <span>Dashboard</span>
+                  <span>Reports</span>
+                </div>
+              </div>
+              <div class="dashboard-content">
+                <div class="stat-block">
+                  <strong>82%</strong>
+                  <span>Attendance rate</span>
+                </div>
+                <div class="stat-block">
+                  <strong>12</strong>
+                  <span>Active classes</span>
+                </div>
+                <div class="dashboard-preview"></div>
+                <div class="preview-footer">
+                  <div class="preview-tile">
+                    <strong>4.8</strong>
+                    <span>Average rating</span>
+                  </div>
+                  <div class="preview-tile">
+                    <strong>580</strong>
+                    <span>Assignments graded</span>
+                  </div>
+                  <div class="preview-tile">
+                    <strong>24</strong>
+                    <span>New enrollments</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="stats-bar fade-in">
+          <div class="stat-card">
+            <p class="stat-number" data-target="500">0+</p>
+            <p class="stat-label">Schools</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-number" data-target="50000">0+</p>
+            <p class="stat-label">Students</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-number" data-target="98">0%</p>
+            <p class="stat-label">Satisfaction</p>
+          </div>
+          <div class="stat-card">
+            <p class="stat-number" data-target="10">0+</p>
+            <p class="stat-label">Years Experience</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="container" id="features">
+        <div class="section-heading fade-in">
+          <h2>Built for every school administration need.</h2>
+          <p>Everything your institution needs to manage students, staff, operations, and family communication from one elegant dashboard.</p>
+        </div>
+        <div class="features-grid fade-in">
+          <article class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4Zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4Z" fill="currentColor"/></svg>
+            </div>
+            <h3>Student Enrollment & Profiles</h3>
+            <p>Manage registration, student history, session details, and secure records with one central system.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14l4-4h12c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2Zm0 10H7l-2 2V5h14v8Z" fill="currentColor"/></svg>
+            </div>
+            <h3>Attendance Tracking</h3>
+            <p>Track attendance, review trends, and synchronize student participation across classes and terms.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24"><path d="M6 2h12a2 2 0 0 1 2 2v16l-4-4H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm8 9h-3V7h3v4Zm-5 0H6V7h3v4Zm9 5.5V17H5v-.5l3-3V14h8v-.5l3 3Z" fill="currentColor"/></svg>
+            </div>
+            <h3>Grade & Report Card Management</h3>
+            <p>Create assessments, publish report cards, and automate academic performance reporting.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24"><path d="M4 6h16v12H4V6Zm2 2v8h12V8H6Zm2 2h8v2H8v-2Z" fill="currentColor"/></svg>
+            </div>
+            <h3>Teacher & Staff Management</h3>
+            <p>Organize roles, schedules, certifications, and communications for all academic staff.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24"><path d="M6 3h12v4H6V3Zm0 6h12v2H6V9Zm0 4h8v2H6v-2Zm0 4h4v2H6v-2Z" fill="currentColor"/></svg>
+            </div>
+            <h3>Fee & Finance Management</h3>
+            <p>Automate billing, receive payments, generate invoices, and maintain a complete financial ledger.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 3C7.03 3 3 5.69 3 9v3c0 3.31 4.03 6 9 6s9-2.69 9-6V9c0-3.31-4.03-6-9-6Zm0 2c3.86 0 7 1.62 7 3s-3.14 3-7 3-7-1.62-7-3 3.14-3 7-3Zm-9 6.97c.03-1.13 1.79-2.17 4.5-2.64C6.85 11.79 4.46 12.8 3.06 14.6A2 2 0 0 0 3 16v1h6v-1c0-.54.21-1.05.58-1.43a6.991 6.991 0 0 1-4.58-1.6Z" fill="currentColor"/></svg>
+            </div>
+            <h3>Parent Communication Portal</h3>
+            <p>Keep families engaged with announcements, messaging, and progress updates in one secure place.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="container" id="about">
+        <div class="section-heading fade-in">
+          <h2>How EduCore works for your institution</h2>
+          <p>From initial setup to daily operation, the platform is designed to keep your school connected, compliant, and productive.</p>
+        </div>
+        <div class="process fade-in">
+          <article class="step-card">
+            <div class="step-badge">1</div>
+            <h3>Register</h3>
+            <p>Create your school workspace, invite administrators and teachers, and import student records securely.</p>
+          </article>
+          <article class="step-card">
+            <div class="step-badge">2</div>
+            <h3>Configure</h3>
+            <p>Set up classes, terms, attendance policies, fee schedules, and communication channels in minutes.</p>
+          </article>
+          <article class="step-card">
+            <div class="step-badge">3</div>
+            <h3>Manage</h3>
+            <p>Monitor performance, send updates, generate reports, and run billing from one centralized dashboard.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="container">
+        <div class="section-heading fade-in">
+          <h2>Trusted by modern schools and district leaders.</h2>
+          <p>See how administrators are using EduCore to simplify operations, reduce manual work, and improve student success.</p>
+        </div>
+        <div class="testimonials-grid fade-in">
+          <article class="testimonial-card">
+            <div class="testimonial-stars">
+              <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+            </div>
+            <p>"EduCore transformed the way we track attendance and communicate with families. The interface is modern and our team adopted it immediately."</p>
+            <div class="testimonial-author">
+              <strong>Sarah Patel</strong>
+              <span>Principal, Greenfield Academy</span>
+            </div>
+          </article>
+          <article class="testimonial-card">
+            <div class="testimonial-stars">
+              <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+            </div>
+            <p>"The reporting tools save hours each month and help us share clear progress updates with teachers and parents."</p>
+            <div class="testimonial-author">
+              <strong>James Collins</strong>
+              <span>Head of Operations, Harmony School</span>
+            </div>
+          </article>
+          <article class="testimonial-card">
+            <div class="testimonial-stars">
+              <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+            </div>
+            <p>"From finance management to staff coordination, EduCore gave us the visibility we needed for next-level growth."</p>
+            <div class="testimonial-author">
+              <strong>Leila Morgan</strong>
+              <span>Administrative Director, Orion Prep</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="container" id="pricing">
+        <div class="section-heading fade-in">
+          <h2>Pricing built for every school size.</h2>
+          <p>Choose the plan that matches your needs, from essential tools to advanced enterprise operations.</p>
+        </div>
+        <div class="pricing-grid fade-in">
+          <article class="plan-card">
+            <div class="plan-badge">Basic</div>
+            <h3>Core operations</h3>
+            <p class="plan-price">$49<span>/month</span></p>
+            <ul class="plan-features">
+              <li>Student management</li>
+              <li>Attendance tracking</li>
+              <li>Grade book access</li>
+              <li>Parent notifications</li>
+            </ul>
+            <a class="btn btn-ghost" href="#contact">Start Basic</a>
+          </article>
+          <article class="plan-card popular">
+            <div class="plan-badge">Most Popular</div>
+            <h3>Professional</h3>
+            <p class="plan-price">$99<span>/month</span></p>
+            <ul class="plan-features">
+              <li>Everything in Basic</li>
+              <li>Advanced finance tools</li>
+              <li>Custom report templates</li>
+              <li>Staff scheduling</li>
+              <li>Premium support</li>
+            </ul>
+            <a class="btn" href="#contact">Choose Professional</a>
+          </article>
+          <article class="plan-card">
+            <div class="plan-badge">Enterprise</div>
+            <h3>Institution-wide</h3>
+            <p class="plan-price">Custom<span>/month</span></p>
+            <ul class="plan-features">
+              <li>Dedicated onboarding</li>
+              <li>Multi-campus support</li>
+              <li>API & integrations</li>
+              <li>Advanced compliance</li>
+            </ul>
+            <a class="btn btn-ghost" href="#contact">Contact Sales</a>
+          </article>
+        </div>
+      </section>
+
+      <section class="container fade-in">
+        <div class="cta-banner">
+          <div>
+            <h2>Ready to Transform Your School?</h2>
+            <p>Launch smarter workflows, strengthen family engagement, and modernize operations with EduCore.</p>
+          </div>
+          <div class="cta-links">
+            <a class="btn" href="/login">Get Started Free</a>
+            <a class="btn btn-ghost" href="/login">Login to Dashboard →</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="container footer-grid">
+        <div>
+          <div class="footer-logo">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" width="34" height="34">
+              <path d="M24 6L8 14v18l16 8 16-8V14L24 6Z" fill="#0EA5E9" />
+            </svg>
+            <span>EduCore</span>
+          </div>
+          <p class="footer-copy">Modern school management made simple, secure, and powerful.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Product</h4>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#contact">Roadmap</a>
+        </div>
+        <div class="footer-links">
+          <h4>Company</h4>
+          <a href="#about">About</a>
+          <a href="#contact">Contact</a>
+          <a href="#">Careers</a>
+        </div>
+        <div class="footer-links">
+          <h4>Support</h4>
+          <a href="#contact">Help Center</a>
+          <a href="mailto:support@educore.com">support@educore.com</a>
+          <a href="#">Privacy</a>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2026 EduCore. Designed for confident school leaders.</div>
+    </footer>
+  </div>
+
+  <script>
+    const mobileToggle = document.getElementById('mobileToggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const mobileLinks = document.querySelectorAll('.mobile-link');
+    const navbar = document.getElementById('navbar');
+    const statNumbers = document.querySelectorAll('.stat-number');
+
+    mobileToggle.addEventListener('click', () => {
+      mobileMenu.classList.toggle('open');
+    });
+
+    mobileLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        mobileMenu.classList.remove('open');
+      });
+    });
+
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 24) {
+        navbar.classList.add('solid');
+      } else {
+        navbar.classList.remove('solid');
+      }
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          if (entry.target.classList.contains('stat-number')) {
+            animateCounter(entry.target);
+          }
+        }
+      });
+    }, { threshold: 0.22 });
+
+    document.querySelectorAll('.fade-in, .stat-number').forEach(section => {
+      observer.observe(section);
+    });
+
+    function animateCounter(element) {
+      if (element.dataset.animated) return;
+      element.dataset.animated = 'true';
+      const targetText = element.dataset.target;
+      const target = Number(targetText.replace(/\D/g, '')) || 0;
+      const suffix = targetText.replace(/[0-9]/g, '');
+      const start = 0;
+      const duration = 1400;
+      const startTime = performance.now();
+
+      function update(now) {
+        const elapsed = Math.min((now - startTime) / duration, 1);
+        const current = Math.round(elapsed * target);
+        element.textContent = current + suffix;
+        if (elapsed < 1) {
+          requestAnimationFrame(update);
+        } else {
+          element.textContent = target + suffix;
+        }
+      }
+      requestAnimationFrame(update);
+    }
+  </script>
+</body>
+</html>

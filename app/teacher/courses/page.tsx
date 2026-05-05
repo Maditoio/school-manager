@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Form'
 import { MaterialIcon } from '@/components/ui/MaterialIcon'
 import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
+import { translateText } from '@/lib/client-i18n'
 import { useAlert } from '@/lib/useAlertDialog'
+import { useLocale } from '@/lib/locale-context'
 
 interface Lesson {
   id: string
@@ -51,6 +53,8 @@ export default function TeacherCoursesPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const { showAlert } = useAlert()
+  const { locale } = useLocale()
+  const t = useCallback((s: string) => translateText(s, locale), [locale])
 
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
@@ -156,13 +160,13 @@ export default function TeacherCoursesPage() {
       <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold ui-text-primary">My Courses</h1>
-            <p className="text-sm ui-text-secondary mt-0.5">Manage your video courses for students</p>
+            <h1 className="text-xl font-bold ui-text-primary">{t('My Courses')}</h1>
+            <p className="text-sm ui-text-secondary mt-0.5">{t('Manage your video courses for students')}</p>
           </div>
           <Button onClick={() => setShowCreate(true)}>
             <span className="inline-flex items-center gap-1.5">
               <MaterialIcon name="add" className="text-[18px]" />
-              New Course
+              {t('New Course')}
             </span>
           </Button>
         </div>
@@ -175,7 +179,7 @@ export default function TeacherCoursesPage() {
           >
             <div className="ui-surface rounded-2xl border ui-border shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b ui-border">
-                <h2 className="text-base font-semibold ui-text-primary">Create New Course</h2>
+                <h2 className="text-base font-semibold ui-text-primary">{t('Create New Course')}</h2>
                 <button
                   onClick={() => { setShowCreate(false); setForm({ title: '', description: '', price: '0', thumbnailUrl: '', allSchools: false }) }}
                   className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-(--surface-soft) ui-text-secondary transition-colors text-lg leading-none"
@@ -185,22 +189,22 @@ export default function TeacherCoursesPage() {
               </div>
               <div className="px-6 py-5 space-y-4">
                 <Input
-                  label="Course Title"
+                  label={t('Course Title')}
                   value={form.title}
                   onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  placeholder="e.g. Introduction to Algebra"
+                  placeholder={t('e.g. Introduction to Algebra')}
                 />
                 <div>
-                  <label className="block text-sm font-medium ui-text-secondary mb-2">Description</label>
+                  <label className="block text-sm font-medium ui-text-secondary mb-2">{t('Description')}</label>
                   <textarea
                     className="ui-input min-h-20 resize-y"
                     value={form.description}
                     onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                    placeholder="What will students learn?"
+                    placeholder={t('What will students learn?')}
                   />
                 </div>
                 <Input
-                  label="Price (0 = free)"
+                  label={t('Price (0 = free)')}
                   type="number"
                   min="0"
                   step="0.01"
@@ -208,7 +212,7 @@ export default function TeacherCoursesPage() {
                   onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
                 />
                 <div>
-                  <label className="block text-sm font-medium ui-text-secondary mb-2">Thumbnail</label>
+                  <label className="block text-sm font-medium ui-text-secondary mb-2">{t('Thumbnail')}</label>
                   {form.thumbnailUrl && (
                     <div className="w-full h-40 rounded-xl overflow-hidden border ui-border mb-3">
                       <img src={form.thumbnailUrl} alt="thumbnail" className="w-full h-full object-cover" />
@@ -219,17 +223,17 @@ export default function TeacherCoursesPage() {
                     {thumbnailUploading ? (
                       <span className="inline-flex items-center gap-1.5">
                         <MaterialIcon name="hourglass_top" className="text-[16px]" />
-                        Uploading...
+                        {t('Uploading...')}
                       </span>
                     ) : form.thumbnailUrl ? (
                       <span className="inline-flex items-center gap-1.5">
                         <MaterialIcon name="sync" className="text-[16px]" />
-                        Change Thumbnail
+                        {t('Change Thumbnail')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5">
                         <MaterialIcon name="add_photo_alternate" className="text-[16px]" />
-                        Upload Thumbnail
+                        {t('Upload Thumbnail')}
                       </span>
                     )}
                   </label>
@@ -247,17 +251,17 @@ export default function TeacherCoursesPage() {
                       >
                         <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${form.allSchools ? 'translate-x-4' : 'translate-x-0.5'}`} />
                       </div>
-                      <span className="text-sm font-medium ui-text-primary">Share across all schools</span>
+                      <span className="text-sm font-medium ui-text-primary">{t('Share across all schools')}</span>
                     </label>
                     <p className="text-xs ui-text-secondary pl-12">
-                      {form.allSchools ? 'Students from all schools can find and enroll in this course.' : 'Only students at your school can see this course.'}
+                      {form.allSchools ? t('Students from all schools can find and enroll in this course.') : t('Only students at your school can see this course.')}
                     </p>
                   </div>
                 )}
               </div>
               <div className="flex gap-2 px-6 py-4 border-t ui-border">
-                <Button onClick={handleCreateCourse} isLoading={saving}>Create Course</Button>
-                <Button variant="ghost" onClick={() => { setShowCreate(false); setForm({ title: '', description: '', price: '0', thumbnailUrl: '', allSchools: false }) }}>Cancel</Button>
+                <Button onClick={handleCreateCourse} isLoading={saving}>{t('Create Course')}</Button>
+                <Button variant="ghost" onClick={() => { setShowCreate(false); setForm({ title: '', description: '', price: '0', thumbnailUrl: '', allSchools: false }) }}>{t('Cancel')}</Button>
               </div>
             </div>
           </div>
@@ -265,14 +269,14 @@ export default function TeacherCoursesPage() {
 
         {/* Course List */}
         {loading ? (
-          <div className="text-center py-12 ui-text-secondary text-sm">Loading courses…</div>
+          <div className="text-center py-12 ui-text-secondary text-sm">{t('Loading courses…')}</div>
         ) : courses.length === 0 ? (
           <div className="text-center py-16 ui-text-secondary">
             <div className="mb-3">
               <MaterialIcon name="play_circle" className="text-5xl" />
             </div>
-            <p className="font-medium ui-text-primary">No courses yet</p>
-            <p className="text-sm mt-1">Create your first course to get started</p>
+            <p className="font-medium ui-text-primary">{t('No courses yet')}</p>
+            <p className="text-sm mt-1">{t('Create your first course to get started')}</p>
           </div>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -289,16 +293,16 @@ export default function TeacherCoursesPage() {
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-2 ui-text-secondary">
                       <MaterialIcon name="play_circle" className="text-5xl" />
-                      <span className="text-xs">No thumbnail</span>
+                      <span className="text-xs">{t('No thumbnail')}</span>
                     </div>
                   )}
                   <span className={`absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full font-semibold shadow ${course.published ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
-                    {course.published ? 'Published' : 'Draft'}
+                    {course.published ? t('Published') : t('Draft')}
                   </span>
                   {course.allSchools && (
                     <span className="absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full font-semibold shadow bg-blue-600 text-white inline-flex items-center gap-1">
                       <MaterialIcon name="public" className="text-[14px]" />
-                      All Schools
+                      {t('All Schools')}
                     </span>
                   )}
                 </div>
@@ -312,18 +316,18 @@ export default function TeacherCoursesPage() {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs ui-text-secondary mt-auto pt-1">
-                    <span className="inline-flex items-center gap-1"><MaterialIcon name="video_library" className="text-[14px]" /> {course.lessons.length} lessons</span>
+                    <span className="inline-flex items-center gap-1"><MaterialIcon name="video_library" className="text-[14px]" /> {course.lessons.length} {t('lessons')}</span>
                     {course.totalDuration > 0 && <span className="inline-flex items-center gap-1"><MaterialIcon name="schedule" className="text-[14px]" /> {formatDuration(course.totalDuration)}</span>}
-                    <span className="inline-flex items-center gap-1"><MaterialIcon name="group" className="text-[14px]" /> {course._count.enrollments} enrolled</span>
+                    <span className="inline-flex items-center gap-1"><MaterialIcon name="group" className="text-[14px]" /> {course._count.enrollments} {t('enrolled')}</span>
                     {avgRating(course.ratings) && <span className="inline-flex items-center gap-1"><MaterialIcon name="star" className="text-[14px]" /> {avgRating(course.ratings)}</span>}
-                    <span className="font-medium ui-text-primary">{course.price === 0 ? 'Free' : `$${course.price}`}</span>
+                    <span className="font-medium ui-text-primary">{course.price === 0 ? t('Free') : `$${course.price}`}</span>
                   </div>
                   <div className="flex gap-2 pt-2 border-t ui-border">
                     <Button size="sm" variant="secondary" onClick={() => router.push(`/teacher/courses/${course.id}`)}>
-                      Manage
+                      {t('Manage')}
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => togglePublish(course)}>
-                      {course.published ? 'Unpublish' : 'Publish'}
+                      {course.published ? t('Unpublish') : t('Publish')}
                     </Button>
                   </div>
                 </div>

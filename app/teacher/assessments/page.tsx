@@ -319,13 +319,13 @@ export default function TeacherAssessmentsPage() {
                 ✕
               </button>
 
-              <h2 className="text-xl font-semibold mb-4">{t('createAssessment')}</h2>
+              <h2 className="text-xl font-semibold mb-4">{t('Create Assessment')}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
               <Input
                 label={t('Title')}
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="e.g., Mid-Term Math Test"
+                placeholder={t('e.g., Mid-Term Math Test')}
                 required
               />
 
@@ -428,7 +428,7 @@ export default function TeacherAssessmentsPage() {
 
               <div className="flex gap-3">
                 <Button type="submit" isLoading={formLoading} variant="primary">
-                  {t('createAssessment')}
+                  {t('Create Assessment')}
                 </Button>
                 <Button
                   type="button"
@@ -447,7 +447,7 @@ export default function TeacherAssessmentsPage() {
         <Card className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <Select
-              label={t('filterClass')}
+              label={t('Filter Class')}
               value={filters.classId}
               onChange={(e) => {
                 const nextClassId = e.target.value
@@ -456,7 +456,7 @@ export default function TeacherAssessmentsPage() {
                 fetchStudents(nextClassId)
               }}
             >
-              <option value="">{t('allClasses')}</option>
+              <option value="">{t('All classes')}</option>
               {classes.map((cls) => (
                 <option key={cls.id} value={cls.id}>
                   {cls.name}
@@ -465,11 +465,11 @@ export default function TeacherAssessmentsPage() {
             </Select>
 
             <Select
-              label={t('filterSubject')}
+              label={t('Filter Subject')}
               value={filters.subjectId}
               onChange={(e) => setFilters({ ...filters, subjectId: e.target.value })}
             >
-              <option value="">{t('allSubjects')}</option>
+              <option value="">{t('All subjects')}</option>
               {subjects.map((subject) => (
                 <option key={subject.id} value={subject.id}>
                   {subject.name}
@@ -478,11 +478,11 @@ export default function TeacherAssessmentsPage() {
             </Select>
 
             <Select
-              label={t('filterStudent')}
+              label={t('Filter Student')}
               value={filters.studentId}
               onChange={(e) => setFilters({ ...filters, studentId: e.target.value })}
             >
-              <option value="">{t('allStudents')}</option>
+              <option value="">{t('All students')}</option>
               {students.map((student) => (
                 <option key={student.id} value={student.id}>
                   {student.firstName} {student.lastName}
@@ -491,8 +491,8 @@ export default function TeacherAssessmentsPage() {
             </Select>
 
             <div className="flex items-end gap-2">
-              <Button onClick={applyFilters} variant="primary" size="md">{t('apply')}</Button>
-              <Button onClick={clearFilters} variant="secondary" size="md">{t('clear')}</Button>
+              <Button onClick={applyFilters} variant="primary" size="md">{t('Apply')}</Button>
+              <Button onClick={clearFilters} variant="secondary" size="md">{t('Clear')}</Button>
             </div>
           </div>
         </Card>
@@ -502,7 +502,7 @@ export default function TeacherAssessmentsPage() {
             <div className="px-6 py-12 text-center ui-text-secondary text-sm">{t('Loading...')}</div>
           ) : assessments.length === 0 ? (
             <div className="px-6 py-12 text-center ui-text-secondary text-sm">
-              {t('No assessments yet. Click')} &quot;+ {t('Create Assessment')}&quot; {t('to get started.')}
+              {t('No assessments yet. Click "+ Create Assessment" to get started.')}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -514,7 +514,7 @@ export default function TeacherAssessmentsPage() {
                     <th className="px-4 py-3 text-center ui-text-secondary font-semibold">Type</th>
                     <th className="px-4 py-3 text-center ui-text-secondary font-semibold">Marks</th>
                     <th className="px-4 py-3 text-center ui-text-secondary font-semibold">Due Date</th>
-                    <th className="px-4 py-3 text-center ui-text-secondary font-semibold">{t('studentGraded')}</th>
+                    <th className="px-4 py-3 text-center ui-text-secondary font-semibold">{t('Students Graded')}</th>
                     <th className="px-4 py-3 text-center ui-text-secondary font-semibold">Status</th>
                     <th className="px-4 py-3 text-right ui-text-secondary font-semibold">Actions</th>
                   </tr>
@@ -550,9 +550,9 @@ export default function TeacherAssessmentsPage() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         {assessment.published ? (
-                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">{t('published')}</span>
+                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">{t('Published')}</span>
                         ) : (
-                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{t('draft')}</span>
+                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{t('Draft')}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -562,31 +562,31 @@ export default function TeacherAssessmentsPage() {
                             variant="primary"
                             onClick={() => router.push(`/teacher/assessments/${assessment.id}/grade`)}
                             disabled={assessment.termIsLocked}
-                            title={assessment.termIsLocked ? 'Term is locked – grading is not allowed' : undefined}
+                            title={assessment.termIsLocked ? t('Term is locked – grading is not allowed') : undefined}
                           >
-                            {t('grade')}
+                            {t('Grade')}
                           </Button>
                           <Button
                             size="sm"
                             variant={assessment.published ? 'secondary' : 'primary'}
                             onClick={() => handleTogglePublish(assessment)}
                             disabled={publishLoadingId === assessment.id || (assessment.termIsLocked && assessment.published)}
-                            title={assessment.termIsLocked && assessment.published ? 'Term is locked – cannot unpublish' : undefined}
+                            title={assessment.termIsLocked && assessment.published ? t('Term is locked – cannot unpublish') : undefined}
                           >
                             {publishLoadingId === assessment.id
-                              ? t('saving')
+                              ? t('Saving...')
                               : assessment.published
-                                ? t('unpublish')
-                                : t('publish')}
+                                ? t('Unpublish')
+                                : t('Publish')}
                           </Button>
                           <Button
                             size="sm"
                             variant="danger"
                             onClick={() => handleDelete(assessment.id)}
                             disabled={assessment.termIsLocked}
-                            title={assessment.termIsLocked ? 'Term is locked – cannot delete assessment' : undefined}
+                            title={assessment.termIsLocked ? t('Term is locked – cannot delete assessment') : undefined}
                           >
-                            {t('delete')}
+                            {t('Delete')}
                           </Button>
                         </div>
                       </td>
