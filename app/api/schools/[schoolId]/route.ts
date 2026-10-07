@@ -83,7 +83,11 @@ export async function GET(
       return NextResponse.json({ error: 'School not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ school })
+    const activeStudentCount = await prisma.student.count({
+      where: { schoolId, status: 'ACTIVE' },
+    })
+
+    return NextResponse.json({ school: { ...school, activeStudentCount } })
   } catch (error) {
     console.error('Error fetching school:', error)
     return NextResponse.json(
@@ -137,7 +141,6 @@ export async function PATCH(
             onboardingFee: Number(body.onboardingFee ?? 0),
             onboardingStatus: body.onboardingStatus ?? 'PENDING',
             annualPricePerStudent: Number(body.annualPricePerStudent ?? 0),
-            licensedStudentCount: Number(body.licensedStudentCount ?? 0),
             billingYear: Number(body.billingYear ?? new Date().getFullYear()),
             licenseStartDate: body.licenseStartDate ? new Date(body.licenseStartDate) : null,
             licenseEndDate: body.licenseEndDate ? new Date(body.licenseEndDate) : null,
@@ -148,7 +151,6 @@ export async function PATCH(
             onboardingFee: Number(body.onboardingFee ?? 0),
             onboardingStatus: body.onboardingStatus ?? 'PENDING',
             annualPricePerStudent: Number(body.annualPricePerStudent ?? 0),
-            licensedStudentCount: Number(body.licensedStudentCount ?? 0),
             billingYear: Number(body.billingYear ?? new Date().getFullYear()),
             licenseStartDate: body.licenseStartDate ? new Date(body.licenseStartDate) : null,
             licenseEndDate: body.licenseEndDate ? new Date(body.licenseEndDate) : null,

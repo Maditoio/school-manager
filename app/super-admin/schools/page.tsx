@@ -30,6 +30,7 @@ interface School {
     users: number
     students: number
   }
+  activeStudentCount?: number
   schoolSettings?: {
     slogan: string | null
     allowCrossSchoolCourses: boolean
@@ -40,7 +41,6 @@ interface School {
     onboardingFee: number
     onboardingStatus: 'PENDING' | 'PAID' | 'WAIVED'
     annualPricePerStudent: number
-    licensedStudentCount: number
     billingYear: number
     licenseStartDate: string | null
     licenseEndDate: string | null
@@ -84,7 +84,6 @@ export default function SchoolsPage() {
     onboardingFee: '0',
     onboardingStatus: 'PENDING',
     annualPricePerStudent: '0',
-    licensedStudentCount: '0',
     billingYear: String(new Date().getFullYear()),
     licenseStartDate: '',
     licenseEndDate: '',
@@ -132,7 +131,6 @@ export default function SchoolsPage() {
       onboardingFee: '0',
       onboardingStatus: 'PENDING',
       annualPricePerStudent: '0',
-      licensedStudentCount: '0',
       billingYear: String(new Date().getFullYear()),
       licenseStartDate: '',
       licenseEndDate: '',
@@ -159,7 +157,6 @@ export default function SchoolsPage() {
             onboardingFee: Number(formData.onboardingFee || 0),
             onboardingStatus: formData.onboardingStatus,
             annualPricePerStudent: Number(formData.annualPricePerStudent || 0),
-            licensedStudentCount: Number(formData.licensedStudentCount || 0),
             billingYear: Number(formData.billingYear || new Date().getFullYear()),
             licenseStartDate: formData.licenseStartDate || null,
             licenseEndDate: formData.licenseEndDate || null,
@@ -186,7 +183,6 @@ export default function SchoolsPage() {
             ...formData,
             onboardingFee: Number(formData.onboardingFee || 0),
             annualPricePerStudent: Number(formData.annualPricePerStudent || 0),
-            licensedStudentCount: Number(formData.licensedStudentCount || 0),
             billingYear: Number(formData.billingYear || new Date().getFullYear()),
             enabledModules: formData.enabledModules.split(',').map((item) => item.trim()).filter(Boolean),
             allowCrossSchoolCourses: formData.allowCrossSchoolCourses,
@@ -224,7 +220,6 @@ export default function SchoolsPage() {
       onboardingFee: String(school.schoolBilling?.onboardingFee ?? 0),
       onboardingStatus: school.schoolBilling?.onboardingStatus ?? 'PENDING',
       annualPricePerStudent: String(school.schoolBilling?.annualPricePerStudent ?? 0),
-      licensedStudentCount: String(school.schoolBilling?.licensedStudentCount ?? 0),
       billingYear: String(school.schoolBilling?.billingYear ?? new Date().getFullYear()),
       licenseStartDate: school.schoolBilling?.licenseStartDate?.slice(0, 10) ?? '',
       licenseEndDate: school.schoolBilling?.licenseEndDate?.slice(0, 10) ?? '',
@@ -357,7 +352,7 @@ export default function SchoolsPage() {
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Plan</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Status</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Students</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Licensed</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Invoice</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Created</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Actions</th>
                   </tr>
@@ -380,7 +375,9 @@ export default function SchoolsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-4 text-sm text-slate-700">{school._count?.students ?? 0}</td>
-                      <td className="px-4 py-4 text-sm text-slate-700">{school.schoolBilling?.licensedStudentCount ?? 0}</td>
+                      <td className="px-4 py-4 text-sm text-slate-700">
+                        {usd((school.activeStudentCount ?? 0) * (school.schoolBilling?.annualPricePerStudent ?? 0))}
+                      </td>
                       <td className="px-4 py-4 text-sm text-slate-700">{new Date(school.createdAt).toLocaleDateString()}</td>
                       <td className="px-4 py-4 text-right relative">
                         <button
@@ -506,7 +503,6 @@ export default function SchoolsPage() {
                     ]}
                   />
                   <Input label="Annual Price Per Student" type="number" min="0" step="0.01" value={formData.annualPricePerStudent} onChange={(e) => setFormData({ ...formData, annualPricePerStudent: e.target.value })} />
-                  <Input label="Licensed Student Count" type="number" min="0" step="1" value={formData.licensedStudentCount} onChange={(e) => setFormData({ ...formData, licensedStudentCount: e.target.value })} />
                   <Input label="Billing Year" type="number" min="2000" max="2100" value={formData.billingYear} onChange={(e) => setFormData({ ...formData, billingYear: e.target.value })} />
                   <Input label="Enabled Modules" value={formData.enabledModules} onChange={(e) => setFormData({ ...formData, enabledModules: e.target.value })} placeholder="fees, attendance, assessments" />
                   <Input label="License Start Date" type="date" value={formData.licenseStartDate} onChange={(e) => setFormData({ ...formData, licenseStartDate: e.target.value })} />

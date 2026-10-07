@@ -146,11 +146,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           console.log('Password valid for user:', user.id)
 
           const flags = await getUserAuthFlags(user.id)
-          const portalAccess = await getPortalAccessState({
-            role: user.role,
-            studentId: user.studentId ?? null,
-            userId: user.id,
-          })
+          const portalAccess = await getPortalAccessState()
 
           console.log('Login successful for user:', user.id)
 
@@ -186,9 +182,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.firstName = user.firstName
         token.lastName = user.lastName
         token.studentId = user.studentId
-        token.paymentAccessBlocked = user.paymentAccessBlocked
-        token.paymentAccessReason = user.paymentAccessReason
+        token.paymentAccessBlocked = false
+        token.paymentAccessReason = null
       }
+
+      token.paymentAccessBlocked = false
+      token.paymentAccessReason = null
 
       if (trigger === 'update') {
         if (updateData?.preferredLanguage) {

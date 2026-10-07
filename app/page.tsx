@@ -22,7 +22,7 @@ export default async function Home() {
       case 'PARENT':
         redirect('/parent/dashboard')
       case 'STUDENT':
-        redirect(session.user.paymentAccessBlocked ? '/student/fees' : '/student/dashboard')
+        redirect('/student/dashboard')
       default:
         redirect('/login')
     }

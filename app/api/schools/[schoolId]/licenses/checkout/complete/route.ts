@@ -6,7 +6,7 @@ import { retrieveStripeCheckoutSession } from '@/lib/stripe'
 
 /**
  * GET /api/schools/[schoolId]/licenses/checkout/complete?sessionId=...
- * Complete license payment via Stripe
+ * Records the paid school invoice as one annual payment.
  */
 export async function GET(
   request: NextRequest,
@@ -23,44 +23,40 @@ export async function GET(
 
     const { schoolId } = await params
 
-    // Verify school access
     if (session.user.role !== 'SUPER_ADMIN' && session.user.schoolId !== schoolId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const sessionId = searchParams.get('sessionId')
-
+    const sessionId = new URL(request.url).searchParams.get('sessionId')
     if (!sessionId) {
       return NextResponse.json({ error: 'Missing session ID' }, { status: 400 })
     }
 
+    const referenceNumber = `STRIPE-${sessionId.slice(0, 12)}`
+
     try {
-      const stripeSession = await retrieveStripeCheckoutSession(sessionId)
-
-      // Verify payment status
-      if (stripeSession.payment_status !== 'paid' || stripeSession.status !== 'complete') {
-        return NextResponse.json(
-          { error: 'Payment not completed' },
-          { status: 400 }
-        )
-      }
-
-      const paymentAmount = (stripeSession.amount_total || 0) / 100
-
-      // Get billing info
       const billing = await prisma.schoolBilling.findUnique({
         where: { schoolId },
+        select: { id: true },
       })
-
       if (!billing) {
         return NextResponse.json({ error: 'School billing not found' }, { status: 404 })
       }
 
-      // Calculate student count from payment
-      const studentsCount = Math.floor(paymentAmount / billing.annualPricePerStudent)
+      const existing = await prisma.schoolBillingPayment.findFirst({
+        where: { billingId: billing.id, referenceNumber },
+        select: { id: true, amount: true },
+      })
+      if (existing) {
+        return NextResponse.json({ success: true, paymentId: existing.id, amount: existing.amount })
+      }
 
-      // Record payment
+      const stripeSession = await retrieveStripeCheckoutSession(sessionId)
+      if (stripeSession.payment_status !== 'paid' || stripeSession.status !== 'complete') {
+        return NextResponse.json({ error: 'Payment not completed' }, { status: 400 })
+      }
+
+      const paymentAmount = (stripeSession.amount_total || 0) / 100
       const payment = await prisma.schoolBillingPayment.create({
         data: {
           billingId: billing.id,
@@ -68,30 +64,9 @@ export async function GET(
           paymentType: 'ANNUAL',
           paymentDate: new Date(),
           paymentMethod: 'STRIPE',
-          referenceNumber: `STRIPE-${sessionId.substring(0, 12)}`,
-          notes: `Paid via Stripe for ${studentsCount} students`,
+          referenceNumber,
+          notes: 'Annual school invoice paid via Stripe',
           recordedById: session.user.id,
-        },
-      })
-
-      // Update licensed student count (cumulative)
-      const allPayments = await prisma.schoolBillingPayment.findMany({
-        where: {
-          billingId: billing.id,
-          paymentType: 'ANNUAL',
-        },
-        select: { amount: true },
-      })
-
-      const totalAnnual = allPayments.reduce((sum, p) => sum + p.amount, 0)
-      const totalStudents = Math.floor(totalAnnual / billing.annualPricePerStudent)
-      const licenseYear = new Date().getFullYear()
-
-      await prisma.schoolBilling.update({
-        where: { id: billing.id },
-        data: {
-          licensedStudentCount: totalStudents,
-          billingYear: licenseYear,
         },
       })
 
@@ -99,15 +74,14 @@ export async function GET(
         success: true,
         paymentId: payment.id,
         amount: paymentAmount,
-        studentsLicensed: studentsCount,
       })
     } catch (stripeError) {
       const errorMessage = stripeError instanceof Error ? stripeError.message : 'Stripe verification failed'
-      console.error('Stripe license completion error:', errorMessage)
+      console.error('Stripe invoice completion error:', errorMessage)
       return NextResponse.json({ error: errorMessage }, { status: 500 })
     }
   } catch (error) {
-    console.error('License payment completion error:', error)
+    console.error('Invoice payment completion error:', error)
     return NextResponse.json({ error: 'Failed to complete payment' }, { status: 500 })
   }
 }

@@ -2,40 +2,6 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { auth } from "@/lib/auth"
 
-const LICENSE_RESTRICTED_PAGE_PATHS = [
-  '/parent/announcements',
-  '/parent/attendance',
-  '/parent/assessments',
-  '/parent/results',
-]
-
-const LICENSE_RESTRICTED_API_PATHS = [
-  '/api/announcements',
-  '/api/attendance',
-  '/api/student/announcements',
-  '/api/students/assessments',
-]
-
-function isLicenseRestrictedFeaturePath(pathname: string) {
-  return [...LICENSE_RESTRICTED_PAGE_PATHS, ...LICENSE_RESTRICTED_API_PATHS].some((path) => pathname.startsWith(path))
-}
-
-const STUDENT_LICENSE_ALLOWED_PAGE_PREFIXES = ['/student/fees']
-const STUDENT_LICENSE_ALLOWED_API_PREFIXES = ['/api/student/fees']
-
-function isBlockedStudentNonFeesPath(pathname: string) {
-  const isStudentPage = pathname.startsWith('/student')
-  const isStudentApi = pathname.startsWith('/api/student')
-
-  if (!isStudentPage && !isStudentApi) return false
-
-  if (isStudentPage) {
-    return !STUDENT_LICENSE_ALLOWED_PAGE_PREFIXES.some((prefix) => pathname.startsWith(prefix))
-  }
-
-  return !STUDENT_LICENSE_ALLOWED_API_PREFIXES.some((prefix) => pathname.startsWith(prefix))
-}
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -79,30 +45,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  if (session.user.paymentAccessBlocked && session.user.role === 'STUDENT' && isBlockedStudentNonFeesPath(pathname)) {
-    if (pathname.startsWith('/api/')) {
-      return NextResponse.json(
-        { error: session.user.paymentAccessReason || 'License coverage is required before this feature can be used.' },
-        { status: 403 }
-      )
-    }
-
-    return NextResponse.redirect(new URL('/student/fees', request.url))
-  }
-
-  if (session.user.paymentAccessBlocked && isLicenseRestrictedFeaturePath(pathname)) {
-    if (pathname.startsWith('/api/')) {
-      return NextResponse.json(
-        { error: session.user.paymentAccessReason || 'License coverage is required before this feature can be used.' },
-        { status: 403 }
-      )
-    }
-
-    return NextResponse.redirect(new URL('/payment-required', request.url))
-  } else if (!session.user.paymentAccessBlocked && pathname.startsWith('/payment-required')) {
-    return NextResponse.redirect(new URL('/', request.url))
-  }
-
   // Role-based access control
   const role = session.user.role
 
@@ -126,7 +68,7 @@ export async function middleware(request: NextRequest) {
       case 'PARENT':
         return NextResponse.redirect(new URL('/parent/dashboard', request.url))
       case 'STUDENT':
-        return NextResponse.redirect(new URL(session.user.paymentAccessBlocked ? '/student/fees' : '/student/dashboard', request.url))
+        return NextResponse.redirect(new URL('/student/dashboard', request.url))
       default:
         return NextResponse.redirect(new URL('/login', request.url))
     }

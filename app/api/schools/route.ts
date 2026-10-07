@@ -73,7 +73,18 @@ export async function GET() {
       }))
     }
 
-    return NextResponse.json({ schools })
+    const activeGroups = await prisma.student.groupBy({
+      by: ['schoolId'],
+      where: { status: 'ACTIVE' },
+      _count: { id: true },
+    })
+    const activeBySchool = new Map(activeGroups.map((group) => [group.schoolId, group._count.id]))
+    const schoolsWithInvoiceCount = schools.map((school) => ({
+      ...school,
+      activeStudentCount: activeBySchool.get(school.id) ?? 0,
+    }))
+
+    return NextResponse.json({ schools: schoolsWithInvoiceCount })
   } catch (error) {
     console.error('Error fetching schools:', error)
     return NextResponse.json(
@@ -136,7 +147,6 @@ export async function POST(request: NextRequest) {
           onboardingFee: validation.data.onboardingFee ?? 0,
           onboardingStatus: validation.data.onboardingStatus ?? 'PENDING',
           annualPricePerStudent: validation.data.annualPricePerStudent ?? 0,
-          licensedStudentCount: validation.data.licensedStudentCount ?? 0,
           billingYear,
           licenseStartDate: validation.data.licenseStartDate ? new Date(validation.data.licenseStartDate) : null,
           licenseEndDate: validation.data.licenseEndDate ? new Date(validation.data.licenseEndDate) : null,

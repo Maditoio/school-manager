@@ -540,7 +540,6 @@ export default function AdminFeesPage({
             notPayingCount: 0,
             collectedAmount: 0,
             pendingAmount: 0,
-            extraLicenseCost: 0,
           }
         )
         setStudentStatuses(Array.isArray(data.studentStatuses) ? data.studentStatuses : [])
@@ -966,13 +965,6 @@ export default function AdminFeesPage({
             </p>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
-            <Link
-              href={`${routePrefix}/licenses`}
-              className="ui-button ui-button-secondary inline-flex items-center gap-2"
-            >
-              <Users className="h-4 w-4" />
-              School Licenses
-            </Link>
             {(isAdmin || session?.user?.role === 'FINANCE_MANAGER') && (
             <button
               onClick={() => setShowScheduleModal(true)}

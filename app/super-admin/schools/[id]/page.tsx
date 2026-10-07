@@ -44,6 +44,7 @@ interface SchoolDetail {
     classes: number
     subjects: number
   }
+  activeStudentCount?: number
 }
 
 interface LedgerPayment {
@@ -223,7 +224,7 @@ export default function SuperAdminSchoolDetailPage({ params }: { params: Promise
 
   const billing = school?.schoolBilling
   const licenseDaysRemaining = daysUntil(billing?.licenseEndDate)
-  const annualDue = (billing?.annualPricePerStudent ?? 0) * (billing?.licensedStudentCount ?? 0)
+  const annualDue = (billing?.annualPricePerStudent ?? 0) * (school?.activeStudentCount ?? 0)
 
   return (
     <DashboardLayout
@@ -239,7 +240,7 @@ export default function SuperAdminSchoolDetailPage({ params }: { params: Promise
           <div>
             <Button variant="ghost" size="sm" onClick={() => router.push('/super-admin/schools')}>Back to schools</Button>
             <h1 className="text-3xl font-bold text-gray-900 mt-2">{school?.name || 'School details'}</h1>
-            <p className="text-gray-600 mt-1">Licensing, payments, renewals, and operational stats.</p>
+            <p className="text-gray-600 mt-1">Billing, payments, and operational stats.</p>
           </div>
         </div>
 
@@ -249,12 +250,12 @@ export default function SuperAdminSchoolDetailPage({ params }: { params: Promise
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="p-4">
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Students</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{school._count.students}</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Active students</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{school.activeStudentCount ?? 0}</p>
               </Card>
               <Card className="p-4">
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Licensed seats</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{billing?.licensedStudentCount ?? 0}</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Price / student</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{usd(billing?.annualPricePerStudent ?? 0)}</p>
               </Card>
               <Card className="p-4">
                 <p className="text-xs text-gray-500 uppercase tracking-wide">Annual due</p>
@@ -309,7 +310,7 @@ export default function SuperAdminSchoolDetailPage({ params }: { params: Promise
               </Card>
 
               <Card className="p-5">
-                <h2 className="text-lg font-semibold text-gray-900">License & billing</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Billing</h2>
                 <div className="space-y-2 text-sm mt-4">
                   <p><span className="text-slate-500">Onboarding status:</span> <span className="font-medium text-slate-900">{billing?.onboardingStatus ?? 'PENDING'}</span></p>
                   <p><span className="text-slate-500">Onboarding fee (USD):</span> <span className="font-medium text-slate-900">{usd(billing?.onboardingFee ?? 0)}</span></p>
@@ -339,7 +340,7 @@ export default function SuperAdminSchoolDetailPage({ params }: { params: Promise
                     onChange={(e) => setPaymentForm({ ...paymentForm, paymentType: e.target.value })}
                     options={[
                       { value: 'ONBOARDING', label: 'Onboarding fee' },
-                      { value: 'ANNUAL', label: 'Annual license' },
+                      { value: 'ANNUAL', label: 'Annual invoice' },
                       { value: 'ADJUSTMENT', label: 'Adjustment / credit' },
                     ]}
                   />

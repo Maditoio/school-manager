@@ -30,7 +30,6 @@ export const createSchoolSchema = z.object({
   onboardingFee: z.coerce.number().min(0).optional(),
   onboardingStatus: z.enum(['PENDING', 'PAID', 'WAIVED']).optional(),
   annualPricePerStudent: z.coerce.number().min(0).optional(),
-  licensedStudentCount: z.coerce.number().int().min(0).optional(),
   billingYear: z.coerce.number().int().min(2000).max(2100).optional(),
   licenseStartDate: z.string().optional().or(z.literal('')),
   licenseEndDate: z.string().optional().or(z.literal('')),
@@ -144,25 +143,6 @@ export const recordFeePaymentSchema = z.object({
   receiptMimeType: z.string().min(1).max(120).optional(),
 })
 
-export const recordStudentLicensePaymentSchema = z.object({
-  studentId: z.string().uuid('Invalid student ID'),
-  amountPaid: z.coerce.number().positive('Payment amount must be greater than 0'),
-  paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'M_PESA', 'ORANGE_MONEY', 'OTHER']),
-  paymentDate: z.string().optional(),
-  notes: z.string().optional(),
-  referenceNumber: z.string().max(120).optional(),
-  licenseYear: z.coerce.number().int().min(2000).max(2100).optional(),
-})
-
-export const recordBulkStudentLicensePaymentSchema = z.object({
-  studentIds: z.array(z.string().uuid('Invalid student ID')).min(1, 'Select at least one student'),
-  paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'M_PESA', 'ORANGE_MONEY', 'OTHER']),
-  paymentDate: z.string().optional(),
-  notes: z.string().optional(),
-  referenceNumber: z.string().max(120).optional(),
-  licenseYear: z.coerce.number().int().min(2000).max(2100).optional(),
-})
-
 export const createExpenseSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
@@ -232,8 +212,6 @@ export type AnnouncementInput = z.infer<typeof announcementSchema>
 export type MessageInput = z.infer<typeof messageSchema>
 export type CreateFeeScheduleInput = z.infer<typeof createFeeScheduleSchema>
 export type RecordFeePaymentInput = z.infer<typeof recordFeePaymentSchema>
-export type RecordStudentLicensePaymentInput = z.infer<typeof recordStudentLicensePaymentSchema>
-export type RecordBulkStudentLicensePaymentInput = z.infer<typeof recordBulkStudentLicensePaymentSchema>
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>
 export type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>
 export type VoidExpenseInput = z.infer<typeof voidExpenseSchema>

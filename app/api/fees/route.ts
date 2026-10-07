@@ -4,11 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { hasRole } from '@/lib/auth-utils'
 import {
   createFeeScheduleSchema,
-  recordBulkStudentLicensePaymentSchema,
   recordFeePaymentSchema,
-  recordStudentLicensePaymentSchema,
 } from '@/lib/validations'
-import { getStudentLicenseCoverageSnapshot, resolveLicenseYear } from '@/lib/student-licenses'
 import { CurrentTermNotSetError, getCurrentEditableTermForSchool, TermLockedError } from '@/lib/term-utils'
 
 type FeeScheduleStatus = 'PENDING_APPROVAL' | 'APPROVED'
@@ -234,35 +231,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const periodKey = searchParams.get('periodKey')
 
-    const [allSchedules, licenseSnapshot] = await Promise.all([
-      getAllSchedulesForSchool(schoolId),
-      getStudentLicenseCoverageSnapshot(schoolId),
-    ])
-
-    const licenseSummary = {
-      configured: licenseSnapshot.configured,
-      onboardingFee: licenseSnapshot.onboardingFee,
-      onboardingStatus: licenseSnapshot.onboardingStatus,
-      annualPricePerStudent: licenseSnapshot.annualPricePerStudent,
-      licensedStudentCount: licenseSnapshot.licensedStudentCount,
-      bulkLicensedStudentCount: licenseSnapshot.bulkLicensedStudentCount,
-      activeStudents: licenseSnapshot.activeStudents,
-      coveredStudents: licenseSnapshot.coveredStudents,
-      uncoveredStudents: licenseSnapshot.uncoveredStudents,
-      bulkCoveredStudents: licenseSnapshot.bulkCoveredStudents,
-      extraCoveredStudents: licenseSnapshot.extraCoveredStudents,
-      studentsWithAccess: licenseSnapshot.studentsWithAccess,
-      studentsWithoutAccess: licenseSnapshot.studentsWithoutAccess,
-      studentsNeedingExtraLicensePayment: licenseSnapshot.studentsNeedingExtraLicensePayment,
-      requiredAmountPerStudent: licenseSnapshot.requiredAmountPerStudent,
-      extraLicenseCost: licenseSnapshot.extraLicenseCost,
-      licenseYear: licenseSnapshot.licenseYear,
-      billingYear: licenseSnapshot.billingYear,
-      licenseStartDate: licenseSnapshot.licenseStartDate,
-      licenseEndDate: licenseSnapshot.licenseEndDate,
-      enabledModules: licenseSnapshot.enabledModules,
-      notes: licenseSnapshot.notes,
-    }
+    const allSchedules = await getAllSchedulesForSchool(schoolId)
 
     // Pending schedules visible to all finance/admin roles
     const pendingSchedules = allSchedules
@@ -325,16 +294,12 @@ export async function GET(request: NextRequest) {
         periods: [],
         selectedPeriod: null,
         pendingSchedules,
-        licenseSummary,
         summary: {
           studentsCount: 0,
           payingCount: 0,
           notPayingCount: 0,
           collectedAmount: 0,
           pendingAmount: 0,
-          studentsWithLicenseAccess: 0,
-          studentsWithoutLicenseAccess: 0,
-          extraLicenseCost: licenseSummary.extraLicenseCost,
         },
         studentStatuses: [],
         recentPayments: [],
@@ -476,11 +441,6 @@ export async function GET(request: NextRequest) {
       periodSchedules.filter((s) => s.classId !== null).map((s) => [s.classId!, s])
     )
 
-    const licenseYear = licenseSnapshot.licenseYear
-    const requiredLicenseAmount = Number(licenseSnapshot.requiredAmountPerStudent)
-
-    // Per-student fee resolution: class-specific first, then school-wide fallback.
-    // Portal access is now based on student license payment status.
     const studentStatuses = students.map((student) => {
       const classSchedule = student.classId ? (classScheduleMap.get(student.classId) ?? null) : null
       const applicableSchedule = classSchedule ?? schoolWideSchedule
@@ -501,10 +461,6 @@ export async function GET(request: NextRequest) {
           ? 'PARTIAL'
           : 'NOT_PAID'
 
-      const licensePaidAmount = Number((licenseSnapshot.paymentTotalsByStudentId.get(student.id) ?? 0).toFixed(2))
-      const licenseCoverage = licenseSnapshot.licenseByStudentId.get(student.id)
-      const hasLicenseAccess = Boolean(licenseCoverage)
-
       return {
         studentId: student.id,
         studentName: `${student.firstName} ${student.lastName}`,
@@ -518,11 +474,6 @@ export async function GET(request: NextRequest) {
         balance,
         status,
         lastPaymentDate: studentPayments?.lastPaymentDate ?? null,
-        licensePaidAmount,
-        hasLicenseAccess,
-        licenseCoverageSource: licenseCoverage?.source ?? null,
-        licenseShortfallAmount: hasLicenseAccess ? 0 : Number(requiredLicenseAmount.toFixed(2)),
-        licenseYear,
       }
     })
 
@@ -536,8 +487,6 @@ export async function GET(request: NextRequest) {
       studentsWithSchedule.reduce((sum, s) => sum + s.amountDue, 0).toFixed(2)
     )
     const pendingAmount = Number(Math.max(expectedAmount - collectedAmount, 0).toFixed(2))
-    const studentsWithLicenseAccess = studentStatuses.filter((s) => s.hasLicenseAccess).length
-    const studentsWithoutLicenseAccess = studentStatuses.length - studentsWithLicenseAccess
 
     // Recent payments with student details
     const paymentStudentIds = Array.from(new Set(periodPayments.map((p) => p.studentId)))
@@ -578,16 +527,12 @@ export async function GET(request: NextRequest) {
       periods,
       selectedPeriod: selectedPeriodData,
       pendingSchedules,
-      licenseSummary,
       summary: {
         studentsCount: studentStatuses.length,
         payingCount,
         notPayingCount: studentsCount - payingCount,
         collectedAmount,
         pendingAmount,
-        studentsWithLicenseAccess,
-        studentsWithoutLicenseAccess,
-        extraLicenseCost: licenseSummary.extraLicenseCost,
       },
       studentStatuses,
       recentPayments,
@@ -851,182 +796,6 @@ export async function POST(request: NextRequest) {
           })()
 
       return NextResponse.json({ payment }, { status: 201 })
-    }
-
-    if (action === 'recordStudentLicensePayment') {
-      if (!hasRole(role, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
-        return NextResponse.json({ error: 'Only finance and admin staff can record student license payments' }, { status: 403 })
-      }
-
-      const validation = recordStudentLicensePaymentSchema.safeParse(body)
-      if (!validation.success) {
-        return NextResponse.json(
-          { error: validation.error.issues.map((i) => i.message).join(', ') },
-          { status: 400 }
-        )
-      }
-
-      const {
-        studentId,
-        amountPaid,
-        paymentMethod,
-        paymentDate,
-        notes,
-        referenceNumber,
-        licenseYear,
-      } = validation.data
-
-      const [student, schoolBilling] = await Promise.all([
-        prisma.student.findUnique({
-          where: { id: studentId },
-          select: { id: true, schoolId: true },
-        }),
-        prisma.schoolBilling.findUnique({
-          where: { schoolId },
-          select: { billingYear: true, annualPricePerStudent: true },
-        }),
-      ])
-
-      if (!student || student.schoolId !== schoolId) {
-        return NextResponse.json({ error: 'Student not found' }, { status: 404 })
-      }
-
-      const resolvedLicenseYear = resolveLicenseYear(licenseYear ?? schoolBilling?.billingYear)
-
-      const payment = await prisma.studentLicensePayment.create({
-        data: {
-          schoolId,
-          studentId,
-          licenseYear: resolvedLicenseYear,
-          amountPaid,
-          paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
-          paymentMethod,
-          referenceNumber: referenceNumber || null,
-          notes: notes || null,
-          receivedBy: userId,
-        },
-      })
-
-      const requiredAmount = Number(schoolBilling?.annualPricePerStudent ?? 0)
-      if (requiredAmount > 0) {
-        const paymentTotals = await prisma.studentLicensePayment.aggregate({
-          where: {
-            schoolId,
-            studentId,
-            licenseYear: resolvedLicenseYear,
-          },
-          _sum: { amountPaid: true },
-        })
-
-        const totalPaid = Number(paymentTotals._sum.amountPaid ?? 0)
-        if (totalPaid >= requiredAmount) {
-          await prisma.studentLicense.upsert({
-            where: {
-              studentId_licenseYear: {
-                studentId,
-                licenseYear: resolvedLicenseYear,
-              },
-            },
-            update: {},
-            create: {
-              schoolId,
-              studentId,
-              licenseYear: resolvedLicenseYear,
-              source: 'EXTRA_PAYMENT',
-            },
-          })
-        }
-      }
-
-      return NextResponse.json({ payment }, { status: 201 })
-    }
-
-    if (action === 'recordBulkStudentLicensePayment') {
-      if (!hasRole(role, ['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER'])) {
-        return NextResponse.json({ error: 'Only finance and admin staff can record extra student licenses' }, { status: 403 })
-      }
-
-      const validation = recordBulkStudentLicensePaymentSchema.safeParse(body)
-      if (!validation.success) {
-        return NextResponse.json(
-          { error: validation.error.issues.map((issue) => issue.message).join(', ') },
-          { status: 400 }
-        )
-      }
-
-      const {
-        studentIds,
-        paymentMethod,
-        paymentDate,
-        notes,
-        referenceNumber,
-        licenseYear,
-      } = validation.data
-
-      const schoolBilling = await prisma.schoolBilling.findUnique({
-        where: { schoolId },
-        select: { billingYear: true, annualPricePerStudent: true },
-      })
-
-      const resolvedLicenseYear = resolveLicenseYear(licenseYear ?? schoolBilling?.billingYear)
-      const amountPerStudent = Number(schoolBilling?.annualPricePerStudent ?? 0)
-      if (amountPerStudent <= 0) {
-        return NextResponse.json({ error: 'Annual price per student is not configured for this school' }, { status: 400 })
-      }
-
-      const licenseSnapshot = await getStudentLicenseCoverageSnapshot(schoolId)
-      if (resolvedLicenseYear !== licenseSnapshot.licenseYear) {
-        return NextResponse.json({ error: 'Only the current license year can be covered from this screen' }, { status: 409 })
-      }
-
-      const students = await prisma.student.findMany({
-        where: { schoolId, id: { in: studentIds }, status: 'ACTIVE' },
-        select: { id: true },
-      })
-
-      const uncoveredStudentIds = students
-        .map((student) => student.id)
-        .filter((studentId) => !licenseSnapshot.licenseByStudentId.has(studentId))
-
-      if (uncoveredStudentIds.length === 0) {
-        return NextResponse.json({ error: 'All selected students are already covered by the current license' }, { status: 409 })
-      }
-
-      const paymentTimestamp = paymentDate ? new Date(paymentDate) : new Date()
-
-      await prisma.$transaction([
-        prisma.studentLicensePayment.createMany({
-          data: uncoveredStudentIds.map((studentId) => ({
-            schoolId,
-            studentId,
-            licenseYear: resolvedLicenseYear,
-            amountPaid: amountPerStudent,
-            paymentDate: paymentTimestamp,
-            paymentMethod,
-            referenceNumber: referenceNumber || null,
-            notes: notes || null,
-            receivedBy: userId,
-          })),
-        }),
-        prisma.studentLicense.createMany({
-          data: uncoveredStudentIds.map((studentId) => ({
-            schoolId,
-            studentId,
-            licenseYear: resolvedLicenseYear,
-            source: 'EXTRA_PAYMENT',
-          })),
-          skipDuplicates: true,
-        }),
-      ])
-
-      return NextResponse.json(
-        {
-          coveredCount: uncoveredStudentIds.length,
-          totalAmount: Number((uncoveredStudentIds.length * amountPerStudent).toFixed(2)),
-          licenseYear: resolvedLicenseYear,
-        },
-        { status: 201 }
-      )
     }
 
     // adjustFee — SCHOOL_ADMIN and DEPUTY_ADMIN only
