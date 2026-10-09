@@ -218,6 +218,15 @@ export const parentComplaintSchema = z.object({
   status: z.enum(['OPEN', 'IN_REVIEW', 'RESOLVED', 'CLOSED']).optional(),
 })
 
+export const demoRequestSchema = z.object({
+  schoolName: z.string().trim().min(2, 'School name is required').max(200),
+  contactName: z.string().trim().min(2, 'Contact name is required').max(120),
+  email: z.string().trim().email('Valid email is required').max(254),
+  phone: z.string().trim().max(40).optional(),
+  role: z.string().trim().max(80).optional(),
+  message: z.string().trim().min(10, 'Please share a short message (at least 10 characters)').max(2000),
+})
+
 export type LoginInput = z.infer<typeof loginSchema>
 export type CreateUserInput = z.infer<typeof createUserSchema>
 export type CreateSchoolInput = z.infer<typeof createSchoolSchema>
@@ -235,3 +244,4 @@ export type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>
 export type VoidExpenseInput = z.infer<typeof voidExpenseSchema>
 export type TeacherContractInput = z.infer<typeof teacherContractSchema>
 export type ParentComplaintInput = z.infer<typeof parentComplaintSchema>
+export type DemoRequestInput = z.infer<typeof demoRequestSchema>

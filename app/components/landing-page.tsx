@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Figtree, Syne } from "next/font/google";
 
@@ -54,9 +54,32 @@ const steps = [
   },
 ];
 
+type DemoFormState = {
+  schoolName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  role: string;
+  message: string;
+  website: string;
+};
+
+const emptyDemoForm: DemoFormState = {
+  schoolName: "",
+  contactName: "",
+  email: "",
+  phone: "",
+  role: "",
+  message: "",
+  website: "",
+};
+
 export default function LandingPage() {
   const heroRef = useRef<HTMLElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
+  const [demoForm, setDemoForm] = useState<DemoFormState>(emptyDemoForm);
+  const [demoStatus, setDemoStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [demoError, setDemoError] = useState("");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -95,6 +118,48 @@ export default function LandingPage() {
 
   const closeMenu = () => {
     document.getElementById("mobileMenu")?.classList.remove("is-open");
+  };
+
+  const updateDemoField = (field: keyof DemoFormState, value: string) => {
+    setDemoForm((prev) => ({ ...prev, [field]: value }));
+    if (demoStatus === "error") {
+      setDemoStatus("idle");
+      setDemoError("");
+    }
+  };
+
+  const handleDemoSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setDemoStatus("loading");
+    setDemoError("");
+
+    try {
+      const res = await fetch("/api/demo-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(demoForm),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const issueMessage =
+          Array.isArray(data?.issues) && data.issues[0]?.message
+            ? String(data.issues[0].message)
+            : typeof data?.error === "string"
+              ? data.error
+              : "Something went wrong. Please try again.";
+        setDemoStatus("error");
+        setDemoError(issueMessage);
+        return;
+      }
+
+      setDemoStatus("success");
+      setDemoForm(emptyDemoForm);
+    } catch {
+      setDemoStatus("error");
+      setDemoError("Unable to send your request. Check your connection and try again.");
+    }
   };
 
   return (
@@ -491,6 +556,130 @@ export default function LandingPage() {
           background: var(--accent-hover);
         }
 
+        .azelio .cta-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.75rem;
+          align-items: center;
+          justify-content: flex-end;
+        }
+
+        .azelio .cta .btn-secondary {
+          color: var(--ink);
+          border-color: var(--line);
+        }
+
+        .azelio .cta .btn-secondary:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+          background: transparent;
+        }
+
+        .azelio .demo-layout {
+          display: grid;
+          grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+          gap: 3rem;
+          align-items: start;
+        }
+
+        .azelio .demo-form {
+          display: grid;
+          gap: 1rem;
+        }
+
+        .azelio .demo-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+        }
+
+        .azelio .demo-field {
+          display: grid;
+          gap: 0.4rem;
+        }
+
+        .azelio .demo-field label {
+          font-size: 0.78rem;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: var(--muted);
+        }
+
+        .azelio .demo-field input,
+        .azelio .demo-field select,
+        .azelio .demo-field textarea {
+          width: 100%;
+          padding: 0.85rem 0.95rem;
+          border: 1px solid var(--line);
+          border-radius: 6px;
+          background: #fff;
+          color: var(--ink);
+          font: inherit;
+          font-size: 0.98rem;
+          transition: border-color 0.15s ease;
+        }
+
+        .azelio .demo-field input:focus,
+        .azelio .demo-field select:focus,
+        .azelio .demo-field textarea:focus {
+          outline: none;
+          border-color: var(--accent);
+        }
+
+        .azelio .demo-field textarea {
+          min-height: 7rem;
+          resize: vertical;
+        }
+
+        .azelio .demo-hp {
+          position: absolute;
+          left: -9999px;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+        }
+
+        .azelio .demo-form .btn-primary {
+          background: var(--accent);
+          color: #fff;
+          border: none;
+          cursor: pointer;
+          width: fit-content;
+        }
+
+        .azelio .demo-form .btn-primary:hover {
+          background: var(--accent-hover);
+        }
+
+        .azelio .demo-form .btn-primary:disabled {
+          opacity: 0.65;
+          cursor: wait;
+        }
+
+        .azelio .demo-note {
+          margin: 0;
+          font-size: 0.92rem;
+          color: var(--muted);
+        }
+
+        .azelio .demo-feedback {
+          margin: 0;
+          padding: 0.85rem 1rem;
+          border-radius: 6px;
+          font-size: 0.95rem;
+        }
+
+        .azelio .demo-feedback.is-success {
+          background: #e8f5f1;
+          color: #0b5549;
+        }
+
+        .azelio .demo-feedback.is-error {
+          background: #fceeed;
+          color: #8a2f24;
+        }
+
         .azelio footer {
           padding: 2.75rem 0 2rem;
           color: var(--muted);
@@ -568,6 +757,15 @@ export default function LandingPage() {
             grid-template-columns: 1fr;
           }
 
+          .azelio .cta-actions {
+            justify-content: flex-start;
+          }
+
+          .azelio .demo-layout,
+          .azelio .demo-row {
+            grid-template-columns: 1fr;
+          }
+
           .azelio .hero-content {
             padding: 6.5rem 0 3.5rem;
           }
@@ -581,7 +779,7 @@ export default function LandingPage() {
         <nav className="nav-links" aria-label="Primary">
           <a href="#product">Product</a>
           <a href="#how">How it works</a>
-          <a href="mailto:hello@azelio.app">Contact</a>
+          <a href="#demo">Request a demo</a>
         </nav>
         <a className="nav-cta" href="/login">
           Sign in →
@@ -600,8 +798,8 @@ export default function LandingPage() {
         <a href="#how" onClick={closeMenu}>
           How it works
         </a>
-        <a href="mailto:hello@azelio.app" onClick={closeMenu}>
-          Contact
+        <a href="#demo" onClick={closeMenu}>
+          Request a demo
         </a>
         <a className="nav-cta" href="/login" onClick={closeMenu}>
           Sign in →
@@ -627,11 +825,11 @@ export default function LandingPage() {
               One place for attendance, results, fees, and school communication — built for African schools.
             </p>
             <div className="hero-actions">
-              <a className="btn-primary" href="/login">
-                Sign in
+              <a className="btn-primary" href="#demo">
+                Request a demo
               </a>
-              <a className="btn-secondary" href="#product">
-                See how it works →
+              <a className="btn-secondary" href="/login">
+                Sign in →
               </a>
             </div>
           </div>
@@ -675,16 +873,162 @@ export default function LandingPage() {
           </div>
         </section>
 
+        <section className="block" id="demo">
+          <div className="wrap">
+            <div className="demo-layout">
+              <div className="section-head reveal" style={{ marginBottom: 0 }}>
+                <h2>Request a demo</h2>
+                <p>
+                  Tell us about your school and we will follow up at{" "}
+                  <a href="mailto:hello@azelio.app" style={{ color: "var(--accent)", fontWeight: 500 }}>
+                    hello@azelio.app
+                  </a>
+                  .
+                </p>
+              </div>
+
+              {demoStatus === "success" ? (
+                <div className="reveal" role="status" style={{ display: "grid", gap: "1rem" }}>
+                  <p className="demo-feedback is-success">
+                    Thanks — your demo request was received. We will be in touch shortly.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    style={{ width: "fit-content", background: "var(--accent)", color: "#fff", border: "none", cursor: "pointer" }}
+                    onClick={() => setDemoStatus("idle")}
+                  >
+                    Submit another request
+                  </button>
+                </div>
+              ) : (
+                <form className="demo-form reveal" onSubmit={handleDemoSubmit} noValidate>
+                  <div className="demo-hp" aria-hidden="true">
+                    <label htmlFor="demo-website">Website</label>
+                    <input
+                      id="demo-website"
+                      name="website"
+                      type="text"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={demoForm.website}
+                      onChange={(e) => updateDemoField("website", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="demo-row">
+                    <div className="demo-field">
+                      <label htmlFor="demo-school">School name</label>
+                      <input
+                        id="demo-school"
+                        name="schoolName"
+                        type="text"
+                        required
+                        autoComplete="organization"
+                        value={demoForm.schoolName}
+                        onChange={(e) => updateDemoField("schoolName", e.target.value)}
+                      />
+                    </div>
+                    <div className="demo-field">
+                      <label htmlFor="demo-contact">Your name</label>
+                      <input
+                        id="demo-contact"
+                        name="contactName"
+                        type="text"
+                        required
+                        autoComplete="name"
+                        value={demoForm.contactName}
+                        onChange={(e) => updateDemoField("contactName", e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="demo-row">
+                    <div className="demo-field">
+                      <label htmlFor="demo-email">Work email</label>
+                      <input
+                        id="demo-email"
+                        name="email"
+                        type="email"
+                        required
+                        autoComplete="email"
+                        value={demoForm.email}
+                        onChange={(e) => updateDemoField("email", e.target.value)}
+                      />
+                    </div>
+                    <div className="demo-field">
+                      <label htmlFor="demo-phone">Phone (optional)</label>
+                      <input
+                        id="demo-phone"
+                        name="phone"
+                        type="tel"
+                        autoComplete="tel"
+                        value={demoForm.phone}
+                        onChange={(e) => updateDemoField("phone", e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="demo-field">
+                    <label htmlFor="demo-role">Your role</label>
+                    <select
+                      id="demo-role"
+                      name="role"
+                      value={demoForm.role}
+                      onChange={(e) => updateDemoField("role", e.target.value)}
+                    >
+                      <option value="">Select a role</option>
+                      <option value="School leader">School leader</option>
+                      <option value="Administrator">Administrator</option>
+                      <option value="Teacher">Teacher</option>
+                      <option value="IT / Operations">IT / Operations</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="demo-field">
+                    <label htmlFor="demo-message">Message</label>
+                    <textarea
+                      id="demo-message"
+                      name="message"
+                      required
+                      placeholder="School size, location, and what you want to see in a demo."
+                      value={demoForm.message}
+                      onChange={(e) => updateDemoField("message", e.target.value)}
+                    />
+                  </div>
+
+                  {demoStatus === "error" && demoError ? (
+                    <p className="demo-feedback is-error" role="alert">
+                      {demoError}
+                    </p>
+                  ) : null}
+
+                  <button className="btn-primary" type="submit" disabled={demoStatus === "loading"}>
+                    {demoStatus === "loading" ? "Sending…" : "Submit request"}
+                  </button>
+                  <p className="demo-note">We typically reply within one business day.</p>
+                </form>
+              )}
+            </div>
+          </div>
+        </section>
+
         <section className="cta">
           <div className="wrap">
             <div className="cta-inner reveal">
               <div>
                 <h2>Ready to simplify your school?</h2>
-                <p>Sign in to your Azelio workspace, or contact us to get your school set up.</p>
+                <p>Request a demo for your team, or sign in if you already have an Azelio workspace.</p>
               </div>
-              <a className="btn-primary" href="/login">
-                Sign in to Azelio →
-              </a>
+              <div className="cta-actions">
+                <a className="btn-primary" href="#demo">
+                  Request a demo
+                </a>
+                <a className="btn-secondary" href="/login">
+                  Sign in →
+                </a>
+              </div>
             </div>
           </div>
         </section>
@@ -696,6 +1040,7 @@ export default function LandingPage() {
           <div className="footer-links">
             <a href="#product">Product</a>
             <a href="#how">How it works</a>
+            <a href="#demo">Request a demo</a>
             <a href="mailto:hello@azelio.app">hello@azelio.app</a>
           </div>
           <div>© {new Date().getFullYear()} Azelio.app</div>

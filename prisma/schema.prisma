@@ -1358,3 +1358,18 @@ model CourseRating {
   @@index([studentId])
   @@map("course_ratings")
 }
+
+model DemoRequest {
+  id          String   @id @default(uuid())
+  schoolName  String   @map("school_name")
+  contactName String   @map("contact_name")
+  email       String
+  phone       String?
+  role        String?
+  message     String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@index([createdAt])
+  @@map("demo_requests")
+}
