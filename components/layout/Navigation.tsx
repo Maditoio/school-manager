@@ -138,7 +138,7 @@ function buildSections(items: NavItem[]) {
   return result
 }
 
-export function Sidebar({ items, user, onLogout, appName = 'School Connect', onDesktopWidthChange }: SidebarProps) {
+export function Sidebar({ items, user, onLogout, appName = 'Azelio', onDesktopWidthChange }: SidebarProps) {
   const pathname = usePathname()
   const { locale } = useLocale()
   const t = useCallback((s: string) => translateText(s, locale), [locale])

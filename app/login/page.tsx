@@ -95,14 +95,14 @@ export default function LoginPage() {
               <div>
                 <h1 className="text-4xl font-bold text-white leading-tight drop-shadow-lg">
                   Welcome to<br />
-                  <span className="bg-gradient-to-r from-blue-300 to-indigo-300 bg-clip-text text-transparent">
-                    School Connect
+                  <span className="bg-gradient-to-r from-emerald-200 to-teal-200 bg-clip-text text-transparent">
+                    Azelio
                   </span>
                 </h1>
               </div>
 
               <p className="text-lg text-gray-100 leading-relaxed drop-shadow-md">
-                Empowering education through seamless communication and academic management.
+                School Management, Simplified.
               </p>
             </div>
 
@@ -156,7 +156,7 @@ export default function LoginPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C6.5 6.253 2 10.998 2 17s4.5 10.747 10 10.747c5.5 0 10-4.998 10-11.747 0-5.002-4.5-10.747-10-10.747z" />
                   </svg>
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900">School Connect</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Azelio</h1>
               </div>
 
               <div className="text-center">

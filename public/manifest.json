@@ -1,11 +1,11 @@
 {
-  "name": "School Connect",
-  "short_name": "SchoolConnect",
-  "description": "School-Parent Communication Platform",
+  "name": "Azelio",
+  "short_name": "Azelio",
+  "description": "School Management, Simplified.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "background_color": "#f6f7f4",
+  "theme_color": "#0f6b5c",
   "orientation": "portrait-primary",
   "icons": [
     {

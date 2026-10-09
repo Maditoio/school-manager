@@ -11,13 +11,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "School Connect - School-Parent Communication Platform",
-  description: "A modern SaaS platform for seamless communication between schools and parents",
+  title: "Azelio — School Management, Simplified.",
+  description:
+    "Azelio is school management software for African schools — attendance, results, fees, and communication in one place.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "School Connect",
+    title: "Azelio",
   },
 };
 
