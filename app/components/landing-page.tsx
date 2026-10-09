@@ -613,7 +613,7 @@ export default function LandingPage() {
           <div className="hero-media" ref={mediaRef}>
             <Image
               src="/images/azelio-hero.jpg"
-              alt="Sunlit school courtyard with students walking along open walkways"
+              alt="Sunlit empty school courtyard with open walkways and campus buildings"
               fill
               priority
               sizes="100vw"
