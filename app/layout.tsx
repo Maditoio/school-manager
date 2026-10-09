@@ -57,8 +57,16 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                const theme = localStorage.getItem('ui-theme') || 'light';
-                const themeColorMap = {
+                var allowed = { light: 1, dark: 1, calm: 1 };
+                var stored = null;
+                try { stored = localStorage.getItem('ui-theme'); } catch (e) {}
+                var cookieMatch = document.cookie.match(/(?:^|;\\s*)ui-theme=([^;]*)/);
+                var cookieTheme = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
+                var attrTheme = document.documentElement.getAttribute('data-theme');
+                var theme = [stored, cookieTheme, attrTheme].find(function (value) {
+                  return value && allowed[value];
+                }) || 'light';
+                var themeColorMap = {
                   light: '#f5f6f8',
                   dark: '#0f1720',
                   calm: '#f5f8f5',
@@ -66,11 +74,12 @@ export default async function RootLayout({
                 document.documentElement.setAttribute('data-theme', theme);
                 document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
                 document.cookie = 'ui-theme=' + encodeURIComponent(theme) + '; path=/; max-age=31536000; SameSite=Lax';
-                document.querySelectorAll('meta[name="theme-color"]').forEach((metaTheme) => {
+                try { localStorage.setItem('ui-theme', theme); } catch (e) {}
+                document.querySelectorAll('meta[name="theme-color"]').forEach(function (metaTheme) {
                   metaTheme.setAttribute('content', themeColorMap[theme] || themeColorMap.light);
                 });
                 document.documentElement.classList.add('theme-transition');
-              } catch {}
+              } catch (e) {}
             `,
           }}
         />

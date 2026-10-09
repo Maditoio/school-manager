@@ -4,11 +4,18 @@ import { BottomSidebarNav, Sidebar } from '@/components/layout/Navigation'
 import Toolbar from '@/components/layout/Toolbar'
 import { signOut } from 'next-auth/react'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { useSession } from 'next-auth/react'
 import { useToast } from '@/components/ui/Toast'
 import { type ClientLocale, translateNode, translateText } from '@/lib/client-i18n'
 import { useLocale } from '@/lib/locale-context'
+import {
+  getUiThemeServerSnapshot,
+  getUiThemeSnapshot,
+  isUiTheme,
+  setUiTheme,
+  subscribeUiTheme,
+} from '@/lib/ui-theme'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -40,14 +47,11 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
   const { data: session, update } = useSession()
   const { showToast } = useToast()
   const { locale, setLocale } = useLocale()
-  const [theme, setTheme] = useState(() => {
-    if (typeof window === 'undefined') return 'light'
-    try {
-      return localStorage.getItem('ui-theme') || 'light'
-    } catch {
-      return 'light'
-    }
-  })
+  const theme = useSyncExternalStore(
+    subscribeUiTheme,
+    getUiThemeSnapshot,
+    getUiThemeServerSnapshot
+  )
   const [desktopSidebarWidth, setDesktopSidebarWidth] = useState(240)
   const [schoolName, setSchoolName] = useState('School Dashboard')
   const [isSchoolSuspended, setIsSchoolSuspended] = useState(false)
@@ -107,23 +111,6 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
       active = false
     }
   }, [locale, session?.user?.role, session?.user?.schoolId])
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light'
-    const themeColorMap: Record<string, string> = {
-      light: '#f5f6f8',
-      dark: '#0f1720',
-      calm: '#f5f8f5',
-    }
-    document.querySelectorAll('meta[name="theme-color"]').forEach((metaTheme) => {
-      metaTheme.setAttribute('content', themeColorMap[theme] ?? themeColorMap.light)
-    })
-    try {
-      document.cookie = `ui-theme=${encodeURIComponent(theme)}; path=/; max-age=31536000; SameSite=Lax`
-    } catch {
-      // ignore cookie write errors
-    }
-  }, [theme])
 
   const handleLogout = async () => {
     await signOut({ redirect: false })
@@ -160,27 +147,8 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
   }
 
   const handleThemeChange = (nextTheme: string) => {
-    setTheme(nextTheme)
-    try {
-      localStorage.setItem('ui-theme', nextTheme)
-    } catch {
-      // ignore storage errors
-    }
-    try {
-      document.cookie = `ui-theme=${encodeURIComponent(nextTheme)}; path=/; max-age=31536000; SameSite=Lax`
-    } catch {
-      // ignore cookie write errors
-    }
-    document.documentElement.setAttribute('data-theme', nextTheme)
-    document.documentElement.style.colorScheme = nextTheme === 'dark' ? 'dark' : 'light'
-    const themeColorMap: Record<string, string> = {
-      light: '#f5f6f8',
-      dark: '#0f1720',
-      calm: '#f5f8f5',
-    }
-    document.querySelectorAll('meta[name="theme-color"]').forEach((metaTheme) => {
-      metaTheme.setAttribute('content', themeColorMap[nextTheme] ?? themeColorMap.light)
-    })
+    if (!isUiTheme(nextTheme)) return
+    setUiTheme(nextTheme)
   }
 
   const handleThemeToggle = () => {
