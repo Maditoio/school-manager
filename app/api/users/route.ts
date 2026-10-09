@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { createUserSchema } from "@/lib/validations"
 import { hasRole } from "@/lib/auth-utils"
 import { hash } from "bcryptjs"
+import { resolveTeacherLoginIdentity } from "@/lib/teacher-login"
 
 const DEFAULT_TEACHER_PASSWORD = 'default12345'
 
@@ -42,8 +43,11 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         email: true,
+        username: true,
         firstName: true,
         lastName: true,
+        title: true,
+        phone: true,
         role: true,
         schoolId: true,
         suspended: true,
@@ -88,8 +92,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const normalizedEmail = validation.data.email.trim().toLowerCase()
-    const { password, firstName, lastName, role, schoolId } = validation.data
+    const { password, firstName, lastName, role, schoolId, title, phone } = validation.data
+    const rawEmail = (validation.data.email || '').trim().toLowerCase()
 
     if (session.user.role !== 'SUPER_ADMIN' && !['TEACHER', 'PARENT', 'FINANCE', 'FINANCE_MANAGER', 'DEPUTY_ADMIN'].includes(role)) {
       return NextResponse.json(
@@ -117,18 +121,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if email already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-    })
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'Email already exists' },
-        { status: 400 }
-      )
-    }
-
     // Use session school ID if not super admin
     const finalSchoolId = session.user.role === 'SUPER_ADMIN' ? schoolId : session.user.schoolId
 
@@ -139,15 +131,46 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    let email = rawEmail
+    let username: string | null = null
+    let usedSyntheticEmail = false
+
+    if (role === 'TEACHER') {
+      const identity = await resolveTeacherLoginIdentity({
+        email: rawEmail,
+        phone,
+        firstName,
+        lastName,
+      })
+      email = identity.email
+      username = identity.username
+      usedSyntheticEmail = identity.usedSyntheticEmail
+    }
+
+    // Check if email already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    })
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'Email already exists' },
+        { status: 400 }
+      )
+    }
+
     // Hash password
     const hashedPassword = await hash(finalPassword, 12)
 
     const user = await prisma.user.create({
       data: {
-        email: normalizedEmail,
+        email,
+        username,
         password: hashedPassword,
         firstName,
         lastName,
+        title: title?.trim() || null,
+        phone: phone?.trim() || null,
         role,
         schoolId: finalSchoolId,
         // All admin-created accounts must change their password on first login
@@ -156,15 +179,26 @@ export async function POST(request: NextRequest) {
       select: {
         id: true,
         email: true,
+        username: true,
         firstName: true,
         lastName: true,
+        title: true,
+        phone: true,
         role: true,
         schoolId: true,
         createdAt: true,
       },
     })
 
-    return NextResponse.json({ user }, { status: 201 })
+    return NextResponse.json(
+      {
+        user,
+        loginUsername: username || user.email,
+        temporaryPassword: useDefaultTeacherPassword ? DEFAULT_TEACHER_PASSWORD : undefined,
+        usedSyntheticEmail,
+      },
+      { status: 201 }
+    )
   } catch (error) {
     console.error('Error creating user:', error)
     return NextResponse.json(

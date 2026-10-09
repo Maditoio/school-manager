@@ -77,6 +77,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const normalizedEmail = String(credentials.email).trim().toLowerCase()
         const plainPassword = String(credentials.password)
+        // Teachers without email often log in with phone; accept spaced formats.
+        const phoneUsername = (() => {
+          const raw = String(credentials.email).trim()
+          if (!/^\+?[\d\s()-]{7,}$/.test(raw)) return null
+          const hasPlus = raw.startsWith('+')
+          const digits = raw.replace(/\D/g, '')
+          if (digits.length < 7) return null
+          return hasPlus ? `+${digits}` : digits
+        })()
 
         console.log('Attempting login for:', normalizedEmail)
 
@@ -86,6 +95,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               OR: [
                 { email: { equals: normalizedEmail, mode: 'insensitive' } },
                 { username: { equals: normalizedEmail, mode: 'insensitive' } },
+                ...(phoneUsername && phoneUsername !== normalizedEmail
+                  ? [{ username: { equals: phoneUsername, mode: 'insensitive' as const } }]
+                  : []),
                 {
                   linkedStudent: {
                     is: {

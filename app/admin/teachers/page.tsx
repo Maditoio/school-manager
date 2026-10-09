@@ -16,10 +16,15 @@ interface Teacher {
   firstName: string
   lastName: string
   email: string
+  username?: string | null
   title?: string
   phone?: string
   createdAt: string
   availability: 'Available' | 'Away'
+}
+
+function isSystemEmail(email: string) {
+  return email.toLowerCase().endsWith('@system.local')
 }
 
 export default function TeachersPage() {
@@ -126,10 +131,28 @@ export default function TeachersPage() {
       })
 
       if (res.ok) {
+        const data = await res.json()
         await fetchTeachers()
         setShowModal(false)
         resetForm()
-        showToast(tAdmin('teacherCreated', 'Teacher created successfully!'), 'success')
+        const loginId = data.loginUsername || data.user?.username || data.user?.email
+        const tempPassword = data.temporaryPassword
+        if (loginId) {
+          const passwordHint = tempPassword
+            ? tAdmin(
+                'teacherCreatedWithDefaultPassword',
+                'Login: {login} · Temporary password: {password}'
+              )
+                .replace('{login}', String(loginId))
+                .replace('{password}', String(tempPassword))
+            : tAdmin('teacherCreatedWithLogin', 'Teacher created. Login username: {login}').replace(
+                '{login}',
+                String(loginId)
+              )
+          showToast(passwordHint, 'success')
+        } else {
+          showToast(tAdmin('teacherCreated', 'Teacher created successfully!'), 'success')
+        }
       } else {
         const error = await res.json()
         const apiError =
@@ -285,8 +308,14 @@ export default function TeachersPage() {
       : statusFilteredTeachers.filter((teacher) => {
           const fullName = `${teacher.title ? `${teacher.title} ` : ''}${teacher.firstName} ${teacher.lastName}`.toLowerCase()
           const email = teacher.email.toLowerCase()
+          const username = (teacher.username || '').toLowerCase()
           const phone = (teacher.phone || '').toLowerCase()
-          return fullName.includes(normalizedSearch) || email.includes(normalizedSearch) || phone.includes(normalizedSearch)
+          return (
+            fullName.includes(normalizedSearch) ||
+            email.includes(normalizedSearch) ||
+            username.includes(normalizedSearch) ||
+            phone.includes(normalizedSearch)
+          )
         })
 
   const teacherTotals = {
@@ -389,6 +418,7 @@ export default function TeachersPage() {
                   <thead>
                     <tr>
                       <th>{tAdmin('teacher', 'Teacher:').replace(/:$/, '')}</th>
+                      <th>{tAdmin('login', 'Login')}</th>
                       <th>{tAdmin('email', 'Email')}</th>
                       <th>{tAdmin('phone', 'Phone')}</th>
                       <th>{tAdmin('status', 'Status')}</th>
@@ -400,6 +430,7 @@ export default function TeachersPage() {
                     {Array.from({ length: 6 }).map((_, index) => (
                       <tr key={`teacher-loading-${index}`}>
                         <td><div className="h-3.5 w-40 rounded bg-(--surface-soft) animate-pulse" /></td>
+                        <td><div className="h-3.5 w-28 rounded bg-(--surface-soft) animate-pulse" /></td>
                         <td><div className="h-3.5 w-52 rounded bg-(--surface-soft) animate-pulse" /></td>
                         <td><div className="h-3.5 w-28 rounded bg-(--surface-soft) animate-pulse" /></td>
                         <td><div className="h-5 w-16 rounded-full bg-(--surface-soft) animate-pulse" /></td>
@@ -419,6 +450,7 @@ export default function TeachersPage() {
               <thead>
                 <tr>
                   <th>{tAdmin('teacher', 'Teacher:').replace(/:$/, '')}</th>
+                  <th>{tAdmin('login', 'Login')}</th>
                   <th>{tAdmin('email', 'Email')}</th>
                   <th>{tAdmin('phone', 'Phone')}</th>
                   <th>{tAdmin('status', 'Status')}</th>
@@ -434,7 +466,10 @@ export default function TeachersPage() {
                         {teacher.title ? `${teacher.title} ` : ''}{teacher.firstName} {teacher.lastName}
                       </a>
                     </td>
-                    <td>{teacher.email}</td>
+                    <td className="font-semibold">
+                      {teacher.username || (isSystemEmail(teacher.email) ? tAdmin('na', 'N/A') : teacher.email)}
+                    </td>
+                    <td>{isSystemEmail(teacher.email) ? tAdmin('na', 'N/A') : teacher.email}</td>
                     <td>{teacher.phone || tAdmin('na', 'N/A')}</td>
                     <td>
                       <span
@@ -555,11 +590,11 @@ export default function TeachersPage() {
                   required
                 />
                 <Input
-                  label={tAdmin('email', 'Email')}
+                  label={tAdmin('emailOptional', 'Email (optional)')}
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
+                  placeholder={tAdmin('emailOptionalPlaceholder', 'Leave blank if they have no email')}
                 />
                 <Input
                   label={tAdmin('phone', 'Phone')}
@@ -568,6 +603,12 @@ export default function TeachersPage() {
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder={tAdmin('phonePlaceholder', '+1234567890')}
                 />
+                <p className="text-xs ui-text-secondary -mt-1">
+                  {tAdmin(
+                    'teacherLoginHint',
+                    'If email is blank, they log in with phone (or first.last). Default password: default12345'
+                  )}
+                </p>
                 <Input
                   label={tAdmin('password', 'Password')}
                   type="password"

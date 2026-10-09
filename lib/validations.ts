@@ -9,16 +9,34 @@ export const loginSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 })
 
-export const createUserSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  title: z.string().optional(),
-  phone: z.string().optional(),
-  role: z.enum(['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER', 'TEACHER', 'PARENT']),
-  schoolId: z.string().uuid().optional(),
-})
+export const createUserSchema = z
+  .object({
+    email: z
+      .string()
+      .trim()
+      .default('')
+      .refine((val) => val === '' || z.string().email().safeParse(val).success, {
+        message: 'Invalid email address',
+      }),
+    password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
+    firstName: z.string().min(1, 'First name is required'),
+    lastName: z.string().min(1, 'Last name is required'),
+    title: z.string().optional(),
+    phone: z.string().optional(),
+    role: z.enum(['SCHOOL_ADMIN', 'DEPUTY_ADMIN', 'FINANCE', 'FINANCE_MANAGER', 'TEACHER', 'PARENT']),
+    schoolId: z.string().uuid().optional(),
+  })
+  .superRefine((data, ctx) => {
+    // Teachers may omit email (common in regions without email access).
+    // Other roles still need a real email address.
+    if (data.role !== 'TEACHER' && !data.email.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Email is required',
+        path: ['email'],
+      })
+    }
+  })
 
 export const createSchoolSchema = z.object({
   name: z.string().min(1, 'School name is required'),

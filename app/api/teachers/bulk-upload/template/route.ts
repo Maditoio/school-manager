@@ -27,8 +27,8 @@ export async function GET() {
         title: 'Mrs.',
         firstName: 'Jane',
         lastName: 'Johnson',
-        email: 'jane.johnson@school.com',
-        phone: '+1234567891',
+        email: '',
+        phone: '+255712345678',
         password: '',
       },
     ]
@@ -37,11 +37,12 @@ export async function GET() {
     const worksheet = XLSX.utils.json_to_sheet(templateRows)
 
     const instructions = [
-      ['Required columns:', 'title, firstName, lastName, email, phone'],
-      ['Optional columns:', 'password (if empty, default12345 will be used)'],
+      ['Required columns:', 'title, firstName, lastName'],
+      ['Optional columns:', 'email, phone, password'],
+      ['Email:', 'Optional. Leave blank if the teacher has no email.'],
+      ['Login without email:', 'Uses phone as username when provided, otherwise first.last'],
       ['Default password:', 'If no password provided, system uses: default12345'],
       ['Title examples:', 'Mr., Mrs., Ms., Dr., Prof.'],
-      ['Email:', 'Must be unique across the system'],
       ['Must reset password:', 'If password is empty, teacher must reset on first login'],
     ]
 

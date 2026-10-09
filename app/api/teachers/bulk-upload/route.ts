@@ -5,6 +5,7 @@ import { hasRole } from '@/lib/auth-utils'
 import { Prisma } from '@prisma/client'
 import { hash } from 'bcryptjs'
 import * as XLSX from 'xlsx'
+import { resolveTeacherLoginIdentity } from '@/lib/teacher-login'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -98,30 +99,42 @@ export async function POST(request: NextRequest) {
       const rowNumber = index + 2
       const row = mapRow(rows[index])
 
-      if (!row.firstName || !row.lastName || !row.email) {
-        errors.push({ row: rowNumber, error: 'Title, first name, last name, and email are required' })
+      if (!row.firstName || !row.lastName) {
+        errors.push({ row: rowNumber, error: 'First name and last name are required' })
         continue
       }
 
-      const normalizedEmail = row.email.trim().toLowerCase()
-
-      // Check if email already exists
-      const existingUser = await prisma.user.findFirst({
-        where: {
-          email: {
-            equals: normalizedEmail,
-            mode: 'insensitive',
-          },
-        },
-        select: { id: true },
-      })
-
-      if (existingUser) {
-        errors.push({ row: rowNumber, error: 'Email already exists in system' })
+      if (!row.title?.trim()) {
+        errors.push({ row: rowNumber, error: 'Title is required' })
         continue
       }
 
       try {
+        const identity = await resolveTeacherLoginIdentity({
+          email: row.email,
+          phone: row.phone,
+          firstName: row.firstName.trim(),
+          lastName: row.lastName.trim(),
+        })
+
+        // Check if email already exists (skip synthetic — those are always unique)
+        if (!identity.usedSyntheticEmail) {
+          const existingUser = await prisma.user.findFirst({
+            where: {
+              email: {
+                equals: identity.email,
+                mode: 'insensitive',
+              },
+            },
+            select: { id: true },
+          })
+
+          if (existingUser) {
+            errors.push({ row: rowNumber, error: 'Email already exists in system' })
+            continue
+          }
+        }
+
         const passwordToUse = row.password && row.password.trim() ? row.password.trim() : DEFAULT_TEACHER_PASSWORD
         const hashedPassword = await hash(passwordToUse, 12)
 
@@ -129,10 +142,11 @@ export async function POST(request: NextRequest) {
           data: {
             schoolId: session.user.schoolId,
             role: 'TEACHER',
-            email: normalizedEmail,
+            email: identity.email,
+            username: identity.username,
             firstName: row.firstName.trim(),
             lastName: row.lastName.trim(),
-            title: row.title?.trim() || null,
+            title: row.title.trim(),
             phone: row.phone?.trim() || null,
             password: hashedPassword,
             mustResetPassword: !row.password || !row.password.trim() ? true : false,
@@ -147,7 +161,7 @@ export async function POST(request: NextRequest) {
         ) {
           errors.push({
             row: rowNumber,
-            error: 'Email already exists in system.',
+            error: 'Email or username already exists in system.',
           })
           continue
         }
