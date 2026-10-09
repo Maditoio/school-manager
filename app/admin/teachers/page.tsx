@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/Form'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
-import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { useAdminUi } from '@/lib/use-admin-ui'
 
 interface Teacher {
   id: string
@@ -24,6 +25,7 @@ interface Teacher {
 export default function TeachersPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { tAdmin, tCommon } = useAdminUi()
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -127,7 +129,7 @@ export default function TeachersPage() {
         await fetchTeachers()
         setShowModal(false)
         resetForm()
-        showToast('Teacher created successfully!', 'success')
+        showToast(tAdmin('teacherCreated', 'Teacher created successfully!'), 'success')
       } else {
         const error = await res.json()
         const apiError =
@@ -135,12 +137,12 @@ export default function TeachersPage() {
             ? String(error.error[0].message)
             : typeof error.error === 'string'
               ? error.error
-              : 'Failed to save teacher'
+              : tAdmin('failedSaveTeacher', 'Failed to save teacher')
         showToast(apiError, 'error')
       }
     } catch (error) {
       console.error('Failed to save teacher:', error)
-      showToast('Failed to save teacher', 'error')
+      showToast(tAdmin('failedSaveTeacher', 'Failed to save teacher'), 'error')
     }
   }
 
@@ -165,44 +167,52 @@ export default function TeachersPage() {
       if (res.ok) {
         await fetchTeachers()
         setShowBulkModal(false)
-        showToast(`Successfully created ${data.created} teacher(s)!`, 'success')
+        showToast(
+          tAdmin('bulkCreatedTeachers', 'Successfully created {n} teacher(s)!').replace('{n}', String(data.created)),
+          'success'
+        )
       } else {
         if (data.errors && data.errors.length > 0) {
           setBulkUploadErrors(data.errors)
-          showToast(`Failed to create ${data.failed} row(s). See errors below.`, 'error')
+          showToast(
+            tAdmin('bulkFailedTeachers', 'Failed to create {n} row(s). See errors below.').replace('{n}', String(data.failed)),
+            'error'
+          )
         } else {
-          showToast(data.error || 'Failed to upload teachers', 'error')
+          showToast(data.error || tAdmin('failedUploadTeachers', 'Failed to upload teachers'), 'error')
         }
       }
     } catch (error) {
       console.error('Failed to upload teachers:', error)
-      showToast('Failed to upload teachers', 'error')
+      showToast(tAdmin('failedUploadTeachers', 'Failed to upload teachers'), 'error')
     } finally {
       setBulkUploadLoading(false)
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this teacher?')) return
+    if (!confirm(tAdmin('confirmDeleteTeacher', 'Are you sure you want to delete this teacher?'))) return
     
     try {
       const res = await fetch(`/api/users/${id}`, { method: 'DELETE' })
       if (res.ok) {
         await fetchTeachers()
-        showToast('Teacher deleted successfully!', 'success')
+        showToast(tAdmin('teacherDeleted', 'Teacher deleted successfully!'), 'success')
       }
     } catch (error) {
       console.error('Failed to delete teacher:', error)
-      showToast('Failed to delete teacher', 'error')
+      showToast(tAdmin('failedDeleteTeacher', 'Failed to delete teacher'), 'error')
     }
   }
 
   const handleResetPassword = async (teacher: Teacher) => {
-    const newPassword = prompt(`Enter a temporary password for ${teacher.firstName} ${teacher.lastName} (min 6 chars):`)
+    const newPassword = prompt(
+      `${tAdmin('resetPassword', 'Reset Password')}: ${teacher.firstName} ${teacher.lastName} (${tAdmin('passwordMin6', 'Password must be at least 6 characters')})`
+    )
     if (!newPassword) return
 
     if (newPassword.length < 6) {
-      showToast('Password must be at least 6 characters', 'error')
+      showToast(tAdmin('passwordMin6', 'Password must be at least 6 characters'), 'error')
       return
     }
 
@@ -215,14 +225,14 @@ export default function TeachersPage() {
 
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        showToast(data.error || 'Failed to reset password', 'error')
+        showToast(data.error || tAdmin('failedResetPassword', 'Failed to reset password'), 'error')
         return
       }
 
-      showToast('Password reset. Teacher must change it on first login.', 'success')
+      showToast(tAdmin('passwordResetTeacher', 'Password reset. Teacher must change it on first login.'), 'success')
     } catch (error) {
       console.error('Failed to reset teacher password:', error)
-      showToast('Failed to reset password', 'error')
+      showToast(tAdmin('failedResetPassword', 'Failed to reset password'), 'error')
     }
   }
 
@@ -253,12 +263,12 @@ export default function TeachersPage() {
       }
     } catch (error) {
       console.error('Failed to download template:', error)
-      showToast('Failed to download template', 'error')
+      showToast(tAdmin('failedDownloadTemplate', 'Failed to download template'), 'error')
     }
   }
 
   if (status === 'loading' || !session) {
-    return <div>Loading...</div>
+    return <div>{tCommon('loading', 'Loading...')}</div>
   }
 
   const navItems = ADMIN_NAV_ITEMS
@@ -285,6 +295,9 @@ export default function TeachersPage() {
     away: teachers.filter((teacher) => teacher.availability === 'Away').length,
   }
 
+  const availabilityLabel = (availability: Teacher['availability']) =>
+    availability === 'Away' ? tAdmin('away', 'Away') : tAdmin('available', 'Available')
+
   return (
     <DashboardLayout
       user={{
@@ -298,9 +311,9 @@ export default function TeachersPage() {
         <div className="rounded-2xl border border-slate-700/60 bg-slate-900 p-5 shadow-lg shadow-black/20 md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">School Pulse</p>
-              <h1 className="text-3xl font-bold text-slate-100">Teachers Management</h1>
-              <p className="mt-2 text-sm text-slate-400">Manage all teachers in your school</p>
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{tAdmin('schoolPulse', 'School Pulse')}</p>
+              <h1 className="text-3xl font-bold text-slate-100">{tAdmin('teachersManagement', 'Teachers Management')}</h1>
+              <p className="mt-2 text-sm text-slate-400">{tAdmin('manageTeachers', 'Manage all teachers in your school')}</p>
             </div>
             <div className="flex gap-2">
               <Button
@@ -310,7 +323,7 @@ export default function TeachersPage() {
                   setBulkUploadErrors([])
                 }}
               >
-                Bulk Upload
+                {tAdmin('bulkUpload', 'Bulk Upload')}
               </Button>
               <Button
                 onClick={() => {
@@ -318,44 +331,46 @@ export default function TeachersPage() {
                   setShowModal(true)
                 }}
               >
-                Add Teacher
+                {tAdmin('addTeacher', 'Add Teacher')}
               </Button>
             </div>
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-200">
-              Total: {teacherTotals.total}
+              {tAdmin('total', 'Total:')} {teacherTotals.total}
             </span>
             <span className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
-              Available: {teacherTotals.available}
+              {tAdmin('availableColon', 'Available:')} {teacherTotals.available}
             </span>
             <span className="inline-flex items-center rounded-full border border-rose-400/30 bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-300">
-              Away: {teacherTotals.away}
+              {tAdmin('awayColon', 'Away:')} {teacherTotals.away}
             </span>
           </div>
         </div>
 
         {!loading ? (
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm ui-text-secondary">{filteredTeachers.length} teacher(s)</p>
+            <p className="text-sm ui-text-secondary">
+              {tAdmin('teachersCount', '{n} teacher(s)').replace('{n}', String(filteredTeachers.length))}
+            </p>
             <div className="flex items-center gap-2">
-              <label htmlFor="teachers-status-filter" className="text-sm ui-text-secondary">Filter</label>
+              <label htmlFor="teachers-status-filter" className="text-sm ui-text-secondary">{tAdmin('filter', 'Filter')}</label>
               <select
                 id="teachers-status-filter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'Available' | 'Away')}
                 className="ui-select h-8 min-w-36"
               >
-                <option value="ALL">All</option>
-                <option value="Available">Available</option>
-                <option value="Away">Away</option>
+                <option value="ALL">{tAdmin('all', 'All')}</option>
+                <option value="Available">{tAdmin('available', 'Available')}</option>
+                <option value="Away">{tAdmin('away', 'Away')}</option>
               </select>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search teacher..."
+                placeholder={tAdmin('searchTeacher', 'Search teacher...')}
                 className="ui-input h-8 w-56"
               />
             </div>
@@ -367,18 +382,18 @@ export default function TeachersPage() {
             <div className="w-full space-y-3">
               <div className="flex items-center justify-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-(--accent) animate-pulse" />
-                <p className="text-sm ui-text-secondary">Loading teachers...</p>
+                <p className="text-sm ui-text-secondary">{tAdmin('loadingTeachers', 'Loading teachers...')}</p>
               </div>
               <div className="overflow-x-auto rounded-xl border border-(--border-subtle) bg-(--surface)">
                 <table className="ui-table min-w-full">
                   <thead>
                     <tr>
-                      <th>Teacher</th>
-                      <th>Email</th>
-                      <th>Phone</th>
-                      <th>Status</th>
-                      <th>Joined</th>
-                      <th>Actions</th>
+                      <th>{tAdmin('teacher', 'Teacher:').replace(/:$/, '')}</th>
+                      <th>{tAdmin('email', 'Email')}</th>
+                      <th>{tAdmin('phone', 'Phone')}</th>
+                      <th>{tAdmin('status', 'Status')}</th>
+                      <th>{tAdmin('joined', '📅 Joined:').replace(/^📅\s*/, '').replace(/:$/, '')}</th>
+                      <th>{tAdmin('actions', 'Actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -403,12 +418,12 @@ export default function TeachersPage() {
             <table className="ui-table min-w-full">
               <thead>
                 <tr>
-                  <th>Teacher</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Status</th>
-                  <th>Joined</th>
-                  <th>Actions</th>
+                  <th>{tAdmin('teacher', 'Teacher:').replace(/:$/, '')}</th>
+                  <th>{tAdmin('email', 'Email')}</th>
+                  <th>{tAdmin('phone', 'Phone')}</th>
+                  <th>{tAdmin('status', 'Status')}</th>
+                  <th>{tAdmin('joined', '📅 Joined:').replace(/^📅\s*/, '').replace(/:$/, '')}</th>
+                  <th>{tAdmin('actions', 'Actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -420,7 +435,7 @@ export default function TeachersPage() {
                       </a>
                     </td>
                     <td>{teacher.email}</td>
-                    <td>{teacher.phone || 'N/A'}</td>
+                    <td>{teacher.phone || tAdmin('na', 'N/A')}</td>
                     <td>
                       <span
                         className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${
@@ -429,14 +444,14 @@ export default function TeachersPage() {
                             : 'bg-emerald-100 text-emerald-700'
                         }`}
                       >
-                        {teacher.availability}
+                        {availabilityLabel(teacher.availability)}
                       </span>
                     </td>
                     <td>{new Date(teacher.createdAt).toLocaleDateString()}</td>
                     <td onClick={(e) => e.stopPropagation()}>
                       <button
                         type="button"
-                        aria-label="Teacher actions"
+                        aria-label={tAdmin('teacherActions', 'Teacher actions')}
                         className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-(--border-subtle) bg-(--surface-soft) text-base leading-none ui-text-secondary hover:ui-text-primary"
                         onClick={(e) => {
                           e.stopPropagation()
@@ -461,7 +476,7 @@ export default function TeachersPage() {
           </div>
         ) : (
           <Card className="p-6">
-            <p className="text-center text-gray-500">No teachers match this filter.</p>
+            <p className="text-center text-gray-500">{tAdmin('noTeachersMatchFilter', 'No teachers match this filter.')}</p>
           </Card>
         )}
 
@@ -498,7 +513,7 @@ export default function TeachersPage() {
                   handleResetPassword(activeTeacher)
                 }}
               >
-                Reset Password
+                {tAdmin('resetPassword', 'Reset Password')}
               </button>
               <button
                 type="button"
@@ -509,7 +524,7 @@ export default function TeachersPage() {
                   handleDelete(activeTeacher.id)
                 }}
               >
-                Delete
+                {tAdmin('delete', 'Delete')}
               </button>
             </div>
           )
@@ -518,47 +533,47 @@ export default function TeachersPage() {
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <Card className="w-full max-w-md p-6">
-              <h2 className="text-2xl font-bold mb-4">Add Teacher</h2>
+              <h2 className="text-2xl font-bold mb-4">{tAdmin('addTeacher', 'Add Teacher')}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Input
-                  label="Title"
+                  label={tAdmin('title', 'Title')}
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="e.g., Mr., Mrs., Dr."
+                  placeholder={tAdmin('egTitle', 'e.g., Mr., Mrs., Dr.')}
                   required
                 />
                 <Input
-                  label="First Name"
+                  label={tAdmin('firstName', 'First Name')}
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                   required
                 />
                 <Input
-                  label="Last Name"
+                  label={tAdmin('lastName', 'Last Name')}
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   required
                 />
                 <Input
-                  label="Email"
+                  label={tAdmin('email', 'Email')}
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
                 />
                 <Input
-                  label="Phone"
+                  label={tAdmin('phone', 'Phone')}
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+1234567890"
+                  placeholder={tAdmin('phonePlaceholder', '+1234567890')}
                 />
                 <Input
-                  label="Password"
+                  label={tAdmin('password', 'Password')}
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="Leave blank to use default: default12345"
+                  placeholder={tAdmin('passwordDefaultHint', 'Leave blank to use default: default12345')}
                 />
                 <div className="flex gap-2 justify-end">
                   <Button
@@ -569,9 +584,9 @@ export default function TeachersPage() {
                       resetForm()
                     }}
                   >
-                    Cancel
+                    {tAdmin('cancel', 'Cancel')}
                   </Button>
-                  <Button type="submit">Create</Button>
+                  <Button type="submit">{tAdmin('create', 'Create')}</Button>
                 </div>
               </form>
             </Card>
@@ -581,7 +596,7 @@ export default function TeachersPage() {
         {showBulkModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <Card className="w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-4">Bulk Upload Teachers</h2>
+              <h2 className="text-2xl font-bold mb-4">{tAdmin('bulkUploadTeachers', 'Bulk Upload Teachers')}</h2>
               
               <div className="space-y-4">
                 <div>
@@ -590,10 +605,10 @@ export default function TeachersPage() {
                     onClick={downloadTemplate}
                     className="mb-4"
                   >
-                    Download Template
+                    {tAdmin('downloadTemplate', 'Download Template')}
                   </Button>
                   <p className="text-sm text-gray-600 mb-4">
-                    Download the Excel template, fill it with teacher details, then upload it here.
+                    {tAdmin('teachersTemplateHelp', 'Download the Excel template, fill it with teacher details, then upload it here.')}
                   </p>
                 </div>
 
@@ -609,19 +624,21 @@ export default function TeachersPage() {
                   <label htmlFor="bulk-file-input" className="cursor-pointer">
                     <div className="text-4xl mb-2">📁</div>
                     <p className="text-gray-700 font-medium">
-                      {bulkUploadLoading ? 'Uploading...' : 'Click to upload or drag and drop'}
+                      {bulkUploadLoading
+                        ? tAdmin('uploading', 'Uploading...')
+                        : tAdmin('clickUploadOrDrag', 'Click to upload or drag and drop')}
                     </p>
-                    <p className="text-sm text-gray-500">Excel files (.xlsx, .xls) - Max 5MB</p>
+                    <p className="text-sm text-gray-500">{tAdmin('excelMax5mb', 'Excel files (.xlsx, .xls) - Max 5MB')}</p>
                   </label>
                 </div>
 
                 {bulkUploadErrors.length > 0 && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-red-900 mb-2">Upload Errors</h3>
+                    <h3 className="font-semibold text-red-900 mb-2">{tAdmin('uploadErrors', 'Upload Errors')}</h3>
                     <div className="max-h-64 overflow-y-auto space-y-1">
                       {bulkUploadErrors.map((err, idx) => (
                         <p key={idx} className="text-sm text-red-700">
-                          <strong>Row {err.row}:</strong> {err.error}
+                          <strong>{tAdmin('row', 'Row')} {err.row}:</strong> {err.error}
                         </p>
                       ))}
                     </div>
@@ -637,7 +654,7 @@ export default function TeachersPage() {
                       setBulkUploadErrors([])
                     }}
                   >
-                    Close
+                    {tAdmin('close', 'Close')}
                   </Button>
                 </div>
               </div>

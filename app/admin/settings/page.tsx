@@ -311,7 +311,7 @@ export default function AdminSettingsPage() {
     event.preventDefault()
     const year = Number(yearInput)
     if (isNaN(year) || year < 2000 || year > 2030) {
-      showToast(t('Enter a valid year between 2000 and 2030'), 'warning')
+      showToast(t('Enter a valid year between 2000 and 2100'), 'warning')
       return
     }
     try {
@@ -874,14 +874,14 @@ export default function AdminSettingsPage() {
                   {(logoPreview || logoUrl)
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={logoPreview || logoUrl} alt="School logo" className="w-full h-full object-contain p-2" />
-                    : <span className="text-xs ui-text-secondary text-center">{t('noLogo')}</span>}
+                    : <span className="text-xs ui-text-secondary text-center">{t('No logo')}</span>}
                 </div>
               </div>
               
               {/* Upload section */}
               <div className="md:col-span-2 space-y-3">
                 <div>
-                  <label className="block text-sm font-medium ui-text-secondary mb-2">{t('uploadImage')}</label>
+                  <label className="block text-sm font-medium ui-text-secondary mb-2">{t('Upload image')}</label>
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/gif,image/svg+xml,image/webp"
@@ -895,7 +895,7 @@ export default function AdminSettingsPage() {
                 
                 <div>
                   <Input
-                    label={t('pasteImageUrl')}
+                    label={t('Or paste an image URL')}
                     type="url"
                     value={logoPreview ? '' : logoUrl}
                     onChange={e => { setLogoUrl(e.target.value); setLogoFile(null); setLogoPreview('') }}

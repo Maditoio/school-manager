@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Form'
 import { useToast } from '@/components/ui/Toast'
 import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { useAdminUi } from '@/lib/use-admin-ui'
 
 type Term = {
   id: string
@@ -31,6 +32,7 @@ type AcademicYear = {
 export default function TermsPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { tAdmin, tCommon } = useAdminUi()
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -56,7 +58,7 @@ export default function TermsPage() {
       const res = await fetch('/api/terms')
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err?.error || 'Failed to fetch terms')
+        throw new Error(err?.error || tAdmin('failedLoadTerms', 'Failed to load terms'))
       }
 
       const data = await res.json()
@@ -68,11 +70,14 @@ export default function TermsPage() {
       }
     } catch (error) {
       console.error('Failed to fetch terms:', error)
-      showToast(error instanceof Error ? error.message : 'Failed to fetch terms', 'error')
+      showToast(
+        error instanceof Error ? error.message : tAdmin('failedLoadTerms', 'Failed to load terms'),
+        'error'
+      )
     } finally {
       setLoading(false)
     }
-  }, [selectedAcademicYearId, showToast])
+  }, [selectedAcademicYearId, showToast, tAdmin])
 
   useEffect(() => {
     if (session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'DEPUTY_ADMIN') {
@@ -82,9 +87,14 @@ export default function TermsPage() {
 
   const createAcademicYear = async (event: React.FormEvent) => {
     event.preventDefault()
+    const year = Number(yearInput)
+    if (!Number.isFinite(year) || year < 2000 || year > 2100) {
+      showToast(tAdmin('enterValidYear', 'Enter a valid year between 2000 and 2100'), 'error')
+      return
+    }
+
     setSaving(true)
     try {
-      const year = Number(yearInput)
       const res = await fetch('/api/terms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -97,17 +107,20 @@ export default function TermsPage() {
 
       const data = await res.json()
       if (!res.ok) {
-        throw new Error(data?.error || 'Failed to create academic year')
+        throw new Error(data?.error || tAdmin('failedSaveAcademicYear', 'Failed to save academic year'))
       }
 
-      showToast('Academic year saved', 'success')
+      showToast(tAdmin('academicYearSaved', 'Academic year saved'), 'success')
       await fetchTerms()
       if (data?.academicYear?.id) {
         setSelectedAcademicYearId(data.academicYear.id)
       }
     } catch (error) {
       console.error('Failed to create academic year:', error)
-      showToast(error instanceof Error ? error.message : 'Failed to create academic year', 'error')
+      showToast(
+        error instanceof Error ? error.message : tAdmin('failedSaveAcademicYear', 'Failed to save academic year'),
+        'error'
+      )
     } finally {
       setSaving(false)
     }
@@ -115,8 +128,16 @@ export default function TermsPage() {
 
   const createTerm = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!selectedAcademicYearId || !termName || !startDate || !endDate) {
-      showToast('Academic year, name, start date and end date are required', 'error')
+    if (!selectedAcademicYearId) {
+      showToast(tAdmin('selectAcademicYearRequired', 'Please select an academic year'), 'error')
+      return
+    }
+    if (!termName.trim()) {
+      showToast(tAdmin('termNameRequired', 'Term name is required'), 'error')
+      return
+    }
+    if (!startDate || !endDate) {
+      showToast(tAdmin('startEndRequired', 'Start and end dates are required'), 'error')
       return
     }
 
@@ -136,14 +157,17 @@ export default function TermsPage() {
 
       const data = await res.json()
       if (!res.ok) {
-        throw new Error(data?.error || 'Failed to create term')
+        throw new Error(data?.error || tAdmin('failedCreateTerm', 'Failed to create term'))
       }
 
-      showToast('Term created', 'success')
+      showToast(tAdmin('termCreated', 'Term created'), 'success')
       await fetchTerms()
     } catch (error) {
       console.error('Failed to create term:', error)
-      showToast(error instanceof Error ? error.message : 'Failed to create term', 'error')
+      showToast(
+        error instanceof Error ? error.message : tAdmin('failedCreateTerm', 'Failed to create term'),
+        'error'
+      )
     } finally {
       setSaving(false)
     }
@@ -159,13 +183,16 @@ export default function TermsPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        throw new Error(data?.error || 'Failed to set current term')
+        throw new Error(data?.error || tAdmin('failedUpdateTerm', 'Failed to update term'))
       }
-      showToast('Current term updated', 'success')
+      showToast(tAdmin('currentTermUpdated', 'Current term updated'), 'success')
       await fetchTerms()
     } catch (error) {
       console.error('Failed to set current term:', error)
-      showToast(error instanceof Error ? error.message : 'Failed to set current term', 'error')
+      showToast(
+        error instanceof Error ? error.message : tAdmin('failedUpdateTerm', 'Failed to update term'),
+        'error'
+      )
     } finally {
       setSaving(false)
     }
@@ -181,13 +208,21 @@ export default function TermsPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        throw new Error(data?.error || 'Failed to update lock status')
+        throw new Error(data?.error || tAdmin('failedUpdateTerm', 'Failed to update term'))
       }
-      showToast(term.isLocked ? 'Term unlocked' : 'Term locked', 'success')
+      showToast(
+        term.isLocked
+          ? tAdmin('termUnlocked', 'Term unlocked')
+          : tAdmin('termLocked', 'Term locked'),
+        'success'
+      )
       await fetchTerms()
     } catch (error) {
       console.error('Failed to update term lock:', error)
-      showToast(error instanceof Error ? error.message : 'Failed to update term lock', 'error')
+      showToast(
+        error instanceof Error ? error.message : tAdmin('failedUpdateTerm', 'Failed to update term'),
+        'error'
+      )
     } finally {
       setSaving(false)
     }
@@ -206,7 +241,7 @@ export default function TermsPage() {
   )
 
   if (status === 'loading' || !session) {
-    return <div>Loading...</div>
+    return <div>{tCommon('loading', 'Loading...')}</div>
   }
 
   const navItems = session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS
@@ -222,34 +257,39 @@ export default function TermsPage() {
     >
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Academic Terms</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{tAdmin('academicTerms', 'Academic Terms')}</h1>
           <p className="mt-2 text-gray-600">
-            Create academic years, add terms, set one current term, and lock/unlock finalized terms.
+            {tAdmin(
+              'academicTermsHelp',
+              'Create academic years, add terms, set one current term, and lock/unlock finalized terms.'
+            )}
           </p>
         </div>
 
-        <Card title="Create Academic Year">
+        <Card title={tAdmin('createAcademicYear', 'Create Academic Year')}>
           <form className="flex flex-col gap-3 md:flex-row md:items-end" onSubmit={createAcademicYear}>
             <Input
-              label="Year"
+              label={tAdmin('yearLabel', 'Year')}
               type="number"
               min={2000}
               max={2100}
               value={yearInput}
               onChange={(event) => setYearInput(event.target.value)}
             />
-            <Button type="submit" isLoading={saving}>Save Academic Year</Button>
+            <Button type="submit" isLoading={saving}>
+              {saving ? tAdmin('saving', 'Saving…') : tAdmin('saveAcademicYear', 'Save Academic Year')}
+            </Button>
           </form>
         </Card>
 
-        <Card title="Create Term">
+        <Card title={tAdmin('createTerm', 'Create Term')}>
           <form className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5" onSubmit={createTerm}>
             <Select
-              label="Academic Year"
+              label={tAdmin('academicYear', 'Academic Year')}
               value={selectedAcademicYearId}
               onChange={(event) => setSelectedAcademicYearId(event.target.value)}
             >
-              <option value="">Select year</option>
+              <option value="">{tAdmin('selectYear', 'Select year')}</option>
               {academicYears.map((year) => (
                 <option key={year.id} value={year.id}>
                   {year.name}
@@ -258,49 +298,51 @@ export default function TermsPage() {
             </Select>
 
             <Input
-              label="Term Name"
+              label={tAdmin('termName', 'Term Name')}
               value={termName}
               onChange={(event) => setTermName(event.target.value)}
-              placeholder="Term 1"
+              placeholder={tAdmin('term1Placeholder', 'Term 1')}
             />
 
             <Input
-              label="Start Date"
+              label={tAdmin('startDate', 'Start Date')}
               type="date"
               value={startDate}
               onChange={(event) => setStartDate(event.target.value)}
             />
 
             <Input
-              label="End Date"
+              label={tAdmin('endDate', 'End Date')}
               type="date"
               value={endDate}
               onChange={(event) => setEndDate(event.target.value)}
             />
 
             <div className="flex items-end">
-              <Button type="submit" isLoading={saving} className="w-full">Create Term</Button>
+              <Button type="submit" isLoading={saving} className="w-full">
+                {saving ? tAdmin('saving', 'Saving…') : tAdmin('createTerm', 'Create Term')}
+              </Button>
             </div>
           </form>
         </Card>
 
-        <Card title="Terms">
+        <Card title={tAdmin('terms', 'Terms')}>
           {loading ? (
-            <p>Loading terms...</p>
+            <p>{tAdmin('loadingTerms', 'Loading terms...')}</p>
           ) : allTerms.length === 0 ? (
-            <p>No terms found. Create an academic year and terms to start.</p>
+            <p>{tAdmin('noTermsFound', 'No terms found. Create an academic year and terms to start.')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-(--border-subtle)">
-                    <th className="px-3 py-2 text-left">Academic Year</th>
-                    <th className="px-3 py-2 text-left">Term</th>
-                    <th className="px-3 py-2 text-left">Start</th>
-                    <th className="px-3 py-2 text-left">End</th>
-                    <th className="px-3 py-2 text-left">Current</th>
-                    <th className="px-3 py-2 text-left">Locked</th>
-                    <th className="px-3 py-2 text-right">Actions</th>
+                    <th className="px-3 py-2 text-left">{tAdmin('academicYear', 'Academic Year')}</th>
+                    <th className="px-3 py-2 text-left">{tAdmin('term', 'Term')}</th>
+                    <th className="px-3 py-2 text-left">{tAdmin('start', 'Start')}</th>
+                    <th className="px-3 py-2 text-left">{tAdmin('end', 'End')}</th>
+                    <th className="px-3 py-2 text-left">{tAdmin('current', 'Current')}</th>
+                    <th className="px-3 py-2 text-left">{tAdmin('locked', 'Locked')}</th>
+                    <th className="px-3 py-2 text-right">{tAdmin('actions', 'Actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -310,8 +352,12 @@ export default function TermsPage() {
                       <td className="px-3 py-2">{term.name}</td>
                       <td className="px-3 py-2">{new Date(term.startDate).toLocaleDateString()}</td>
                       <td className="px-3 py-2">{new Date(term.endDate).toLocaleDateString()}</td>
-                      <td className="px-3 py-2">{term.isCurrent ? 'Yes' : 'No'}</td>
-                      <td className="px-3 py-2">{term.isLocked ? 'Yes' : 'No'}</td>
+                      <td className="px-3 py-2">
+                        {term.isCurrent ? tAdmin('yes', 'Yes') : tAdmin('no', 'No')}
+                      </td>
+                      <td className="px-3 py-2">
+                        {term.isLocked ? tAdmin('yes', 'Yes') : tAdmin('no', 'No')}
+                      </td>
                       <td className="px-3 py-2">
                         <div className="flex justify-end gap-2">
                           <Button
@@ -320,7 +366,7 @@ export default function TermsPage() {
                             disabled={term.isCurrent || saving}
                             onClick={() => setCurrentTerm(term.id)}
                           >
-                            Set Current
+                            {tAdmin('setCurrent', 'Set Current')}
                           </Button>
                           <Button
                             size="sm"
@@ -328,7 +374,7 @@ export default function TermsPage() {
                             disabled={saving}
                             onClick={() => toggleLock(term)}
                           >
-                            {term.isLocked ? 'Unlock' : 'Lock'}
+                            {term.isLocked ? tAdmin('unlock', 'Unlock') : tAdmin('lock', 'Lock')}
                           </Button>
                         </div>
                       </td>

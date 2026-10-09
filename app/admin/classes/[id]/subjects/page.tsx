@@ -9,6 +9,7 @@ import { useSession } from 'next-auth/react'
 import { redirect, useParams } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
 import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { useAdminUi } from '@/lib/use-admin-ui'
 
 type ClassDetails = {
   id: string
@@ -41,6 +42,7 @@ type Assignment = {
 export default function ClassSubjectsPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { tAdmin, tCommon } = useAdminUi()
   const params = useParams<{ id: string }>()
   const classId = params?.id
 
@@ -101,11 +103,11 @@ export default function ClassSubjectsPage() {
       }
     } catch (error) {
       console.error('Failed to fetch class subject assignment data:', error)
-      showToast('Failed to load class subject assignments', 'error')
+      showToast(tAdmin('failedLoadClassSubjects', 'Failed to load class subject assignments'), 'error')
     } finally {
       setLoading(false)
     }
-  }, [classId, showToast])
+  }, [classId, showToast, tAdmin])
 
   useEffect(() => {
     if (session && classId) {
@@ -117,7 +119,10 @@ export default function ClassSubjectsPage() {
     e.preventDefault()
 
     if (!classId || formData.subjectIds.length === 0 || !formData.teacherId) {
-      showToast('Please select one or more subjects and a teacher', 'warning')
+      showToast(
+        tAdmin('selectSubjectsAndTeacher', 'Please select one or more subjects and a teacher'),
+        'warning'
+      )
       return
     }
 
@@ -135,17 +140,23 @@ export default function ClassSubjectsPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        showToast(data.error || 'Failed to assign subject', 'error')
+        showToast(data.error || tAdmin('failedAssignSubject', 'Failed to assign subject'), 'error')
         return
       }
 
       setFormData({ subjectIds: [], teacherId: '' })
       const assignedCount = typeof data.count === 'number' ? data.count : formData.subjectIds.length
-      showToast(`${assignedCount} subject assignment(s) saved`, 'success')
+      showToast(
+        tAdmin('assignmentsSaved', '{n} subject assignment(s) saved').replace(
+          '{n}',
+          String(assignedCount)
+        ),
+        'success'
+      )
       await fetchData()
     } catch (error) {
       console.error('Failed to assign subject:', error)
-      showToast('Failed to assign subject', 'error')
+      showToast(tAdmin('failedAssignSubject', 'Failed to assign subject'), 'error')
     } finally {
       setSaving(false)
     }
@@ -153,7 +164,7 @@ export default function ClassSubjectsPage() {
 
   const handleRemove = async (subjectId: string) => {
     if (!classId) return
-    if (!confirm('Remove this subject assignment from class?')) return
+    if (!confirm(tAdmin('confirmRemoveAssignment', 'Remove this subject assignment from class?'))) return
 
     try {
       const res = await fetch(`/api/classes/${classId}/subjects?subjectId=${encodeURIComponent(subjectId)}`, {
@@ -163,15 +174,15 @@ export default function ClassSubjectsPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        showToast(data.error || 'Failed to remove assignment', 'error')
+        showToast(data.error || tAdmin('failedRemoveAssignment', 'Failed to remove assignment'), 'error')
         return
       }
 
-      showToast('Subject assignment removed', 'success')
+      showToast(tAdmin('assignmentRemoved', 'Subject assignment removed'), 'success')
       await fetchData()
     } catch (error) {
       console.error('Failed to remove assignment:', error)
-      showToast('Failed to remove assignment', 'error')
+      showToast(tAdmin('failedRemoveAssignment', 'Failed to remove assignment'), 'error')
     }
   }
 
@@ -188,7 +199,7 @@ export default function ClassSubjectsPage() {
   }
 
   if (status === 'loading' || !session) {
-    return <div>Loading...</div>
+    return <div>{tCommon('loading', 'Loading...')}</div>
   }
 
   const navItems = session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS
@@ -205,24 +216,31 @@ export default function ClassSubjectsPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Class Subject Assignment</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {tAdmin('classSubjectAssignment', 'Class Subject Assignment')}
+            </h1>
             <p className="text-gray-600 mt-2">
-              Class: <span className="font-semibold">{classDetails?.name || 'Loading...'}</span>
+              {tAdmin('classColon', 'Class:')}{' '}
+              <span className="font-semibold">
+                {classDetails?.name || tCommon('loading', 'Loading...')}
+              </span>
             </p>
           </div>
           <a
             href="/admin/classes"
             className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
           >
-            ← Back to Classes
+            {tAdmin('backToClasses', '← Back to Classes')}
           </a>
         </div>
 
         <Card className="p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Assign Subjects to Class</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            {tAdmin('assignSubjectsToClass', 'Assign Subjects to Class')}
+          </h2>
           <form onSubmit={handleAssign} noValidate className="space-y-4">
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">Subjects</p>
+              <p className="text-sm font-medium text-gray-700 mb-2">{tAdmin('subjects', 'Subjects')}</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto rounded-md border border-(--border-subtle) p-3 bg-white">
                 {subjects.map((subject) => {
                   const checked = formData.subjectIds.includes(subject.id)
@@ -239,16 +257,21 @@ export default function ClassSubjectsPage() {
                   )
                 })}
               </div>
-              <p className="mt-2 text-xs text-gray-600">Selected: {formData.subjectIds.length}</p>
+              <p className="mt-2 text-xs text-gray-600">
+                {tAdmin('selectedCount', 'Selected: {n}').replace(
+                  '{n}',
+                  String(formData.subjectIds.length)
+                )}
+              </p>
             </div>
 
             <Select
-              label="Teacher"
+              label={tAdmin('teacher', 'Teacher')}
               value={formData.teacherId}
               onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
               className="text-gray-900 bg-white"
             >
-              <option value="">Select teacher</option>
+              <option value="">{tAdmin('selectTeacher', 'Select teacher')}</option>
               {teachers.map((teacher) => (
                 <option key={teacher.id} value={teacher.id}>
                   {teacher.firstName} {teacher.lastName}
@@ -258,16 +281,18 @@ export default function ClassSubjectsPage() {
 
             <div className="flex justify-end">
               <Button type="submit" isLoading={saving}>
-                Save Assignments
+                {tAdmin('saveAssignments', 'Save Assignments')}
               </Button>
             </div>
           </form>
         </Card>
 
         <Card className="p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Assigned Subjects</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            {tAdmin('assignedSubjects', 'Assigned Subjects')}
+          </h2>
           {loading ? (
-            <div>Loading assignments...</div>
+            <div>{tAdmin('loadingAssignments', 'Loading assignments...')}</div>
           ) : assignments.length > 0 ? (
             <div className="space-y-3">
               {assignments.map((assignment) => (
@@ -278,17 +303,22 @@ export default function ClassSubjectsPage() {
                   <div>
                     <p className="font-semibold ui-text-primary">{assignment.subject.name}</p>
                     <p className="text-sm ui-text-secondary">
-                      Teacher: {(assignment.teacher.firstName || '')} {(assignment.teacher.lastName || '')}
+                      {tAdmin('teacherColonName', 'Teacher: {name}').replace(
+                        '{name}',
+                        `${assignment.teacher.firstName || ''} ${assignment.teacher.lastName || ''}`.trim()
+                      )}
                     </p>
                   </div>
                   <Button variant="danger" onClick={() => handleRemove(assignment.subject.id)}>
-                    Remove
+                    {tAdmin('remove', 'Remove')}
                   </Button>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-700">No subjects assigned to this class yet.</p>
+            <p className="text-gray-700">
+              {tAdmin('noSubjectsAssignedYet', 'No subjects assigned to this class yet.')}
+            </p>
           )}
         </Card>
       </div>

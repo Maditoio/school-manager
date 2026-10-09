@@ -269,11 +269,23 @@ export default function ClassesPage() {
       if (res.ok) {
         await fetchClasses()
         setShowBulkModal(false)
-        showToast(`Successfully created ${data.created} class(es)!`, 'success')
+        showToast(
+          tAdmin('bulkCreatedClasses', 'Successfully created {n} class(es)!').replace(
+            '{n}',
+            String(data.created)
+          ),
+          'success'
+        )
       } else {
         if (data.errors && data.errors.length > 0) {
           setBulkUploadErrors(data.errors)
-          showToast(`Failed to create ${data.failed} row(s). See errors below.`, 'error')
+          showToast(
+            tAdmin('bulkFailedClasses', 'Failed to create {n} row(s). See errors below.').replace(
+              '{n}',
+              String(data.failed)
+            ),
+            'error'
+          )
         } else {
           showToast(data.error || tAdmin('failedUploadClasses', 'Failed to upload classes'), 'error')
         }
@@ -401,7 +413,7 @@ export default function ClassesPage() {
                     <div className="relative">
                       <button
                         type="button"
-                        aria-label="Class actions"
+                        aria-label={tAdmin('classActions', 'Class actions')}
                         className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-(--border-subtle) bg-(--surface-soft) ui-text-secondary hover:ui-text-primary"
                         onClick={() => setOpenClassMenuId((prev) => (prev === cls.id ? null : cls.id))}
                       >
@@ -536,7 +548,9 @@ export default function ClassesPage() {
                   >
                     {tCommon('cancel', 'Cancel')}
                   </Button>
-                  <Button type="submit">{editingClass ? 'Update' : 'Create'}</Button>
+                  <Button type="submit">
+                    {editingClass ? tCommon('update', 'Update') : tCommon('create', 'Create')}
+                  </Button>
                 </div>
               </form>
             </Card>

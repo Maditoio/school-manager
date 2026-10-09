@@ -10,8 +10,10 @@ import { redirect } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
 import { PencilLine, Trash2, Plus, List, LayoutGrid } from 'lucide-react'
 import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { useAdminUi } from '@/lib/use-admin-ui'
 
 const DAYS = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const dayKeys = ['', 'dayMonday', 'dayTuesday', 'dayWednesday', 'dayThursday', 'dayFriday', 'daySaturday']
 
 const SUBJECT_COLORS = [
   'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
@@ -64,6 +66,9 @@ const emptyForm = {
 export default function AdminTimetablePage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { tAdmin, tCommon } = useAdminUi()
+  const dayLabel = (d: number) => tAdmin(dayKeys[d], DAYS[d])
+  const teacherLabel = tAdmin('teacher', 'Teacher:').replace(/:$/, '')
 
   const [slots, setSlots] = useState<TimetableSlot[]>([])
   const [classes, setClasses] = useState<Class[]>([])
@@ -169,28 +174,33 @@ export default function AdminTimetablePage() {
       })
       const data = await res.json()
       if (res.ok) {
-        showToast(editingSlot ? 'Slot updated' : 'Slot created', 'success')
+        showToast(
+          editingSlot
+            ? tAdmin('slotUpdated', 'Slot updated')
+            : tAdmin('slotCreated', 'Slot created'),
+          'success'
+        )
         setShowModal(false)
         fetchSlots()
       } else {
-        const msg = typeof data.error === 'string' ? data.error : (Array.isArray(data.error) ? data.error[0]?.message : 'Failed to save slot')
-        showToast(msg || 'Failed to save slot', 'error')
+        const msg = typeof data.error === 'string' ? data.error : (Array.isArray(data.error) ? data.error[0]?.message : tAdmin('failedSaveSlot', 'Failed to save slot'))
+        showToast(msg || tAdmin('failedSaveSlot', 'Failed to save slot'), 'error')
       }
     } catch {
-      showToast('Failed to save slot', 'error')
+      showToast(tAdmin('failedSaveSlot', 'Failed to save slot'), 'error')
     } finally {
       setSaving(false)
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this timetable slot?')) return
+    if (!confirm(tAdmin('confirmDeleteSlot', 'Delete this timetable slot?'))) return
     const res = await fetch(`/api/timetable/${id}`, { method: 'DELETE' })
     if (res.ok) {
-      showToast('Slot deleted', 'success')
+      showToast(tAdmin('slotDeleted', 'Slot deleted'), 'success')
       fetchSlots()
     } else {
-      showToast('Failed to delete slot', 'error')
+      showToast(tAdmin('failedDeleteSlot', 'Failed to delete slot'), 'error')
     }
   }
 
@@ -214,24 +224,24 @@ export default function AdminTimetablePage() {
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold ui-text-primary">Timetable</h1>
-            <p className="ui-text-secondary mt-1">Manage the weekly class schedule</p>
+            <h1 className="text-3xl font-bold ui-text-primary">{tAdmin('timetable', 'Timetable')}</h1>
+            <p className="ui-text-secondary mt-1">{tAdmin('manageWeeklySchedule', 'Manage the weekly class schedule')}</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setView('grid')}
               className={`ui-button ui-button-secondary h-8 px-3 text-[13px] inline-flex items-center gap-1 ${view === 'grid' ? 'ring-2 ring-(--accent)' : ''}`}
             >
-              <LayoutGrid className="h-4 w-4" /> Grid
+              <LayoutGrid className="h-4 w-4" /> {tAdmin('grid', 'Grid')}
             </button>
             <button
               onClick={() => setView('list')}
               className={`ui-button ui-button-secondary h-8 px-3 text-[13px] inline-flex items-center gap-1 ${view === 'list' ? 'ring-2 ring-(--accent)' : ''}`}
             >
-              <List className="h-4 w-4" /> List
+              <List className="h-4 w-4" /> {tAdmin('list', 'List')}
             </button>
             <Button onClick={openAdd}>
-              <Plus className="h-4 w-4 mr-1" /> Add Slot
+              <Plus className="h-4 w-4 mr-1" /> {tAdmin('addSlot', 'Add Slot')}
             </Button>
           </div>
         </div>
@@ -240,22 +250,22 @@ export default function AdminTimetablePage() {
         <div className="flex flex-wrap gap-3">
           <div className="w-56">
             <Select
-              label="Class"
+              label={tAdmin('class', 'Class')}
               value={filterClassId}
               onChange={e => setFilterClassId(e.target.value)}
             >
-              <option value="">All classes</option>
+              <option value="">{tAdmin('allClassesFilter', 'All classes')}</option>
               {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </Select>
           </div>
           {terms.length > 0 && (
             <div className="w-48">
               <Select
-                label="Term"
+                label={tAdmin('term', 'Term')}
                 value={filterTermId}
                 onChange={e => setFilterTermId(e.target.value)}
               >
-                <option value="">All terms</option>
+                <option value="">{tAdmin('allTerms', 'All terms')}</option>
                 {terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </Select>
             </div>
@@ -266,21 +276,21 @@ export default function AdminTimetablePage() {
         {loading ? (
           <div className="flex items-center gap-2 ui-text-secondary py-8">
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-(--border-subtle) border-t-(--accent)" />
-            Loading timetable…
+            {tAdmin('loadingTimetable', 'Loading timetable…')}
           </div>
         ) : slots.length === 0 ? (
           <Card className="p-10 text-center">
-            <p className="ui-text-secondary">No timetable slots found. Click "Add Slot" to create one.</p>
+            <p className="ui-text-secondary">{tAdmin('noTimetableSlots', 'No timetable slots found. Click "Add Slot" to create one.')}</p>
           </Card>
         ) : view === 'grid' ? (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr>
-                  <th className="ui-border border p-2 text-left ui-text-secondary font-medium min-w-20">Time</th>
+                  <th className="ui-border border p-2 text-left ui-text-secondary font-medium min-w-20">{tAdmin('time', 'Time')}</th>
                   {displayDays.map(d => (
                     <th key={d} className="ui-border border p-2 text-center ui-text-secondary font-medium min-w-35">
-                      {DAYS[d]}
+                      {dayLabel(d)}
                     </th>
                   ))}
                 </tr>
@@ -299,10 +309,10 @@ export default function AdminTimetablePage() {
                               <div className="opacity-75">{cell.teacher.firstName} {cell.teacher.lastName}</div>
                               <div className="opacity-60">{cell.startTime}–{cell.endTime}{cell.room ? ` · ${cell.room}` : ''}</div>
                               <div className="absolute top-1 right-1 hidden group-hover:flex gap-1">
-                                <button onClick={() => openEdit(cell)} className="rounded p-0.5 hover:bg-white/50" title="Edit">
+                                <button onClick={() => openEdit(cell)} className="rounded p-0.5 hover:bg-white/50" title={tAdmin('edit', 'Edit')}>
                                   <PencilLine className="h-3 w-3" />
                                 </button>
-                                <button onClick={() => handleDelete(cell.id)} className="rounded p-0.5 hover:bg-white/50 text-rose-600" title="Delete">
+                                <button onClick={() => handleDelete(cell.id)} className="rounded p-0.5 hover:bg-white/50 text-rose-600" title={tAdmin('delete', 'Delete')}>
                                   <Trash2 className="h-3 w-3" />
                                 </button>
                               </div>
@@ -321,19 +331,19 @@ export default function AdminTimetablePage() {
             <table className="w-full text-sm">
               <thead className="bg-(--surface-soft)">
                 <tr>
-                  <th className="px-4 py-3 text-left ui-text-secondary font-medium">Day</th>
-                  <th className="px-4 py-3 text-left ui-text-secondary font-medium">Time</th>
-                  <th className="px-4 py-3 text-left ui-text-secondary font-medium">Class</th>
-                  <th className="px-4 py-3 text-left ui-text-secondary font-medium">Subject</th>
-                  <th className="px-4 py-3 text-left ui-text-secondary font-medium">Teacher</th>
-                  <th className="px-4 py-3 text-left ui-text-secondary font-medium">Room</th>
+                  <th className="px-4 py-3 text-left ui-text-secondary font-medium">{tAdmin('day', 'Day')}</th>
+                  <th className="px-4 py-3 text-left ui-text-secondary font-medium">{tAdmin('time', 'Time')}</th>
+                  <th className="px-4 py-3 text-left ui-text-secondary font-medium">{tAdmin('class', 'Class')}</th>
+                  <th className="px-4 py-3 text-left ui-text-secondary font-medium">{tAdmin('subject', 'Subject')}</th>
+                  <th className="px-4 py-3 text-left ui-text-secondary font-medium">{teacherLabel}</th>
+                  <th className="px-4 py-3 text-left ui-text-secondary font-medium">{tAdmin('room', 'Room')}</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y ui-border">
                 {slots.map(slot => (
                   <tr key={slot.id} className="hover:bg-(--surface-soft)">
-                    <td className="px-4 py-3 ui-text-primary">{DAYS[slot.dayOfWeek]}</td>
+                    <td className="px-4 py-3 ui-text-primary">{dayLabel(slot.dayOfWeek)}</td>
                     <td className="px-4 py-3 ui-text-secondary font-mono text-[12px]">{slot.startTime}–{slot.endTime}</td>
                     <td className="px-4 py-3 ui-text-primary">{slot.class.name}</td>
                     <td className="px-4 py-3">
@@ -345,10 +355,10 @@ export default function AdminTimetablePage() {
                     <td className="px-4 py-3 ui-text-secondary">{slot.room || '—'}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => openEdit(slot)} className="ui-text-secondary hover:ui-text-primary" title="Edit">
+                        <button onClick={() => openEdit(slot)} className="ui-text-secondary hover:ui-text-primary" title={tAdmin('edit', 'Edit')}>
                           <PencilLine className="h-4 w-4" />
                         </button>
-                        <button onClick={() => handleDelete(slot.id)} className="text-rose-500 hover:text-rose-700" title="Delete">
+                        <button onClick={() => handleDelete(slot.id)} className="text-rose-500 hover:text-rose-700" title={tAdmin('delete', 'Delete')}>
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -366,54 +376,54 @@ export default function AdminTimetablePage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold ui-text-primary mb-5">
-              {editingSlot ? 'Edit Slot' : 'Add Timetable Slot'}
+              {editingSlot ? tAdmin('editSlot', 'Edit Slot') : tAdmin('addTimetableSlot', 'Add Timetable Slot')}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <Select
-                label="Class"
+                label={tAdmin('class', 'Class')}
                 value={formData.classId}
                 onChange={e => setFormData({ ...formData, classId: e.target.value })}
                 required
               >
-                <option value="">Select class</option>
+                <option value="">{tAdmin('selectClass', 'Select Class')}</option>
                 {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </Select>
               <Select
-                label="Subject"
+                label={tAdmin('subject', 'Subject')}
                 value={formData.subjectId}
                 onChange={e => setFormData({ ...formData, subjectId: e.target.value })}
                 required
               >
-                <option value="">Select subject</option>
+                <option value="">{tAdmin('selectSubject', 'Select subject')}</option>
                 {subjects.map(s => <option key={s.id} value={s.id}>{s.name}{s.code ? ` (${s.code})` : ''}</option>)}
               </Select>
               <Select
-                label="Teacher"
+                label={teacherLabel}
                 value={formData.teacherId}
                 onChange={e => setFormData({ ...formData, teacherId: e.target.value })}
                 required
               >
-                <option value="">Select teacher</option>
+                <option value="">{tAdmin('selectTeacher', 'Select teacher')}</option>
                 {teachers.map(t => <option key={t.id} value={t.id}>{t.firstName} {t.lastName}</option>)}
               </Select>
               <Select
-                label="Day of Week"
+                label={tAdmin('dayOfWeek', 'Day of Week')}
                 value={formData.dayOfWeek}
                 onChange={e => setFormData({ ...formData, dayOfWeek: e.target.value })}
                 required
               >
-                {[1, 2, 3, 4, 5, 6].map(d => <option key={d} value={d}>{DAYS[d]}</option>)}
+                {[1, 2, 3, 4, 5, 6].map(d => <option key={d} value={d}>{dayLabel(d)}</option>)}
               </Select>
               <div className="grid grid-cols-2 gap-3">
                 <Input
-                  label="Start Time"
+                  label={tAdmin('startTime', 'Start Time')}
                   type="time"
                   value={formData.startTime}
                   onChange={e => setFormData({ ...formData, startTime: e.target.value })}
                   required
                 />
                 <Input
-                  label="End Time"
+                  label={tAdmin('endTime', 'End Time')}
                   type="time"
                   value={formData.endTime}
                   onChange={e => setFormData({ ...formData, endTime: e.target.value })}
@@ -421,30 +431,30 @@ export default function AdminTimetablePage() {
                 />
               </div>
               <Input
-                label="Room (optional)"
+                label={tAdmin('roomOptional', 'Room (optional)')}
                 value={formData.room}
                 onChange={e => setFormData({ ...formData, room: e.target.value })}
-                placeholder="e.g. Room 12"
+                placeholder={tAdmin('egRoom', 'e.g. Room 12')}
               />
               {terms.length > 0 && (
                 <Select
-                  label="Term (optional)"
+                  label={tAdmin('termOptional', 'Term (optional)')}
                   value={formData.termId}
                   onChange={e => setFormData({ ...formData, termId: e.target.value })}
                 >
-                  <option value="">No specific term</option>
+                  <option value="">{tAdmin('noSpecificTerm', 'No specific term')}</option>
                   {terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </Select>
               )}
               <div className="flex gap-2 justify-end pt-2">
-                <Button type="button" variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
+                <Button type="button" variant="secondary" onClick={() => setShowModal(false)}>{tAdmin('cancel', 'Cancel')}</Button>
                 <Button type="submit" disabled={saving}>
                   {saving ? (
                     <span className="flex items-center gap-2">
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-(--border-subtle) border-t-(--accent)" />
-                      Saving…
+                      {tAdmin('saving', 'Saving…')}
                     </span>
-                  ) : editingSlot ? 'Update' : 'Create'}
+                  ) : editingSlot ? tAdmin('update', 'Update') : tAdmin('create', 'Create')}
                 </Button>
               </div>
             </form>

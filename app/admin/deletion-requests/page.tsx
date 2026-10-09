@@ -9,6 +9,7 @@ import { redirect } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
 import { format } from 'date-fns'
 import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { useAdminUi } from '@/lib/use-admin-ui'
 
 interface DeletionRequest {
   id: string
@@ -36,12 +37,20 @@ interface DeletionRequest {
 export default function DeletionRequestsPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { tAdmin, tCommon } = useAdminUi()
   const [requests, setRequests] = useState<DeletionRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [approving, setApproving] = useState<string | null>(null)
   const [executing, setExecuting] = useState<string | null>(null)
   const [cancelling, setCancelling] = useState<string | null>(null)
   const [selectedTab, setSelectedTab] = useState<'PENDING' | 'APPROVED' | 'EXECUTED' | 'CANCELLED'>('PENDING')
+
+  const tabLabel = (tab: 'PENDING' | 'APPROVED' | 'EXECUTED' | 'CANCELLED') => {
+    if (tab === 'PENDING') return tAdmin('pendingTab', 'Pending')
+    if (tab === 'APPROVED') return tAdmin('approvedTab', 'Approved')
+    if (tab === 'EXECUTED') return tAdmin('executedTab', 'Executed')
+    return tAdmin('cancelledTab', 'Cancelled')
+  }
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -51,11 +60,11 @@ export default function DeletionRequestsPage() {
       setRequests(data.deletionRequests || [])
     } catch (error) {
       console.error('Failed to fetch deletion requests:', error)
-      showToast('Failed to load deletion requests', 'error')
+      showToast(tAdmin('failedLoadDeletionRequests', 'Failed to load deletion requests'), 'error')
     } finally {
       setLoading(false)
     }
-  }, [selectedTab, showToast])
+  }, [selectedTab, showToast, tAdmin])
 
   useEffect(() => {
     if (session?.user) {
@@ -63,11 +72,11 @@ export default function DeletionRequestsPage() {
     }
   }, [fetchRequests, session])
 
-  if (status === 'loading') return <div>Loading...</div>
+  if (status === 'loading') return <div>{tCommon('loading', 'Loading...')}</div>
   if (!session?.user) redirect('/signin')
 
   const handleApprove = async (id: string) => {
-    if (!confirm('Are you sure you want to approve this deletion request?\n\nThis will schedule the resource for deletion in 30 days.')) {
+    if (!confirm(tAdmin('confirmApproveDeletion', 'Approve this deletion request?'))) {
       return
     }
 
@@ -80,21 +89,25 @@ export default function DeletionRequestsPage() {
       const data = await res.json()
 
       if (res.ok) {
-        showToast('Deletion request approved successfully!', 'success')
+        showToast(tAdmin('deletionApproved', 'Deletion request approved'), 'success')
         await fetchRequests()
       } else {
-        showToast(data.error || 'Failed to approve deletion request', 'error')
+        showToast(data.error || tAdmin('failedApproveDeletion', 'Failed to approve deletion request'), 'error')
       }
     } catch (error) {
       console.error('Failed to approve:', error)
-      showToast('Failed to approve deletion request', 'error')
+      showToast(tAdmin('failedApproveDeletion', 'Failed to approve deletion request'), 'error')
     } finally {
       setApproving(null)
     }
   }
 
   const handleExecute = async (id: string) => {
-    if (!confirm('Are you sure you want to execute this deletion NOW?\n\nThis will immediately delete the resource and all related data. This action cannot be undone.')) {
+    if (
+      !confirm(
+        tAdmin('confirmExecuteDeletion', 'Execute this deletion now? This cannot be undone.')
+      )
+    ) {
       return
     }
 
@@ -107,21 +120,21 @@ export default function DeletionRequestsPage() {
       const data = await res.json()
 
       if (res.ok) {
-        showToast('Resource deleted successfully!', 'success')
+        showToast(tAdmin('deletionExecuted', 'Deletion executed'), 'success')
         await fetchRequests()
       } else {
-        showToast(data.error || 'Failed to execute deletion', 'error')
+        showToast(data.error || tAdmin('failedExecuteDeletion', 'Failed to execute deletion'), 'error')
       }
     } catch (error) {
       console.error('Failed to execute:', error)
-      showToast('Failed to execute deletion', 'error')
+      showToast(tAdmin('failedExecuteDeletion', 'Failed to execute deletion'), 'error')
     } finally {
       setExecuting(null)
     }
   }
 
   const handleCancel = async (id: string) => {
-    if (!confirm('Are you sure you want to cancel this deletion request?\n\nThe resource will not be deleted.')) {
+    if (!confirm(tAdmin('confirmCancelDeletion', 'Cancel this deletion request?'))) {
       return
     }
 
@@ -134,14 +147,14 @@ export default function DeletionRequestsPage() {
       const data = await res.json()
 
       if (res.ok) {
-        showToast('Deletion request cancelled successfully!', 'success')
+        showToast(tAdmin('deletionCancelled', 'Deletion request cancelled'), 'success')
         await fetchRequests()
       } else {
-        showToast(data.error || 'Failed to cancel deletion request', 'error')
+        showToast(data.error || tAdmin('failedCancelDeletion', 'Failed to cancel deletion request'), 'error')
       }
     } catch (error) {
       console.error('Failed to cancel:', error)
-      showToast('Failed to cancel deletion request', 'error')
+      showToast(tAdmin('failedCancelDeletion', 'Failed to cancel deletion request'), 'error')
     } finally {
       setCancelling(null)
     }
@@ -150,10 +163,11 @@ export default function DeletionRequestsPage() {
   const tabs: Array<'PENDING' | 'APPROVED' | 'EXECUTED' | 'CANCELLED'> = ['PENDING', 'APPROVED', 'EXECUTED', 'CANCELLED']
 
   if (!session) {
-    return <div>Loading...</div>
+    return <div>{tCommon('loading', 'Loading...')}</div>
   }
 
   const navItems = session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS
+  const statusLabel = tabLabel(selectedTab)
 
   return (
     <DashboardLayout
@@ -166,8 +180,10 @@ export default function DeletionRequestsPage() {
     >
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Deletion Requests</h1>
-          <p className="text-sm text-gray-600">Manage critical resource deletions with 2-admin approval</p>
+          <h1 className="text-3xl font-bold">{tAdmin('deletionRequestsTitle', 'Deletion Requests')}</h1>
+          <p className="text-sm text-gray-600">
+            {tAdmin('deletionRequestsHelp', 'Manage critical resource deletions with 2-admin approval')}
+          </p>
         </div>
 
         {/* Tabs */}
@@ -182,10 +198,7 @@ export default function DeletionRequestsPage() {
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              {tab === 'PENDING' && '⏳ Pending'}
-              {tab === 'APPROVED' && '✅ Approved'}
-              {tab === 'EXECUTED' && '🗑️ Executed'}
-              {tab === 'CANCELLED' && '❌ Cancelled'}
+              {tabLabel(tab)}
             </button>
           ))}
         </div>
@@ -193,10 +206,10 @@ export default function DeletionRequestsPage() {
         {/* Requests List */}
         <div className="space-y-4">
           {loading ? (
-            <Card className="p-8 text-center text-gray-500">Loading...</Card>
+            <Card className="p-8 text-center text-gray-500">{tCommon('loading', 'Loading...')}</Card>
           ) : requests.length === 0 ? (
             <Card className="p-8 text-center text-gray-500">
-              No {selectedTab.toLowerCase()} deletion requests
+              {tAdmin('noDeletionRequests', 'No {status} deletion requests').replace('{status}', statusLabel)}
             </Card>
           ) : (
             requests.map((request) => (
@@ -219,19 +232,19 @@ export default function DeletionRequestsPage() {
                             : 'bg-red-100 text-red-800'
                         }`}
                       >
-                        {request.status}
+                        {tabLabel(request.status as 'PENDING' | 'APPROVED' | 'EXECUTED' | 'CANCELLED')}
                       </span>
                     </div>
 
                     {request.reason && (
                       <p className="text-sm text-gray-600 mb-3">
-                        <strong>Reason:</strong> {request.reason}
+                        <strong>{tAdmin('reason', 'Reason:')}</strong> {request.reason}
                       </p>
                     )}
 
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <p className="text-gray-600">Requested by</p>
+                        <p className="text-gray-600">{tAdmin('requestedBy', 'Requested by')}</p>
                         <p className="font-medium">
                           {request.requestor.firstName} {request.requestor.lastName}
                         </p>
@@ -240,7 +253,7 @@ export default function DeletionRequestsPage() {
 
                       {request.approver && (
                         <div>
-                          <p className="text-gray-600">Approved by</p>
+                          <p className="text-gray-600">{tAdmin('approvedBy', 'Approved by')}</p>
                           <p className="font-medium">
                             {request.approver.firstName} {request.approver.lastName}
                           </p>
@@ -249,14 +262,16 @@ export default function DeletionRequestsPage() {
                       )}
 
                       <div>
-                        <p className="text-gray-600">Created</p>
+                        <p className="text-gray-600">{tAdmin('created', 'Created')}</p>
                         <p className="font-medium">{format(new Date(request.createdAt), 'MMM dd, yyyy')}</p>
                         <p className="text-xs text-gray-500">{format(new Date(request.createdAt), 'hh:mm a')}</p>
                       </div>
 
                       <div>
                         <p className="text-gray-600">
-                          {request.status === 'PENDING' ? 'Will be deleted' : 'Scheduled for deletion'}
+                          {request.status === 'PENDING'
+                            ? tAdmin('willBeDeleted', 'Will be deleted')
+                            : tAdmin('scheduledForDeletion', 'Scheduled for deletion')}
                         </p>
                         <p className="font-medium">{format(new Date(request.scheduledFor), 'MMM dd, yyyy')}</p>
                         <p className="text-xs text-gray-500">
@@ -274,14 +289,18 @@ export default function DeletionRequestsPage() {
                           disabled={approving === request.id}
                           className="bg-green-600 text-white hover:bg-green-700 disabled:bg-gray-400"
                         >
-                          {approving === request.id ? 'Approving...' : 'Approve'}
+                          {approving === request.id
+                            ? tAdmin('approving', 'Approving...')
+                            : tAdmin('approve', 'Approve')}
                         </Button>
                         <Button
                           onClick={() => handleCancel(request.id)}
                           disabled={cancelling === request.id}
                           className="bg-gray-500 text-white hover:bg-gray-600 disabled:bg-gray-400"
                         >
-                          {cancelling === request.id ? 'Cancelling...' : 'Cancel'}
+                          {cancelling === request.id
+                            ? tAdmin('cancelling', 'Cancelling...')
+                            : tAdmin('cancel', 'Cancel')}
                         </Button>
                       </>
                     )}
@@ -289,28 +308,35 @@ export default function DeletionRequestsPage() {
                     {request.status === 'APPROVED' && (
                       <>
                         <div className="text-xs bg-blue-50 text-blue-700 p-2 rounded text-center mb-2">
-                          Scheduled for {format(new Date(request.scheduledFor), 'MMM dd, yyyy')}
+                          {tAdmin('scheduledForDate', 'Scheduled for {date}').replace(
+                            '{date}',
+                            format(new Date(request.scheduledFor), 'MMM dd, yyyy')
+                          )}
                         </div>
                         <Button
                           onClick={() => handleExecute(request.id)}
                           disabled={executing === request.id}
                           className="bg-red-600 text-white hover:bg-red-700 disabled:bg-gray-400"
                         >
-                          {executing === request.id ? 'Deleting...' : 'Delete Now'}
+                          {executing === request.id
+                            ? tAdmin('deleting', 'Deleting...')
+                            : tAdmin('deleteNow', 'Delete Now')}
                         </Button>
                         <Button
                           onClick={() => handleCancel(request.id)}
                           disabled={cancelling === request.id}
                           className="bg-gray-500 text-white hover:bg-gray-600 disabled:bg-gray-400"
                         >
-                          {cancelling === request.id ? 'Cancelling...' : 'Cancel'}
+                          {cancelling === request.id
+                            ? tAdmin('cancelling', 'Cancelling...')
+                            : tAdmin('cancel', 'Cancel')}
                         </Button>
                       </>
                     )}
 
                     {request.status === 'EXECUTED' && (
                       <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded text-center">
-                        ✓ Executed
+                        ✓ {tAdmin('executedLabel', 'Executed')}
                       </span>
                     )}
                   </div>
@@ -323,8 +349,11 @@ export default function DeletionRequestsPage() {
         {/* Info Box */}
         <Card className="p-4 bg-blue-50 border-blue-200">
           <p className="text-sm text-blue-900">
-            <strong>How it works:</strong> Any admin can request a deletion. Another admin must approve it. After approval, the
-            resource is scheduled for deletion in 30 days, during which it can still be recovered if needed.
+            <strong>{tAdmin('howDeletionWorks', 'How deletion requests work')}</strong>{' '}
+            {tAdmin(
+              'howDeletionWorksBody',
+              'Critical deletions require approval from a second admin. After approval, deletion is scheduled. You can cancel before execution.'
+            )}
           </p>
         </Card>
       </div>

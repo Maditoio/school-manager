@@ -12,6 +12,7 @@ import {
   FINANCE_MANAGER_NAV_ITEMS,
   FINANCE_NAV_ITEMS,
 } from '@/lib/admin-nav'
+import { useAdminUi } from '@/lib/use-admin-ui'
 
 interface InvoiceInfo {
   onboardingFee: number
@@ -40,6 +41,7 @@ function formatUSD(amount: number): string {
 
 export default function SchoolInvoicePage() {
   const { data: session, status } = useSession()
+  const { tAdmin } = useAdminUi()
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -70,7 +72,7 @@ export default function SchoolInvoicePage() {
     setError(null)
     try {
       const res = await fetch(`/api/schools/${schoolId}/billing-payments`)
-      if (!res.ok) throw new Error('Failed to load the school invoice')
+      if (!res.ok) throw new Error(tAdmin('failedLoadInvoice', 'Failed to load the school invoice'))
       const data = await res.json()
       setInvoice({
         onboardingFee: Number(data.onboardingFee ?? 0),
@@ -84,11 +86,11 @@ export default function SchoolInvoicePage() {
       })
       setPayments(data.payments || [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load the school invoice')
+      setError(err instanceof Error ? err.message : tAdmin('failedLoadInvoice', 'Failed to load the school invoice'))
     } finally {
       setLoading(false)
     }
-  }, [schoolId])
+  }, [schoolId, tAdmin])
 
   useEffect(() => {
     if (schoolId) fetchBillingInfo()
@@ -127,12 +129,12 @@ export default function SchoolInvoicePage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error || 'Failed to start payment')
+        setError(data.error || tAdmin('failedStartPayment', 'Failed to start payment'))
         return
       }
       if (data.url) window.location.href = data.url
     } catch {
-      setError('Failed to start payment')
+      setError(tAdmin('failedStartPayment', 'Failed to start payment'))
     } finally {
       setProcessingInvoice(false)
     }
@@ -145,12 +147,12 @@ export default function SchoolInvoicePage() {
       const res = await fetch(`/api/schools/${schoolId}/onboarding/checkout`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error || 'Failed to start onboarding payment')
+        setError(data.error || tAdmin('failedStartOnboarding', 'Failed to start onboarding payment'))
         return
       }
       if (data.url) window.location.href = data.url
     } catch {
-      setError('Failed to start onboarding payment')
+      setError(tAdmin('failedStartOnboarding', 'Failed to start onboarding payment'))
     } finally {
       setProcessingOnboarding(false)
     }
@@ -167,6 +169,11 @@ export default function SchoolInvoicePage() {
           ? DEPUTY_ADMIN_NAV_ITEMS
           : ADMIN_NAV_ITEMS
 
+  const studentWord =
+    invoice && invoice.activeStudents === 1
+      ? tAdmin('studentSingular', 'student')
+      : tAdmin('studentPlural', 'students')
+
   return (
     <DashboardLayout
       user={{
@@ -178,9 +185,14 @@ export default function SchoolInvoicePage() {
     >
       <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto">
         <div>
-          <h1 className="text-[20px] font-semibold" style={{ color: '#0a2540' }}>School invoice</h1>
+          <h1 className="text-[20px] font-semibold" style={{ color: '#0a2540' }}>
+            {tAdmin('schoolInvoice', 'School invoice')}
+          </h1>
           <p className="text-sm mt-1" style={{ color: '#8898aa' }}>
-            One annual charge for this school: active students times the price per student.
+            {tAdmin(
+              'schoolInvoiceHelp',
+              'One annual charge for this school: active students times the price per student.'
+            )}
           </p>
         </div>
 
@@ -191,49 +203,72 @@ export default function SchoolInvoicePage() {
         )}
 
         {loading || !invoice ? (
-          <p className="text-sm" style={{ color: '#8898aa' }}>Loading invoice...</p>
+          <p className="text-sm" style={{ color: '#8898aa' }}>{tAdmin('loadingInvoice', 'Loading invoice...')}</p>
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-white border p-4" style={{ borderColor: '#e0e6ed', borderRadius: 10 }}>
-                <p className="text-[11px] uppercase tracking-[0.07em]" style={{ color: '#8898aa' }}>Active students</p>
+                <p className="text-[11px] uppercase tracking-[0.07em]" style={{ color: '#8898aa' }}>
+                  {tAdmin('activeStudents', 'Active students')}
+                </p>
                 <p className="text-2xl font-semibold mt-2" style={{ color: '#0a2540' }}>{invoice.activeStudents}</p>
                 <p className="text-xs mt-1" style={{ color: '#8898aa' }}>
                   {invoice.annualPricePerStudent > 0
-                    ? `${formatUSD(invoice.annualPricePerStudent)} each`
-                    : 'Price not set'}
+                    ? `${formatUSD(invoice.annualPricePerStudent)} ${tAdmin('each', 'each')}`
+                    : tAdmin('priceNotSet', 'Price not set')}
                 </p>
               </div>
               <div className="bg-white border p-4" style={{ borderColor: '#e0e6ed', borderRadius: 10 }}>
-                <p className="text-[11px] uppercase tracking-[0.07em]" style={{ color: '#8898aa' }}>Invoice {invoice.billingYear}</p>
+                <p className="text-[11px] uppercase tracking-[0.07em]" style={{ color: '#8898aa' }}>
+                  {tAdmin('invoiceYear', 'Invoice {year}').replace('{year}', String(invoice.billingYear))}
+                </p>
                 <p className="text-2xl font-semibold mt-2" style={{ color: '#0a2540' }}>{formatUSD(invoice.invoiceAmount)}</p>
-                <p className="text-xs mt-1" style={{ color: '#8898aa' }}>Paid {formatUSD(invoice.amountPaid)}</p>
+                <p className="text-xs mt-1" style={{ color: '#8898aa' }}>
+                  {tAdmin('paidAmount', 'Paid {amount}').replace('{amount}', formatUSD(invoice.amountPaid))}
+                </p>
               </div>
               <div className="bg-white border p-4" style={{ borderColor: '#e0e6ed', borderRadius: 10 }}>
-                <p className="text-[11px] uppercase tracking-[0.07em]" style={{ color: '#8898aa' }}>Outstanding</p>
+                <p className="text-[11px] uppercase tracking-[0.07em]" style={{ color: '#8898aa' }}>
+                  {tAdmin('outstanding', 'Outstanding')}
+                </p>
                 <p className="text-2xl font-semibold mt-2" style={{ color: invoice.outstanding > 0 ? '#c0392b' : '#1b8a5a' }}>
                   {formatUSD(invoice.outstanding)}
                 </p>
                 <p className="text-xs mt-1" style={{ color: '#8898aa' }}>
-                  {invoice.outstanding > 0 ? 'Unpaid' : 'Paid'}
+                  {invoice.outstanding > 0 ? tAdmin('unpaid', 'Unpaid') : tAdmin('paid', 'Paid')}
                 </p>
               </div>
             </div>
 
             <div className="bg-white border p-5 space-y-4" style={{ borderColor: '#e0e6ed', borderRadius: 10 }}>
-              <h2 className="text-sm font-semibold" style={{ color: '#0a2540' }}>Annual invoice</h2>
+              <h2 className="text-sm font-semibold" style={{ color: '#0a2540' }}>
+                {tAdmin('annualInvoice', 'Annual invoice')}
+              </h2>
               <p className="text-sm" style={{ color: '#8898aa' }}>
-                {invoice.activeStudents} active {invoice.activeStudents === 1 ? 'student' : 'students'} × {formatUSD(invoice.annualPricePerStudent)} = {formatUSD(invoice.invoiceAmount)}.
+                {tAdmin('invoiceCalc', '{n} active {studentWord} × {price} = {total}.')
+                  .replace('{n}', String(invoice.activeStudents))
+                  .replace('{studentWord}', studentWord)
+                  .replace('{price}', formatUSD(invoice.annualPricePerStudent))
+                  .replace('{total}', formatUSD(invoice.invoiceAmount))}
               </p>
               <Button onClick={handlePayInvoice} isLoading={processingInvoice} disabled={invoice.outstanding <= 0}>
-                {invoice.outstanding > 0 ? `Pay ${formatUSD(invoice.outstanding)}` : 'Invoice paid'}
+                {invoice.outstanding > 0
+                  ? tAdmin('payAmount', 'Pay {amount}').replace('{amount}', formatUSD(invoice.outstanding))
+                  : tAdmin('invoicePaid', 'Invoice paid')}
               </Button>
             </div>
 
             {invoice.onboardingStatus === 'PENDING' && invoice.onboardingFee > 0 && (
               <div className="bg-white border p-5 space-y-3" style={{ borderColor: '#e0e6ed', borderRadius: 10 }}>
-                <h2 className="text-sm font-semibold" style={{ color: '#0a2540' }}>Onboarding fee</h2>
-                <p className="text-sm" style={{ color: '#8898aa' }}>One-time setup fee of {formatUSD(invoice.onboardingFee)}.</p>
+                <h2 className="text-sm font-semibold" style={{ color: '#0a2540' }}>
+                  {tAdmin('onboardingFee', 'Onboarding fee')}
+                </h2>
+                <p className="text-sm" style={{ color: '#8898aa' }}>
+                  {tAdmin('onboardingFeeAmount', 'One-time setup fee of {amount}.').replace(
+                    '{amount}',
+                    formatUSD(invoice.onboardingFee)
+                  )}
+                </p>
                 <button
                   type="button"
                   onClick={handlePayOnboardingFee}
@@ -241,7 +276,9 @@ export default function SchoolInvoicePage() {
                   className="text-sm font-medium"
                   style={{ color: '#635bff' }}
                 >
-                  {processingOnboarding ? 'Starting payment...' : 'Pay onboarding fee →'}
+                  {processingOnboarding
+                    ? tAdmin('startingPayment', 'Starting payment...')
+                    : tAdmin('payOnboardingFee', 'Pay onboarding fee →')}
                 </button>
               </div>
             )}
@@ -249,16 +286,24 @@ export default function SchoolInvoicePage() {
         )}
 
         <div className="bg-white border p-5" style={{ borderColor: '#e0e6ed', borderRadius: 10 }}>
-          <h2 className="text-sm font-semibold mb-4" style={{ color: '#0a2540' }}>Payments</h2>
+          <h2 className="text-sm font-semibold mb-4" style={{ color: '#0a2540' }}>
+            {tAdmin('payments', 'Payments')}
+          </h2>
           {payments.length === 0 ? (
-            <p className="text-sm" style={{ color: '#8898aa' }}>No payments recorded yet.</p>
+            <p className="text-sm" style={{ color: '#8898aa' }}>{tAdmin('noPaymentsYet', 'No payments recorded yet.')}</p>
           ) : (
             <table className="w-full text-sm">
               <thead>
                 <tr>
-                  <th className="text-left text-[11px] uppercase tracking-[0.07em] pb-2" style={{ color: '#8898aa' }}>Date</th>
-                  <th className="text-left text-[11px] uppercase tracking-[0.07em] pb-2" style={{ color: '#8898aa' }}>Type</th>
-                  <th className="text-right text-[11px] uppercase tracking-[0.07em] pb-2" style={{ color: '#8898aa' }}>Amount</th>
+                  <th className="text-left text-[11px] uppercase tracking-[0.07em] pb-2" style={{ color: '#8898aa' }}>
+                    {tAdmin('date', 'Date')}
+                  </th>
+                  <th className="text-left text-[11px] uppercase tracking-[0.07em] pb-2" style={{ color: '#8898aa' }}>
+                    {tAdmin('type', 'Type')}
+                  </th>
+                  <th className="text-right text-[11px] uppercase tracking-[0.07em] pb-2" style={{ color: '#8898aa' }}>
+                    {tAdmin('amount', 'Amount')}
+                  </th>
                 </tr>
               </thead>
               <tbody>
