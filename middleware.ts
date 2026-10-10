@@ -5,21 +5,35 @@ import { auth } from "@/lib/auth"
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Public routes that don't require authentication
+  // Public routes that don't require authentication.
+  // Exact '/' only — startsWith('/') would match every path and skip auth/reset checks.
   const publicRoutes = [
-    '/',
     '/login',
     '/reset-password',
     '/manifest.json',
     '/sw.js',
+    '/workbox-',
+    '/azelio-logo.png',
+    '/icon-192x192.png',
+    '/icon-512x512.png',
+    '/apple-touch-icon.png',
+    '/favicon.png',
     '/favicon.ico',
     '/api/auth',
     '/_next',
     '/public'
   ]
-  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
+  const isPublicRoute =
+    pathname === '/' || publicRoutes.some((route) => pathname.startsWith(route))
 
   if (isPublicRoute) {
+    // Landing page is public, but authenticated users still need forced password reset.
+    if (pathname === '/') {
+      const session = await auth()
+      if (session?.user?.mustResetPassword) {
+        return NextResponse.redirect(new URL('/reset-password', request.url))
+      }
+    }
     return NextResponse.next()
   }
 

@@ -7,6 +7,10 @@ export default async function Home() {
 
   // If user is authenticated, redirect to their dashboard
   if (session?.user) {
+    if (session.user.mustResetPassword) {
+      redirect('/reset-password')
+    }
+
     switch (session.user.role) {
       case 'SUPER_ADMIN':
         redirect('/super-admin/dashboard')
