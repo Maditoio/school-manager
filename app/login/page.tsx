@@ -54,7 +54,7 @@ export default function LoginPage() {
         } else if (errorCode === 'school_inactive') {
           setError('Your school account is currently inactive. Please contact the administrator.')
         } else if (errorCode === 'school_required') {
-          setError('This admission number exists at more than one school. Enter your school code to continue.')
+          setError('Please enter your school code to continue.')
         } else if (result?.error && result.error !== 'CredentialsSignin') {
           setError(result.error)
         } else {
@@ -203,7 +203,6 @@ export default function LoginPage() {
                     type="text"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com, +2557…, or STU001"
                     required
                     className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors bg-gray-50 text-gray-900"
                   />
@@ -211,20 +210,16 @@ export default function LoginPage() {
 
                 <div>
                   <label htmlFor="schoolCode" className="block text-sm font-medium text-gray-900 mb-2">
-                    School code <span className="text-gray-500 font-normal">(students, if required)</span>
+                    School code
                   </label>
                   <input
                     id="schoolCode"
                     type="text"
                     value={schoolCode}
                     onChange={(e) => setSchoolCode(e.target.value.toUpperCase())}
-                    placeholder="e.g. DEMOSCH"
                     autoComplete="organization"
                     className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors bg-gray-50 text-gray-900"
                   />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Required when the same admission number is used at more than one school.
-                  </p>
                 </div>
 
                 <div>
