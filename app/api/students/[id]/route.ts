@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { hasRole } from "@/lib/auth-utils"
+import { updateStudentSchema } from "@/lib/validations"
 import { Prisma } from "@prisma/client"
 import { hash } from "bcryptjs"
 
@@ -177,14 +178,40 @@ export async function PUT(
     }
 
     const body = await request.json()
+    const validation = updateStudentSchema.safeParse(body)
+
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error.issues },
+        { status: 400 }
+      )
+    }
+
+    const {
+      firstName,
+      lastName,
+      gender,
+      classId,
+      status,
+      academicYear,
+      parentId,
+      parentName,
+      parentEmail,
+      parentPhone,
+      emergencyContactName,
+      emergencyContactPhone,
+      dateOfBirth,
+      admissionNumber,
+    } = validation.data
+
     const { id: studentId } = await params
 
     let resolvedAcademicYear: number | undefined
     let resolvedSchoolId: string | undefined
 
-    if (body.classId) {
+    if (classId) {
       const classData = await prisma.class.findUnique({
-        where: { id: body.classId },
+        where: { id: classId },
         select: { schoolId: true, academicYear: true },
       })
 
@@ -196,11 +223,11 @@ export async function PUT(
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
 
-      resolvedAcademicYear = Number(body.academicYear) || classData.academicYear
+      resolvedAcademicYear = academicYear || classData.academicYear
       resolvedSchoolId = classData.schoolId
     }
 
-    let linkedParentId = body.parentId
+    let linkedParentId = parentId
 
     const existingStudent = await prisma.student.findUnique({
       where: { id: studentId },
@@ -222,55 +249,52 @@ export async function PUT(
     }
 
     if (!resolvedAcademicYear) {
-      resolvedAcademicYear = existingStudent.academicYear
+      resolvedAcademicYear = academicYear || existingStudent.academicYear
     }
 
     if (!linkedParentId) {
       linkedParentId = await ensureParentUser({
         schoolId: resolvedSchoolId,
-        parentEmail: body.parentEmail,
-        parentName: body.parentName,
+        parentEmail,
+        parentName,
       })
     }
 
     const resolvedAdmissionNumber =
-      String(body.admissionNumber || '').trim() ||
+      String(admissionNumber || '').trim() ||
       existingStudent.admissionNumber ||
       (await generateAdmissionNumber(resolvedSchoolId, resolvedAcademicYear))
 
-    const allowedStatuses = new Set(['ACTIVE', 'LEFT'])
-    const resolvedStatus =
-      typeof body.status === 'string' && allowedStatuses.has(body.status)
-        ? body.status
-        : undefined
+    const resolvedStatus = status
 
     const student = await prisma.student.update({
       where: { id: studentId },
       data: {
-        firstName: body.firstName,
-        lastName: body.lastName,
-        dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : undefined,
+        firstName,
+        lastName,
+        gender,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
         admissionNumber: resolvedAdmissionNumber,
-        classId: body.classId,
+        classId,
         academicYear: resolvedAcademicYear,
         status: resolvedStatus,
         statusReason: resolvedStatus === 'LEFT' ? 'OTHER' : resolvedStatus === 'ACTIVE' ? null : undefined,
         statusDate: resolvedStatus ? new Date() : undefined,
         statusNotes: resolvedStatus ? 'Updated via student edit form' : undefined,
         parentId: linkedParentId,
-        parentName: body.parentName !== undefined ? String(body.parentName || '').trim() || null : undefined,
+        parentName: parentName !== undefined ? String(parentName || '').trim() || null : undefined,
         parentEmail:
-          body.parentEmail !== undefined
-            ? String(body.parentEmail || '').trim().toLowerCase() || null
+          parentEmail !== undefined
+            ? String(parentEmail || '').trim().toLowerCase() || null
             : undefined,
-        parentPhone: body.parentPhone !== undefined ? String(body.parentPhone || '').trim() || null : undefined,
+        parentPhone: parentPhone !== undefined ? String(parentPhone || '').trim() || null : undefined,
         emergencyContactName:
-          body.emergencyContactName !== undefined
-            ? String(body.emergencyContactName || '').trim() || null
+          emergencyContactName !== undefined
+            ? String(emergencyContactName || '').trim() || null
             : undefined,
         emergencyContactPhone:
-          body.emergencyContactPhone !== undefined
-            ? String(body.emergencyContactPhone || '').trim() || null
+          emergencyContactPhone !== undefined
+            ? String(emergencyContactPhone || '').trim() || null
             : undefined,
       } as Prisma.StudentUncheckedUpdateInput,
       include: {
@@ -291,7 +315,7 @@ export async function PUT(
       },
     })
 
-    const nextClassId = typeof body.classId === 'string' ? body.classId : existingStudent.classId
+    const nextClassId = typeof classId === 'string' ? classId : existingStudent.classId
     if (nextClassId !== existingStudent.classId) {
       await prisma.studentClassHistory.create({
         data: {

@@ -8,11 +8,23 @@ import { Input, Select } from '@/components/ui/Form'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
-import { BookOpen, CalendarDays, GraduationCap, MoreHorizontal, PencilLine, Trash2, UserRound, Users } from 'lucide-react'
+import { BookOpen, CalendarDays, GraduationCap, Info, MoreHorizontal, PencilLine, Trash2, UserRound, Users } from 'lucide-react'
 import enMessages from '@/messages/en.json'
 import frMessages from '@/messages/fr.json'
 import swMessages from '@/messages/sw.json'
 import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+
+interface SubjectSummary {
+  id: string
+  name: string
+  code: string | null
+}
+
+interface TeacherSubjectGroup {
+  teacherId: string
+  teacher: { id: string; firstName: string; lastName: string }
+  subjects: SubjectSummary[]
+}
 
 interface Class {
   id: string
@@ -22,6 +34,7 @@ interface Class {
   teacherId: string | null
   capacity?: number | null
   teacher?: { firstName: string; lastName: string }
+  teacherSubjectGroups?: TeacherSubjectGroup[]
   _count?: { students: number }
 }
 
@@ -52,7 +65,9 @@ export default function ClassesPage() {
   const [bulkUploadLoading, setBulkUploadLoading] = useState(false)
   const [bulkUploadErrors, setBulkUploadErrors] = useState<Array<{ row: number; error: string }>>([])
   const [openClassMenuId, setOpenClassMenuId] = useState<string | null>(null)
+  const [openTeachersInfoClassId, setOpenTeachersInfoClassId] = useState<string | null>(null)
   const classMenuRef = useRef<HTMLDivElement | null>(null)
+  const teachersInfoRef = useRef<HTMLDivElement | null>(null)
   const [editingClass, setEditingClass] = useState<Class | null>(null)
   const [formData, setFormData] = useState({
     name: '',
@@ -329,18 +344,22 @@ export default function ClassesPage() {
   }
 
   useEffect(() => {
-    if (!openClassMenuId) return
+    if (!openClassMenuId && !openTeachersInfoClassId) return
 
     const handlePointerDown = (event: MouseEvent) => {
-      if (!classMenuRef.current) return
-      if (!classMenuRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      if (openClassMenuId && classMenuRef.current && !classMenuRef.current.contains(target)) {
         setOpenClassMenuId(null)
+      }
+      if (openTeachersInfoClassId && teachersInfoRef.current && !teachersInfoRef.current.contains(target)) {
+        setOpenTeachersInfoClassId(null)
       }
     }
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setOpenClassMenuId(null)
+        setOpenTeachersInfoClassId(null)
       }
     }
 
@@ -351,7 +370,7 @@ export default function ClassesPage() {
       document.removeEventListener('mousedown', handlePointerDown)
       document.removeEventListener('keydown', handleEscape)
     }
-  }, [openClassMenuId])
+  }, [openClassMenuId, openTeachersInfoClassId])
 
   if (status === 'loading' || !session) {
     return <div>{tCommon('loading', 'Loading...')}</div>
@@ -406,7 +425,12 @@ export default function ClassesPage() {
         ) : classes.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {classes.map((cls) => (
-              <Card key={cls.id} className={`p-6 relative ${openClassMenuId === cls.id ? 'z-30' : 'z-0'}`}>
+              <Card
+                key={cls.id}
+                className={`p-6 relative ${
+                  openClassMenuId === cls.id || openTeachersInfoClassId === cls.id ? 'z-30' : 'z-0'
+                }`}
+              >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2" ref={openClassMenuId === cls.id ? classMenuRef : undefined}>
                     <h3 className="text-xl font-semibold text-gray-900">{cls.name}</h3>
@@ -469,9 +493,57 @@ export default function ClassesPage() {
                       <CalendarDays className="h-4 w-4" />
                       {tAdmin('year', 'Year:')} {cls.academicYear}
                     </p>
-                    <p className="flex items-center gap-2">
-                      <UserRound className="h-4 w-4" />
-                      {tAdmin('teacher', 'Teacher:')} {cls.teacher ? `${cls.teacher.firstName} ${cls.teacher.lastName}` : tAdmin('na', 'N/A')}
+                    <p className="flex items-start gap-2">
+                      <UserRound className="h-4 w-4 shrink-0 mt-0.5" />
+                      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                        <span>
+                          {tAdmin('teacher', 'Teacher:')}{' '}
+                          {cls.teacher
+                            ? `${cls.teacher.firstName} ${cls.teacher.lastName}`
+                            : tAdmin('na', 'N/A')}
+                        </span>
+                        {(cls.teacherSubjectGroups?.length ?? 0) > 0 ? (
+                          <span
+                            className="relative inline-flex"
+                            ref={openTeachersInfoClassId === cls.id ? teachersInfoRef : undefined}
+                          >
+                            <button
+                              type="button"
+                              aria-label={tAdmin('classTeachersInfo', 'View teachers and subjects for this class')}
+                              aria-expanded={openTeachersInfoClassId === cls.id}
+                              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-(--border-subtle) bg-(--surface-soft) text-[#635bff] transition-all duration-150 ease-in-out hover:bg-[#f0effe] active:scale-[0.97]"
+                              onClick={() => {
+                                setOpenClassMenuId(null)
+                                setOpenTeachersInfoClassId((prev) => (prev === cls.id ? null : cls.id))
+                              }}
+                            >
+                              <Info className="h-3.5 w-3.5" aria-hidden />
+                            </button>
+                            {openTeachersInfoClassId === cls.id ? (
+                              <div
+                                role="tooltip"
+                                className="absolute left-0 top-full z-50 mt-1.5 w-[min(100vw-2rem,260px)] rounded-md border border-(--border-subtle) bg-(--surface) p-3 shadow-(--shadow-soft)"
+                              >
+                                <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.07em] text-[#8898aa]">
+                                  {tAdmin('classTeachersPanelTitle', 'Teachers & subjects')}
+                                </p>
+                                <ul className="space-y-2.5">
+                                  {cls.teacherSubjectGroups!.map((group) => (
+                                    <li key={group.teacherId}>
+                                      <p className="text-sm font-semibold text-[#0a2540]">
+                                        {group.teacher.firstName} {group.teacher.lastName}
+                                      </p>
+                                      <p className="text-[13px] text-[#8898aa]">
+                                        {group.subjects.map((s) => s.name).join(', ')}
+                                      </p>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : null}
+                          </span>
+                        ) : null}
+                      </span>
                     </p>
                     <p className="flex items-center gap-2">
                       <Users className="h-4 w-4" />

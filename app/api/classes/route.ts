@@ -74,6 +74,64 @@ export async function GET() {
       academicYear: cls.academicYearRecord?.year ?? cls.academicYear,
     }))
 
+    const isAdminRole =
+      session.user.role === 'SCHOOL_ADMIN' ||
+      session.user.role === 'DEPUTY_ADMIN' ||
+      session.user.role === 'SUPER_ADMIN'
+
+    // For admins, enrich with subject teachers grouped by teacher per class
+    if (isAdminRole && normalizedClasses.length > 0) {
+      const assignments = await prisma.classSubjectTeacher.findMany({
+        where: {
+          classId: { in: normalizedClasses.map((c) => c.id) },
+          ...(session.user.schoolId ? { schoolId: session.user.schoolId } : {}),
+        },
+        include: {
+          subject: { select: { id: true, name: true, code: true } },
+          teacher: { select: { id: true, firstName: true, lastName: true } },
+        },
+        orderBy: [{ teacher: { lastName: 'asc' } }, { subject: { name: 'asc' } }],
+      })
+
+      const groupsByClass = new Map<
+        string,
+        Map<
+          string,
+          {
+            teacherId: string
+            teacher: { id: string; firstName: string; lastName: string }
+            subjects: Array<{ id: string; name: string; code: string | null }>
+          }
+        >
+      >()
+
+      for (const row of assignments) {
+        if (!groupsByClass.has(row.classId)) {
+          groupsByClass.set(row.classId, new Map())
+        }
+        const byTeacher = groupsByClass.get(row.classId)!
+        if (!byTeacher.has(row.teacherId)) {
+          byTeacher.set(row.teacherId, {
+            teacherId: row.teacherId,
+            teacher: {
+              id: row.teacher.id,
+              firstName: row.teacher.firstName ?? '',
+              lastName: row.teacher.lastName ?? '',
+            },
+            subjects: [],
+          })
+        }
+        byTeacher.get(row.teacherId)!.subjects.push(row.subject)
+      }
+
+      const enrichedClasses = normalizedClasses.map((c) => ({
+        ...c,
+        teacherSubjectGroups: Array.from(groupsByClass.get(c.id)?.values() ?? []),
+      }))
+
+      return NextResponse.json({ classes: enrichedClasses })
+    }
+
     // For teachers, enrich with the subjects they teach in each class
     if (session.user.role === 'TEACHER' && normalizedClasses.length > 0) {
       const assignments = await prisma.classSubjectTeacher.findMany({

@@ -58,10 +58,30 @@ export const createSchoolSchema = z.object({
   videoCoursesEnabled: z.boolean().optional(),
 })
 
+export const studentGenderSchema = z.enum(['MALE', 'FEMALE'])
+
 export const createStudentSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
+  gender: studentGenderSchema,
   classId: z.string().uuid('Invalid class ID'),
+  status: z.enum(['ACTIVE', 'LEFT']).optional(),
+  academicYear: z.number().int().min(2000).max(2100).optional(),
+  parentId: z.string().uuid('Invalid parent ID').optional(),
+  parentName: z.string().optional(),
+  parentEmail: z.string().email('Invalid parent email').optional().or(z.literal('')),
+  parentPhone: z.string().optional(),
+  emergencyContactName: z.string().optional(),
+  emergencyContactPhone: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  admissionNumber: z.string().optional(),
+})
+
+export const updateStudentSchema = z.object({
+  firstName: z.string().min(1, 'First name is required').optional(),
+  lastName: z.string().min(1, 'Last name is required').optional(),
+  gender: studentGenderSchema,
+  classId: z.string().uuid('Invalid class ID').optional(),
   status: z.enum(['ACTIVE', 'LEFT']).optional(),
   academicYear: z.number().int().min(2000).max(2100).optional(),
   parentId: z.string().uuid('Invalid parent ID').optional(),
@@ -231,6 +251,7 @@ export type LoginInput = z.infer<typeof loginSchema>
 export type CreateUserInput = z.infer<typeof createUserSchema>
 export type CreateSchoolInput = z.infer<typeof createSchoolSchema>
 export type CreateStudentInput = z.infer<typeof createStudentSchema>
+export type UpdateStudentInput = z.infer<typeof updateStudentSchema>
 export type CreateClassInput = z.infer<typeof createClassSchema>
 export type CreateSubjectInput = z.infer<typeof createSubjectSchema>
 export type AttendanceInput = z.infer<typeof attendanceSchema>

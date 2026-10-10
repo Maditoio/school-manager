@@ -19,6 +19,7 @@ interface StudentOverviewResponse {
     statusDate: string | null
     statusNotes: string | null
     admissionNumber: string | null
+    gender: 'MALE' | 'FEMALE' | null
     dateOfBirth: string | null
     parentName: string | null
     parentEmail: string | null
@@ -340,7 +341,7 @@ export default function StudentDetailsPage() {
               <h2 className="text-xl font-semibold ui-text-primary">
                 {data.student.firstName} {data.student.lastName}
               </h2>
-              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 text-sm">
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 text-sm">
                 <div className="space-y-1">
                   <p className="ui-text-secondary">Admission No</p>
                   <p className="font-medium ui-text-primary">{data.student.admissionNumber || '—'}</p>
@@ -363,6 +364,16 @@ export default function StudentDetailsPage() {
                   {data.student.statusNotes ? (
                     <p className="text-xs ui-text-secondary">Notes: {data.student.statusNotes}</p>
                   ) : null}
+                </div>
+                <div className="space-y-1">
+                  <p className="ui-text-secondary">Gender</p>
+                  <p className="font-medium ui-text-primary">
+                    {data.student.gender === 'MALE'
+                      ? 'Male'
+                      : data.student.gender === 'FEMALE'
+                        ? 'Female'
+                        : '—'}
+                  </p>
                 </div>
                 <div className="space-y-1">
                   <p className="ui-text-secondary">Date of Birth</p>

@@ -216,7 +216,10 @@ export default function TeacherStudentDetailsPage() {
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-(--border-subtle) pt-4">
                   <Field label="Date of Birth" value={s.dateOfBirth ? new Date(s.dateOfBirth).toLocaleDateString() : null} />
-                  <Field label="Gender" value={s.gender} />
+                  <Field
+                    label="Gender"
+                    value={s.gender === 'MALE' ? 'Male' : s.gender === 'FEMALE' ? 'Female' : null}
+                  />
                   <Field label="Academic Year" value={String(s.academicYear)} />
                   <Field label="Status" value={s.status === 'ACTIVE' ? 'Active' : 'Left'} />
                 </div>

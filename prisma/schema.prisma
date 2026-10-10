@@ -345,6 +345,7 @@ model Student {
   emergencyContactPhone  String?                  @map("emergency_contact_phone")
   firstName              String                   @map("first_name")
   lastName               String                   @map("last_name")
+  gender                 Gender?                  @map("gender")
   dateOfBirth            DateTime?                @map("date_of_birth")
   admissionNumber        String?                  @map("admission_number")
   status                 StudentEnrollmentStatus  @default(ACTIVE)
@@ -1165,6 +1166,11 @@ enum FeePeriodType {
   MONTHLY
   SEMESTER
   YEARLY
+}
+
+enum Gender {
+  MALE
+  FEMALE
 }
 
 enum StudentEnrollmentStatus {

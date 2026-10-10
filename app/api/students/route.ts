@@ -330,6 +330,7 @@ export async function POST(request: NextRequest) {
     const {
       firstName,
       lastName,
+      gender,
       classId,
       status,
       parentId,
@@ -374,6 +375,7 @@ export async function POST(request: NextRequest) {
         schoolId: classData.schoolId,
         firstName,
         lastName,
+        gender,
         classId,
         parentId: linkedParentId,
         parentName: parentName?.trim() || null,

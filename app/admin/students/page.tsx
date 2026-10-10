@@ -19,6 +19,7 @@ interface Student {
   id: string
   firstName: string
   lastName: string
+  gender: 'MALE' | 'FEMALE' | null
   dateOfBirth: string | null
   admissionNumber: string | null
   userId: string | null
@@ -77,6 +78,7 @@ export default function StudentsPage() {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
+    gender: '' as '' | 'MALE' | 'FEMALE',
     dateOfBirth: '',
     admissionNumber: '',
     classId: '',
@@ -231,6 +233,7 @@ export default function StudentsPage() {
       const payload = {
         firstName: formData.firstName,
         lastName: formData.lastName,
+        gender: formData.gender,
         dateOfBirth: formData.dateOfBirth || undefined,
         admissionNumber: formData.admissionNumber || undefined,
         classId: formData.classId,
@@ -378,6 +381,7 @@ export default function StudentsPage() {
     setFormData({
       firstName: student.firstName,
       lastName: student.lastName,
+      gender: student.gender || '',
       dateOfBirth: student.dateOfBirth ? student.dateOfBirth.split('T')[0] : '',
       admissionNumber: student.admissionNumber || '',
       classId: student.classId,
@@ -462,6 +466,7 @@ export default function StudentsPage() {
     setFormData({
       firstName: '',
       lastName: '',
+      gender: '',
       dateOfBirth: '',
       admissionNumber: '',
       classId: '',
@@ -857,12 +862,30 @@ export default function StudentsPage() {
                   readOnly
                 />
 
-                <Input
-                  label={t('dateOfBirth', 'Date of Birth')}
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <Select
+                    label={t('gender', 'Gender')}
+                    value={formData.gender}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        gender: e.target.value as '' | 'MALE' | 'FEMALE',
+                      })
+                    }
+                    required
+                  >
+                    <option value="">{t('selectGender', 'Select gender')}</option>
+                    <option value="MALE">{t('genderMale', 'Male')}</option>
+                    <option value="FEMALE">{t('genderFemale', 'Female')}</option>
+                  </Select>
+
+                  <Input
+                    label={t('dateOfBirth', 'Date of Birth')}
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                  />
+                </div>
 
                 <Select
                   label={t('primaryClass', 'Primary Class')}
