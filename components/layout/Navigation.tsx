@@ -274,9 +274,14 @@ export function Sidebar({ items, user, onLogout, appName = 'Azelio', onDesktopWi
         {/* Logo / app name */}
         <div className={`mb-5 flex h-12 items-center ${isOpen ? 'justify-between px-2' : 'justify-center'}`}>
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-300 ring-1 ring-indigo-400/30">
-              <Shield className="h-5 w-5" />
-            </div>
+            <Image
+              src="/azelio-logo.png"
+              alt=""
+              width={36}
+              height={36}
+              className="h-9 w-9 shrink-0 rounded-xl object-cover ring-1 ring-white/15"
+              priority
+            />
             <span
               className={`${sidebarLabelBase} overflow-hidden`}
               style={{

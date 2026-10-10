@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
+import Image from 'next/image'
 import Link from 'next/link'
 
 export default function LoginPage() {
@@ -86,11 +87,14 @@ export default function LoginPage() {
           <div className="hidden md:flex flex-col justify-center space-y-8">
             {/* School Icon/Logo */}
             <div className="space-y-6">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C6.5 6.253 2 10.998 2 17s4.5 10.747 10 10.747c5.5 0 10-4.998 10-11.747 0-5.002-4.5-10.747-10-10.747z" />
-                </svg>
-              </div>
+              <Image
+                src="/azelio-logo.png"
+                alt="Azelio"
+                width={80}
+                height={80}
+                className="rounded-2xl shadow-lg"
+                priority
+              />
 
               <div>
                 <h1 className="text-4xl font-bold text-white leading-tight drop-shadow-lg">
@@ -151,11 +155,14 @@ export default function LoginPage() {
             <div className="bg-white rounded-3xl shadow-2xl backdrop-blur-sm bg-opacity-98 p-8 space-y-6">
               {/* Mobile Logo */}
               <div className="md:hidden text-center mb-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-4">
-                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C6.5 6.253 2 10.998 2 17s4.5 10.747 10 10.747c5.5 0 10-4.998 10-11.747 0-5.002-4.5-10.747-10-10.747z" />
-                  </svg>
-                </div>
+                <Image
+                  src="/azelio-logo.png"
+                  alt="Azelio"
+                  width={64}
+                  height={64}
+                  className="rounded-2xl shadow-lg mx-auto mb-4"
+                  priority
+                />
                 <h1 className="text-2xl font-bold text-gray-900">Azelio</h1>
               </div>
 

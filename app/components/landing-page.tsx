@@ -218,10 +218,22 @@ export default function LandingPage() {
         }
 
         .azelio .brand {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.55rem;
           font-family: var(--font-azelio-display), sans-serif;
           font-weight: 800;
           font-size: 1.35rem;
           letter-spacing: -0.04em;
+          color: inherit;
+        }
+
+        .azelio .brand-mark {
+          width: 2rem;
+          height: 2rem;
+          border-radius: 6px;
+          object-fit: cover;
+          flex-shrink: 0;
         }
 
         .azelio .nav-links {
@@ -695,6 +707,9 @@ export default function LandingPage() {
         }
 
         .azelio .footer-brand {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
           font-family: var(--font-azelio-display), sans-serif;
           font-weight: 800;
           color: var(--ink);
@@ -774,6 +789,8 @@ export default function LandingPage() {
 
       <header className="nav" id="navbar">
         <a className="brand" href="#home">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="brand-mark" src="/azelio-logo.png" alt="" width={32} height={32} />
           Azelio
         </a>
         <nav className="nav-links" aria-label="Primary">
@@ -1036,7 +1053,11 @@ export default function LandingPage() {
 
       <footer>
         <div className="wrap footer-row">
-          <div className="footer-brand">Azelio</div>
+          <div className="footer-brand">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="brand-mark" src="/azelio-logo.png" alt="" width={28} height={28} />
+            Azelio
+          </div>
           <div className="footer-links">
             <a href="#product">Product</a>
             <a href="#how">How it works</a>

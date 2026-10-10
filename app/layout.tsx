@@ -11,6 +11,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  applicationName: "Azelio",
   title: "Azelio — School Management, Simplified.",
   description:
     "Azelio is school management software for African schools — attendance, results, fees, and communication in one place.",
@@ -19,6 +20,13 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "default",
     title: "Azelio",
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
@@ -46,8 +54,8 @@ export default async function RootLayout({
   return (
     <html lang={htmlLang} data-theme={initialTheme} style={{ colorScheme: initialTheme === 'dark' ? 'dark' : 'light' }}>
       <head>
-        <link rel="icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/icon-192x192.png" />
+        <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:FILL,wght,GRAD,opsz@0..1,100..700,-50..200,20..48"
