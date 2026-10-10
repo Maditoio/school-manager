@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { allocateUniqueSchoolCode, normalizeSchoolCode } from "@/lib/school-login"
 import { isMissingVideoCoursesEnabledColumn } from '@/lib/video-courses-feature'
 
 // GET /api/schools/[id] - Get school details
@@ -131,8 +132,18 @@ export async function PATCH(
       settingsUpdate.videoCoursesEnabled = Boolean(body.videoCoursesEnabled)
     }
 
+    let nextCode: string | undefined
+    if (typeof body.code === 'string' && body.code.trim()) {
+      nextCode = await allocateUniqueSchoolCode({
+        name: typeof body.name === 'string' ? body.name : 'SCHOOL',
+        preferredCode: normalizeSchoolCode(body.code),
+        excludeSchoolId: schoolId,
+      })
+    }
+
     const updateData = {
       name: body.name,
+      ...(nextCode ? { code: nextCode } : {}),
       plan: body.plan,
       active: body.active,
       schoolBilling: {

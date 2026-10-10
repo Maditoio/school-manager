@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { hasRole } from "@/lib/auth-utils"
+import { teacherCanAccessClass } from "@/lib/teacher-class-access"
 
 interface CreateClassAnnouncementRequest {
   title: string
@@ -36,16 +37,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify the teacher is assigned to this class
-    const classRecord = await prisma.class.findFirst({
-      where: {
-        id: classId,
-        schoolId: session.user.schoolId,
-        teacherId: session.user.id,
-      },
-    })
+    // Homeroom teacher or subject teacher for this class
+    const canAccess = await teacherCanAccessClass(
+      session.user.id,
+      session.user.schoolId,
+      classId
+    )
 
-    if (!classRecord) {
+    if (!canAccess) {
       return NextResponse.json(
         { error: 'You are not assigned to this class' },
         { status: 403 }

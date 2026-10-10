@@ -26,10 +26,11 @@ async function main() {
   // Create Demo School
   const school = await prisma.school.upsert({
     where: { id: '550e8400-e29b-41d4-a716-446655440000' },
-    update: {},
+    update: { code: 'DEMOSCH' },
     create: {
       id: '550e8400-e29b-41d4-a716-446655440000',
       name: 'Demo School',
+      code: 'DEMOSCH',
       plan: 'PREMIUM',
       active: true,
     },
@@ -249,13 +250,13 @@ async function main() {
 
   console.log('✅ Created Student:', `${student.firstName} ${student.lastName}`)
 
-  // Create Student User Account (login with admission number)
+  // Create Student User Account (school-scoped username; password = admission number)
   const studentUser = await prisma.user.upsert({
     where: { email: 'student-880e8400-e29b-41d4-a716-446655440000@system.local' },
-    update: {},
+    update: { username: 'DEMOSCH-STU001' },
     create: {
       email: 'student-880e8400-e29b-41d4-a716-446655440000@system.local',
-      username: 'STU001',
+      username: 'DEMOSCH-STU001',
       password: await hash('STU001', 12),
       mustResetPassword: true,
       firstName: 'Alice',
@@ -271,7 +272,7 @@ async function main() {
     data: { userId: studentUser.id },
   })
 
-  console.log('✅ Created Student User: STU001 / STU001 (must reset password on first login)')
+  console.log('✅ Created Student User: DEMOSCH-STU001 / STU001 (or STU001 + school code DEMOSCH)')
 
   for (const subject of subjects) {
     await prisma.classSubjectTeacher.upsert({
@@ -387,7 +388,7 @@ async function main() {
   console.log('School Admin: schooladmin@demo.com / password123')
   console.log('Teacher: teacher@demo.com / password123')
   console.log('Parent: parent@demo.com / password123')
-  console.log('Student: STU001 / STU001 (admission number, must reset password)')
+  console.log('Student: DEMOSCH-STU001 / STU001 (or STU001 + school code DEMOSCH)')
 }
 
 main()

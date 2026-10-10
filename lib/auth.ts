@@ -3,8 +3,11 @@ import Credentials from "next-auth/providers/credentials"
 import { CredentialsSignin } from "next-auth"
 import { prisma } from "@/lib/prisma"
 import { getPortalAccessState } from "@/lib/access-control"
+import { normalizeSchoolCode } from "@/lib/school-login"
 import { compare, hash } from "bcryptjs"
-import { UserRole } from "@prisma/client"
+import { UserRole, Prisma } from "@prisma/client"
+
+type AuthUserRecord = Prisma.UserGetPayload<{ include: { school: true } }>
 
 async function getUserAuthFlags(userId: string) {
   const rows = await prisma.$queryRaw<Array<{
@@ -21,6 +24,76 @@ async function getUserAuthFlags(userId: string) {
   `
 
   return rows[0] ?? { preferred_language: 'en', must_reset_password: false }
+}
+
+function throwAuthCode(code: string): never {
+  const err = new CredentialsSignin(code)
+  err.code = code
+  throw err
+}
+
+/**
+ * Resolve login by username or admission number with school scoping.
+ * Never picks an arbitrary first match when admission numbers collide across schools.
+ */
+async function resolveUsernameOrAdmissionLogin(
+  identifier: string,
+  schoolIdFilter: string | null,
+): Promise<AuthUserRecord | null> {
+  const studentsWithAdmission = await prisma.student.findMany({
+    where: {
+      admissionNumber: { equals: identifier, mode: 'insensitive' },
+      ...(schoolIdFilter ? { schoolId: schoolIdFilter } : {}),
+    },
+    select: {
+      id: true,
+      schoolId: true,
+      userId: true,
+      academicYear: true,
+      user: { include: { school: true } },
+    },
+    orderBy: { academicYear: 'desc' },
+  })
+
+  const schoolIds = [...new Set(studentsWithAdmission.map((s) => s.schoolId))]
+
+  // Fail closed: bare admission login is unsafe when the number exists at multiple schools.
+  if (!schoolIdFilter && schoolIds.length > 1) {
+    throwAuthCode('school_required')
+  }
+
+  const usernameUsers = await prisma.user.findMany({
+    where: {
+      username: { equals: identifier, mode: 'insensitive' },
+      ...(schoolIdFilter ? { schoolId: schoolIdFilter } : {}),
+    },
+    include: { school: true },
+  })
+
+  const byId = new Map<string, AuthUserRecord>()
+  for (const student of studentsWithAdmission) {
+    if (student.user) byId.set(student.user.id, student.user)
+  }
+  for (const user of usernameUsers) {
+    byId.set(user.id, user)
+  }
+
+  let candidates = [...byId.values()]
+  if (schoolIdFilter) {
+    candidates = candidates.filter((u) => u.schoolId === schoolIdFilter)
+  }
+
+  if (candidates.length === 0) return null
+
+  if (candidates.length === 1) return candidates[0]
+
+  // Prefer exact username match when still ambiguous within a school.
+  const exactUsername = candidates.filter(
+    (u) => u.username?.toLowerCase() === identifier.toLowerCase(),
+  )
+  if (exactUsername.length === 1) return exactUsername[0]
+
+  throwAuthCode('school_required')
 }
 
 declare module "next-auth" {
@@ -68,6 +141,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        schoolCode: { label: "School code", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -76,13 +150,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         const normalizedEmail = String(credentials.email).trim().toLowerCase()
+        const rawIdentifier = String(credentials.email).trim()
         const plainPassword = String(credentials.password)
+        const schoolCodeInput = credentials.schoolCode
+          ? normalizeSchoolCode(String(credentials.schoolCode))
+          : ''
+
         // Teachers without email often log in with phone; accept spaced formats.
         const phoneUsername = (() => {
-          const raw = String(credentials.email).trim()
-          if (!/^\+?[\d\s()-]{7,}$/.test(raw)) return null
-          const hasPlus = raw.startsWith('+')
-          const digits = raw.replace(/\D/g, '')
+          if (!/^\+?[\d\s()-]{7,}$/.test(rawIdentifier)) return null
+          const hasPlus = rawIdentifier.startsWith('+')
+          const digits = rawIdentifier.replace(/\D/g, '')
           if (digits.length < 7) return null
           return hasPlus ? `+${digits}` : digits
         })()
@@ -90,25 +168,44 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         console.log('Attempting login for:', normalizedEmail)
 
         try {
-          const user = await prisma.user.findFirst({
-            where: {
-              OR: [
-                { email: { equals: normalizedEmail, mode: 'insensitive' } },
-                { username: { equals: normalizedEmail, mode: 'insensitive' } },
-                ...(phoneUsername && phoneUsername !== normalizedEmail
-                  ? [{ username: { equals: phoneUsername, mode: 'insensitive' as const } }]
-                  : []),
-                {
-                  linkedStudent: {
-                    is: {
-                      admissionNumber: { equals: normalizedEmail, mode: 'insensitive' },
-                    },
-                  },
-                },
-              ],
-            },
-            include: { school: true },
-          })
+          let schoolIdFilter: string | null = null
+          if (schoolCodeInput) {
+            const school = await prisma.school.findUnique({
+              where: { code: schoolCodeInput },
+              select: { id: true },
+            })
+            if (!school) {
+              console.log('Invalid school code:', schoolCodeInput)
+              return null
+            }
+            schoolIdFilter = school.id
+          }
+
+          let user: AuthUserRecord | null = null
+
+          if (normalizedEmail.includes('@')) {
+            user = await prisma.user.findFirst({
+              where: {
+                email: { equals: normalizedEmail, mode: 'insensitive' },
+                ...(schoolIdFilter ? { schoolId: schoolIdFilter } : {}),
+              },
+              include: { school: true },
+            })
+          } else if (phoneUsername) {
+            user = await prisma.user.findFirst({
+              where: {
+                OR: [
+                  { username: { equals: normalizedEmail, mode: 'insensitive' } },
+                  { username: { equals: phoneUsername, mode: 'insensitive' } },
+                ],
+                ...(schoolIdFilter ? { schoolId: schoolIdFilter } : {}),
+              },
+              include: { school: true },
+            })
+          } else {
+            // Admission number / username — never unscoped findFirst on admission alone.
+            user = await resolveUsernameOrAdmissionLogin(rawIdentifier, schoolIdFilter)
+          }
 
           if (!user) {
             console.log('User not found for:', normalizedEmail)
@@ -120,17 +217,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           // Check if user is suspended
           if (user.suspended) {
             console.log('User is suspended:', user.id)
-            const err = new CredentialsSignin('account_suspended')
-            err.code = 'account_suspended'
-            throw err
+            throwAuthCode('account_suspended')
           }
 
           // Check if school is active (except for super admin)
           if (user.role !== 'SUPER_ADMIN' && user.school && !user.school.active) {
             console.log('School inactive for user:', user.id)
-            const err = new CredentialsSignin('school_inactive')
-            err.code = 'school_inactive'
-            throw err
+            throwAuthCode('school_inactive')
           }
 
           let isPasswordValid = false

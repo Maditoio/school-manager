@@ -10,6 +10,8 @@ datasource db {
 model School {
   id                           String                         @id @default(uuid())
   name                         String
+  /// Short unique code used to scope student admission-number login across tenants.
+  code                         String                         @unique
   plan                         SubscriptionPlan               @default(BASIC)
   active                       Boolean                        @default(true)
   suspended                    Boolean                        @default(false)

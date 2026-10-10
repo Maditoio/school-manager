@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { buildStudentUsername } from '@/lib/school-login'
 import { hash } from 'bcryptjs'
 
 type Params = { params: Promise<{ id: string }> }
@@ -16,7 +17,15 @@ export async function POST(request: NextRequest, { params }: Params) {
 
   const student = await prisma.student.findUnique({
     where: { id: studentId, schoolId: session.user.schoolId ?? undefined },
-    select: { id: true, firstName: true, lastName: true, admissionNumber: true, userId: true, schoolId: true },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      admissionNumber: true,
+      userId: true,
+      schoolId: true,
+      school: { select: { code: true } },
+    },
   })
 
   if (!student) {
@@ -31,11 +40,17 @@ export async function POST(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Student has no admission number; cannot create login' }, { status: 400 })
   }
 
-  const username = student.admissionNumber
+  if (!student.school?.code) {
+    return NextResponse.json({ error: 'School has no login code configured' }, { status: 400 })
+  }
+
+  // School-scoped username prevents global collisions on admission numbers.
+  const username = buildStudentUsername(student.school.code, student.admissionNumber)
   const temporaryPassword = student.admissionNumber
 
-  // Check if username already taken
-  const existing = await prisma.user.findUnique({ where: { username: username } })
+  const existing = await prisma.user.findFirst({
+    where: { username: { equals: username, mode: 'insensitive' } },
+  })
   if (existing) {
     return NextResponse.json({ error: 'Username already taken' }, { status: 409 })
   }
@@ -62,6 +77,7 @@ export async function POST(request: NextRequest, { params }: Params) {
   return NextResponse.json({
     username,
     temporaryPassword,
+    schoolCode: student.school.code,
     message: 'Student login created. Student must change password on first login.',
   })
 }

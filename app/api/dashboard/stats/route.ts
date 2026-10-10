@@ -7,6 +7,7 @@ import {
   SchoolAdminDashboardStats,
   setSchoolAdminCachedStats,
 } from '@/lib/dashboard-cache'
+import { getTeacherAccessibleClassIds } from '@/lib/teacher-class-access'
 
 function percentDelta(current: number, previous: number) {
   if (previous <= 0) {
@@ -1175,19 +1176,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (session.user.role === 'TEACHER') {
-      // Teacher stats across all taught classes (legacy class teacher + class-subject assignments)
-      const assignedRows = await prisma.$queryRaw<Array<{ id: string }>>`
-        SELECT DISTINCT c.id
-        FROM classes c
-        LEFT JOIN class_subject_teachers cst ON cst.class_id = c.id
-        WHERE c.school_id = ${schoolId}
-          AND (
-            c.teacher_id = ${session.user.id}
-            OR cst.teacher_id = ${session.user.id}
-          )
-      `
+      // Teacher stats across all taught classes (homeroom ∪ subject assignments)
+      if (!schoolId) {
+        return NextResponse.json({ error: 'School context required' }, { status: 400 })
+      }
 
-      const classIds = assignedRows.map((row) => row.id)
+      const classIds = await getTeacherAccessibleClassIds(session.user.id, schoolId)
       const assignedClasses = classIds.length
 
       const studentsInClasses = classIds.length > 0

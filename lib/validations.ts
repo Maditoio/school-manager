@@ -40,6 +40,14 @@ export const createUserSchema = z
 
 export const createSchoolSchema = z.object({
   name: z.string().min(1, 'School name is required'),
+  code: z
+    .string()
+    .trim()
+    .min(2, 'School code must be at least 2 characters')
+    .max(12, 'School code must be at most 12 characters')
+    .regex(/^[A-Za-z0-9]+$/, 'School code must be letters and numbers only')
+    .optional()
+    .or(z.literal('')),
   plan: z.enum(['BASIC', 'STANDARD', 'PREMIUM']).default('BASIC'),
   adminEmail: z.string().email('Invalid email address'),
   adminPassword: z.string().min(6, 'Password must be at least 6 characters'),

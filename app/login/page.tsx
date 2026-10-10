@@ -11,6 +11,7 @@ export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [schoolCode, setSchoolCode] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
@@ -24,14 +25,15 @@ export default function LoginPage() {
       const result = await signIn('credentials', {
         email,
         password,
+        schoolCode: schoolCode.trim() || undefined,
         redirect: false,
       })
 
       if (!result || result.error || result.ok === false) {
         const url = result?.url || ''
-        let errorCode = ''
+        let errorCode = (result as { code?: string } | undefined)?.code || ''
 
-        if (url) {
+        if (!errorCode && url) {
           try {
             const parsed = new URL(url, window.location.origin)
             errorCode = parsed.searchParams.get('code') || ''
@@ -40,11 +42,20 @@ export default function LoginPage() {
           }
         }
 
+        // Auth.js sometimes puts the custom code in the error string.
+        if (!errorCode && typeof result?.error === 'string') {
+          if (result.error.includes('school_required')) errorCode = 'school_required'
+          else if (result.error.includes('account_suspended')) errorCode = 'account_suspended'
+          else if (result.error.includes('school_inactive')) errorCode = 'school_inactive'
+        }
+
         if (errorCode === 'account_suspended') {
           setError('Your account has been suspended. Please contact the administrator.')
         } else if (errorCode === 'school_inactive') {
           setError('Your school account is currently inactive. Please contact the administrator.')
-        } else if (result?.error) {
+        } else if (errorCode === 'school_required') {
+          setError('This admission number exists at more than one school. Enter your school code to continue.')
+        } else if (result?.error && result.error !== 'CredentialsSignin') {
           setError(result.error)
         } else {
           setError('Invalid email or password. Please check your credentials and try again.')
@@ -196,6 +207,24 @@ export default function LoginPage() {
                     required
                     className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors bg-gray-50 text-gray-900"
                   />
+                </div>
+
+                <div>
+                  <label htmlFor="schoolCode" className="block text-sm font-medium text-gray-900 mb-2">
+                    School code <span className="text-gray-500 font-normal">(students, if required)</span>
+                  </label>
+                  <input
+                    id="schoolCode"
+                    type="text"
+                    value={schoolCode}
+                    onChange={(e) => setSchoolCode(e.target.value.toUpperCase())}
+                    placeholder="e.g. DEMOSCH"
+                    autoComplete="organization"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors bg-gray-50 text-gray-900"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Required when the same admission number is used at more than one school.
+                  </p>
                 </div>
 
                 <div>

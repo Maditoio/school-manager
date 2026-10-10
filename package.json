@@ -8,7 +8,7 @@
   "scripts": {
     "predev": "prisma generate",
     "dev": "next dev",
-    "prebuild": "prisma generate",
+    "prebuild": "prisma generate && prisma migrate deploy",
     "build": "next build --webpack",
     "prestart": "prisma generate",
     "start": "next start",

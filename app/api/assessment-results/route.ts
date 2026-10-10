@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getTeacherAccessibleClassIds } from '@/lib/teacher-class-access'
 
 type AssessmentResultsDelegate = {
   findMany: (args: {
@@ -81,18 +82,11 @@ export async function GET(request: NextRequest) {
     let teacherClassIds: string[] | null = null
 
     if (session.user.role === 'TEACHER') {
-      const assignedRows = await prisma.$queryRaw<Array<{ id: string }>>`
-        SELECT DISTINCT c.id
-        FROM classes c
-        LEFT JOIN class_subject_teachers cst ON cst.class_id = c.id
-        WHERE c.school_id = ${session.user.schoolId}
-          AND (
-            c.teacher_id = ${session.user.id}
-            OR cst.teacher_id = ${session.user.id}
-          )
-      `
+      if (!session.user.schoolId) {
+        return NextResponse.json({ error: 'School context required' }, { status: 400 })
+      }
 
-      teacherClassIds = assignedRows.map((r) => r.id)
+      teacherClassIds = await getTeacherAccessibleClassIds(session.user.id, session.user.schoolId)
 
       if (teacherClassIds.length === 0) {
         return NextResponse.json({ results: [] })

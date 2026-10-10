@@ -4,21 +4,11 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card, StatCard } from '@/components/ui/Card'
 import { prisma } from '@/lib/prisma'
 import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
+import { getTeacherAccessibleClassIds } from '@/lib/teacher-class-access'
 
 async function getDashboardStats(teacherId: string, schoolId: string) {
   try {
-    const assignedRows = await prisma.$queryRaw<Array<{ id: string }>>`
-      SELECT DISTINCT c.id
-      FROM classes c
-      LEFT JOIN class_subject_teachers cst ON cst.class_id = c.id
-      WHERE c.school_id = ${schoolId}
-        AND (
-          c.teacher_id = ${teacherId}
-          OR cst.teacher_id = ${teacherId}
-        )
-    `
-
-    const classIds = assignedRows.map((row) => row.id)
+    const classIds = await getTeacherAccessibleClassIds(teacherId, schoolId)
     const myClasses = classIds.length
 
     const myStudents = classIds.length > 0

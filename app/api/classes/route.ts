@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { createClassSchema } from "@/lib/validations"
 import { hasRole } from "@/lib/auth-utils"
+import { getTeacherAccessibleClassIds } from "@/lib/teacher-class-access"
 import { Prisma } from '@prisma/client'
 import { randomUUID } from 'crypto'
 
@@ -22,20 +23,13 @@ export async function GET() {
       where.schoolId = session.user.schoolId
     }
 
-    // For teachers, show all classes where they teach at least one subject
+    // Teachers: homeroom ∪ ClassSubjectTeacher assignments
     if (session.user.role === 'TEACHER') {
-      const assignedRows = await prisma.$queryRaw<Array<{ id: string }>>`
-        SELECT DISTINCT c.id
-        FROM classes c
-        LEFT JOIN class_subject_teachers cst ON cst.class_id = c.id
-        WHERE c.school_id = ${session.user.schoolId}
-          AND (
-            c.teacher_id = ${session.user.id}
-            OR cst.teacher_id = ${session.user.id}
-          )
-      `
+      if (!session.user.schoolId) {
+        return NextResponse.json({ error: 'School context required' }, { status: 400 })
+      }
 
-      const classIds = assignedRows.map((row) => row.id)
+      const classIds = await getTeacherAccessibleClassIds(session.user.id, session.user.schoolId)
       if (classIds.length === 0) {
         return NextResponse.json({ classes: [] })
       }

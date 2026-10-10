@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback, startTransition } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Form'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
+import { useConfirmDialog } from '@/lib/useConfirmDialog'
 import { Barcode, BookOpen, ChevronDown, ChevronRight, MoreHorizontal, PencilLine, Trash2, Zap } from 'lucide-react'
 import enMessages from '@/messages/en.json'
 import frMessages from '@/messages/fr.json'
@@ -86,11 +87,13 @@ const SECONDARY_PRESETS: Array<{ name: string; code: string }> = [
 export default function SubjectsPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { confirm } = useConfirmDialog()
 
   // Data
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [classes, setClasses] = useState<ClassItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [deletingSubjectId, setDeletingSubjectId] = useState<string | null>(null)
 
   // UI state
   const [activeTab, setActiveTab] = useState<'byClass' | 'catalog'>('byClass')
@@ -223,19 +226,71 @@ export default function SubjectsPage() {
     setShowModal(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm(tAdmin('confirmDeleteSubject', 'Are you sure you want to delete this subject?'))) return
+  const handleDelete = async (subject: Subject) => {
+    if (deletingSubjectId) return
+
+    // Yield a frame so the menu can close/paint before the dialog mounts (INP).
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve())
+    })
+
+    const isConfirmed = await confirm({
+      title: tAdmin('deleteSubjectTitle', 'Delete Subject'),
+      description: tAdmin('confirmDeleteSubject', 'Are you sure you want to delete this subject?'),
+      variant: 'danger',
+      confirmLabel: tCommon('delete', 'Delete'),
+      cancelLabel: tCommon('cancel', 'Cancel'),
+      loadingLabel: tAdmin('deleting', 'Deleting...'),
+      entity: {
+        name: subject.name,
+        subtitle: subject.code || undefined,
+      },
+      allowBackdropClose: false,
+      allowEscapeClose: false,
+    })
+
+    if (!isConfirmed) return
+
+    const previousSubjects = subjects
+    const previousClasses = classes
+
+    // Immediate paint: optimistic remove without blanking the page via fetchAll/loading.
+    setDeletingSubjectId(subject.id)
+    startTransition(() => {
+      setSubjects((prev) => prev.filter((item) => item.id !== subject.id))
+      setClasses((prev) =>
+        prev.map((cls) => ({
+          ...cls,
+          subjectAssignments: cls.subjectAssignments.filter(
+            (assignment) => assignment.subject.id !== subject.id
+          ),
+        }))
+      )
+    })
+
     try {
-      const res = await fetch(`/api/subjects/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/subjects/${subject.id}`, { method: 'DELETE' })
       if (res.ok) {
-        await fetchAll()
         showToast(tAdmin('subjectDeleted', 'Subject deleted successfully!'), 'success')
       } else {
-        const error = await res.json()
-        showToast(error.error || tAdmin('failedDeleteSubject', 'Failed to delete subject'), 'error')
+        const error = await res.json().catch(() => ({}))
+        startTransition(() => {
+          setSubjects(previousSubjects)
+          setClasses(previousClasses)
+        })
+        showToast(
+          error.error || tAdmin('failedDeleteSubject', 'Failed to delete subject'),
+          'error'
+        )
       }
     } catch {
+      startTransition(() => {
+        setSubjects(previousSubjects)
+        setClasses(previousClasses)
+      })
       showToast(tAdmin('failedDeleteSubject', 'Failed to delete subject'), 'error')
+    } finally {
+      setDeletingSubjectId(null)
     }
   }
 
@@ -519,7 +574,11 @@ export default function SubjectsPage() {
                                 <button
                                   type="button"
                                   className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
-                                  onClick={() => { setOpenSubjectMenuId(null); handleDelete(subject.id) }}
+                                  disabled={deletingSubjectId === subject.id}
+                                  onClick={() => {
+                                    setOpenSubjectMenuId(null)
+                                    void handleDelete(subject)
+                                  }}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                   {tCommon('delete', 'Delete')}

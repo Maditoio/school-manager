@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { CurrentTermNotSetError, getCurrentEditableTermForSchool, TermLockedError } from '@/lib/term-utils'
+import { teacherCanAccessClass, teacherCanTeachSubject } from '@/lib/teacher-class-access'
 
 type AssessmentDelegate = {
   findMany: (args: unknown) => Promise<unknown>
@@ -127,17 +128,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid due date format' }, { status: 400 })
     }
 
-    const teacherAssignment = await prisma.classSubjectTeacher.findFirst({
-      where: {
-        classId,
-        subjectId,
-        teacherId: session.user.id,
-        schoolId: session.user.schoolId
-      }
-    })
+    const canAccessClass = await teacherCanAccessClass(
+      session.user.id,
+      session.user.schoolId,
+      classId
+    )
+    if (!canAccessClass) {
+      return NextResponse.json({ error: 'You are not assigned to this class' }, { status: 403 })
+    }
 
-    if (!teacherAssignment) {
-      return NextResponse.json({ error: 'Teacher is not assigned to this subject for the selected class' }, { status: 403 })
+    const canTeachSubject = await teacherCanTeachSubject(
+      session.user.id,
+      session.user.schoolId,
+      classId,
+      subjectId
+    )
+    if (!canTeachSubject) {
+      return NextResponse.json(
+        { error: 'Teacher is not assigned to this subject for the selected class' },
+        { status: 403 }
+      )
     }
 
     const assessment = await db.assessment.create({

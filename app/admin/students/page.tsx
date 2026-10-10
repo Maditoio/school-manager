@@ -1130,14 +1130,14 @@ export default function StudentsPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
             <Card className="w-[min(92vw,26rem)] max-w-none p-6">
               <h2 className="text-xl font-bold mb-1">Student Login Created</h2>
-              <p className="text-sm text-gray-600 mb-4">Share these credentials with the student. They must change their password on first login.</p>
+              <p className="text-sm text-gray-600 mb-4">Share these credentials with the student. They must change their password on first login. They can also sign in with their admission number plus the school code.</p>
               <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Username (Admission No.)</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Username</p>
                   <p className="text-base font-bold text-gray-900 mt-0.5">{loginCredentials.username}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Temporary Password</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Temporary Password (Admission No.)</p>
                   <p className="text-base font-bold text-gray-900 mt-0.5">{loginCredentials.temporaryPassword}</p>
                 </div>
               </div>

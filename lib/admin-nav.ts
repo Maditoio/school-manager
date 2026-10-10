@@ -83,7 +83,7 @@ export const TEACHER_NAV_ITEMS: NavItem[] = [
   { label: 'Results',      href: '/teacher/results',      icon: '📝' },
   { label: 'Announcements',href: '/teacher/announcements',icon: '📢' },
   { label: 'Messages',     href: '/teacher/messages',     icon: '💬' },
-  { label: 'Meeting Agenda', href: '/admin/meeting-agenda', icon: '📋' },
+  { label: 'Meeting Agenda', href: '/teacher/meeting-agenda', icon: '📋' },
   { label: 'My Courses',   href: '/teacher/courses',      icon: '🎬' },
   { label: 'Earnings',     href: '/teacher/earnings',     icon: '💰' },
 ]

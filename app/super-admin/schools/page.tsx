@@ -16,10 +16,12 @@ import { useLocale } from '@/lib/locale-context'
 interface School {
   id: string
   name: string
+  code?: string
   address: string
   phone: string
   email: string
   subscriptionPlan: string
+  plan?: string
   subscriptionStatus: string
   active: boolean
   createdAt: string
@@ -76,6 +78,7 @@ export default function SchoolsPage() {
 
   const [formData, setFormData] = useState({
     name: '',
+    code: '',
     plan: 'BASIC',
     adminEmail: '',
     adminPassword: '',
@@ -123,6 +126,7 @@ export default function SchoolsPage() {
   function resetForm() {
     setFormData({
       name: '',
+      code: '',
       plan: 'BASIC',
       adminEmail: '',
       adminPassword: '',
@@ -153,6 +157,7 @@ export default function SchoolsPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: formData.name,
+            code: formData.code.trim() || undefined,
             plan: formData.plan,
             onboardingFee: Number(formData.onboardingFee || 0),
             onboardingStatus: formData.onboardingStatus,
@@ -181,6 +186,7 @@ export default function SchoolsPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...formData,
+            code: formData.code.trim() || undefined,
             onboardingFee: Number(formData.onboardingFee || 0),
             annualPricePerStudent: Number(formData.annualPricePerStudent || 0),
             billingYear: Number(formData.billingYear || new Date().getFullYear()),
@@ -212,7 +218,8 @@ export default function SchoolsPage() {
     setEditingSchool(school)
     setFormData({
       name: school.name,
-      plan: school.subscriptionPlan as 'BASIC' | 'PREMIUM' | 'ENTERPRISE',
+      code: school.code ?? '',
+      plan: (school.plan || school.subscriptionPlan || 'BASIC') as 'BASIC' | 'STANDARD' | 'PREMIUM',
       adminEmail: '',
       adminPassword: '',
       adminFirstName: '',
@@ -349,6 +356,7 @@ export default function SchoolsPage() {
                 <thead>
                   <tr className="bg-slate-100 border-b border-slate-200">
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">School</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Code</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Plan</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Status</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Students</th>
@@ -363,7 +371,8 @@ export default function SchoolsPage() {
                       <td className="px-4 py-4 align-top">
                         <p className="text-sm font-semibold text-slate-900">{school.name}</p>
                       </td>
-                      <td className="px-4 py-4 text-sm text-slate-700">{school.subscriptionPlan}</td>
+                      <td className="px-4 py-4 text-sm font-semibold text-slate-700">{school.code || '—'}</td>
+                      <td className="px-4 py-4 text-sm text-slate-700">{school.plan || school.subscriptionPlan}</td>
                       <td className="px-4 py-4">
                         <div className="flex flex-wrap gap-1.5">
                           <span className={`px-2 py-0.5 text-xs rounded ${school.active ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
@@ -446,6 +455,13 @@ export default function SchoolsPage() {
               <h2 className="text-2xl font-bold mb-4">{editingSchool ? 'Edit School' : 'Create School'}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Input label="School Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
+                <Input
+                  label="School Code"
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                  placeholder="Auto-generated from name if empty"
+                />
+                <p className="text-xs text-gray-500 -mt-2">Students use this code when admission numbers collide across schools.</p>
                 <Input label="School Slogan" value={formData.slogan} onChange={(e) => setFormData({ ...formData, slogan: e.target.value })} />
 
                 <div className="rounded-lg border border-gray-200 p-3 bg-gray-50">

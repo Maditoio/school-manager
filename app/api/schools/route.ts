@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { createSchoolSchema } from "@/lib/validations"
+import { allocateUniqueSchoolCode } from "@/lib/school-login"
 import { isMissingVideoCoursesEnabledColumn } from '@/lib/video-courses-feature'
 import { UserRole } from '@prisma/client'
 import { hash } from "bcryptjs"
@@ -120,6 +121,10 @@ export async function POST(request: NextRequest) {
       ? validation.data.enabledModules.map((item) => item.trim()).filter(Boolean)
       : []
     const slogan = validation.data.slogan?.trim() || null
+    const schoolCode = await allocateUniqueSchoolCode({
+      name,
+      preferredCode: validation.data.code || null,
+    })
 
     // Check if admin email already exists
     const existingUser = await prisma.user.findUnique({
@@ -141,6 +146,7 @@ export async function POST(request: NextRequest) {
     // Create school with admin user and a default Unassigned class
     const createData = {
       name,
+      code: schoolCode,
       plan,
       schoolBilling: {
         create: {

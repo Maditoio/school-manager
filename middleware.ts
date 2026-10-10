@@ -93,12 +93,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/unauthorized', request.url))
   }
 
-  // FINANCE, FINANCE_MANAGER and TEACHER can access the meeting agenda (under /admin)
+  // Teachers use /teacher/meeting-agenda — bounce old admin link out of admin chrome
+  if (pathname === '/admin/meeting-agenda' && role === 'TEACHER') {
+    return NextResponse.redirect(new URL('/teacher/meeting-agenda', request.url))
+  }
+
+  // FINANCE and FINANCE_MANAGER can access the shared meeting agenda under /admin
   if (
     pathname.startsWith('/admin') &&
     role !== 'SCHOOL_ADMIN' &&
     role !== 'DEPUTY_ADMIN' &&
-    !(pathname === '/admin/meeting-agenda' && ['FINANCE', 'FINANCE_MANAGER', 'TEACHER'].includes(role))
+    !(pathname === '/admin/meeting-agenda' && ['FINANCE', 'FINANCE_MANAGER'].includes(role))
   ) {
     return NextResponse.redirect(new URL('/unauthorized', request.url))
   }

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { createStudentSchema } from "@/lib/validations"
 import { hasRole } from "@/lib/auth-utils"
+import { getTeacherAccessibleClassIds } from "@/lib/teacher-class-access"
 import { Prisma } from "@prisma/client"
 import { hash } from "bcryptjs"
 
@@ -140,20 +141,13 @@ export async function GET(request: NextRequest) {
       where.schoolId = session.user.schoolId
     }
 
-    // For teachers, only show students in classes they teach
+    // For teachers, only show students in classes they teach (homeroom ∪ subject assignments)
     if (session.user.role === 'TEACHER') {
-      const assignedRows = await prisma.$queryRaw<Array<{ id: string }>>`
-        SELECT DISTINCT c.id
-        FROM classes c
-        LEFT JOIN class_subject_teachers cst ON cst.class_id = c.id
-        WHERE c.school_id = ${session.user.schoolId}
-          AND (
-            c.teacher_id = ${session.user.id}
-            OR cst.teacher_id = ${session.user.id}
-          )
-      `
+      if (!session.user.schoolId) {
+        return NextResponse.json({ error: 'School context required' }, { status: 400 })
+      }
 
-      const teacherClassIds = assignedRows.map((row) => row.id)
+      const teacherClassIds = await getTeacherAccessibleClassIds(session.user.id, session.user.schoolId)
       if (teacherClassIds.length === 0) {
         return NextResponse.json({ students: [], pagination: { page: 1, pageSize: 10, totalCount: 0, totalPages: 1 } })
       }
