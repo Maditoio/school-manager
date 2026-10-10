@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -9,6 +9,7 @@ import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
 import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
+import { useTeacherUi } from '@/lib/use-teacher-ui'
 
 interface Student {
   id: string
@@ -28,9 +29,29 @@ interface Attendance {
   status: string
 }
 
+type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE'
+
+const STATUS_OPTIONS: AttendanceStatus[] = ['PRESENT', 'ABSENT', 'LATE']
+
+function statusButtonClass(active: boolean, status: AttendanceStatus) {
+  if (!active) {
+    return 'border border-(--border-subtle) bg-(--surface-card) ui-text-secondary'
+  }
+  if (status === 'PRESENT') {
+    return 'border border-transparent bg-[#eafaf3] text-[#1b8a5a] font-semibold'
+  }
+  if (status === 'ABSENT') {
+    return 'border border-transparent bg-[#fff0ee] text-[#c0392b] font-semibold'
+  }
+  return 'border border-transparent bg-[#fff8e6] text-[#b07d00] font-semibold'
+}
+
 export default function TeacherAttendancePage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { tTeacher, tCommon } = useTeacherUi()
+  const t = (key: string, fallback: string) => tTeacher('attendance', key, fallback)
+
   const [students, setStudents] = useState<Student[]>([])
   const [attendance, setAttendance] = useState<{ [key: string]: string }>({})
   const [classes, setClasses] = useState<Class[]>([])
@@ -38,6 +59,13 @@ export default function TeacherAttendancePage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [loading, setLoading] = useState(true)
   const [isSavingAttendance, setIsSavingAttendance] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+
+  const statusLabels: Record<AttendanceStatus, string> = {
+    PRESENT: t('presentBtn', 'Present'),
+    ABSENT: t('absentBtn', 'Absent'),
+    LATE: t('lateBtn', 'Late'),
+  }
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -117,13 +145,15 @@ export default function TeacherAttendancePage() {
     }
   }
 
-  const handleAttendanceChange = (studentId: string, status: string) => {
-    setAttendance({ ...attendance, [studentId]: status })
+  const handleAttendanceChange = (studentId: string, nextStatus: string) => {
+    setAttendance({ ...attendance, [studentId]: nextStatus })
   }
 
   const handleMarkAllPresent = () => {
     const allPresent: { [key: string]: string } = {}
-    students.forEach((student) => { allPresent[student.id] = 'PRESENT' })
+    students.forEach((student) => {
+      allPresent[student.id] = 'PRESENT'
+    })
     setAttendance(allPresent)
   }
 
@@ -143,25 +173,91 @@ export default function TeacherAttendancePage() {
       })
 
       if (res.ok) {
-        showToast('Attendance saved successfully!', 'success')
+        showToast(t('attendanceSaved', 'Attendance saved successfully!'), 'success')
         fetchAttendance()
       } else {
         const error = await res.json()
-        showToast(error.error || 'Failed to save attendance', 'error')
+        showToast(error.error || t('failedSave', 'Failed to save attendance'), 'error')
       }
     } catch (error) {
       console.error('Failed to save attendance:', error)
-      showToast('Failed to save attendance', 'error')
+      showToast(t('failedSave', 'Failed to save attendance'), 'error')
     } finally {
       setIsSavingAttendance(false)
     }
   }
 
+  const selectedClassName = useMemo(
+    () => classes.find((cls) => cls.id === selectedClass)?.name || t('selectClass', 'Select Class'),
+    [classes, selectedClass]
+  )
+
+  const markedCount = useMemo(
+    () => students.filter((student) => Boolean(attendance[student.id])).length,
+    [students, attendance]
+  )
+
+  const summaryText = t('summaryMarked', '{count} of {total} marked')
+    .replace('{count}', String(markedCount))
+    .replace('{total}', String(students.length))
+
   if (status === 'loading' || !session) {
-    return <div>Loading...</div>
+    return <div>{tCommon('loading', 'Loading...')}</div>
   }
 
-  const navItems = TEACHER_NAV_ITEMS
+  const canSave = Boolean(selectedClass) && students.length > 0
+
+  const filterControls = (
+    <>
+      <div>
+        <label className="block text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary mb-1.5">
+          {t('selectClass', 'Select Class')}
+        </label>
+        <Select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>
+          <option value="">{t('selectClass', 'Select Class')}</option>
+          {classes.map((cls) => (
+            <option key={cls.id} value={cls.id}>
+              {cls.name}
+            </option>
+          ))}
+        </Select>
+      </div>
+      <div>
+        <label className="block text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary mb-1.5">
+          {t('dateLabel', 'Date')}
+        </label>
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="w-full min-h-11 px-3 py-2 rounded-[6px] border border-(--border-subtle) bg-(--surface-card) ui-text-primary"
+        />
+      </div>
+    </>
+  )
+
+  const statusToggle = (studentId: string, size: 'mobile' | 'desktop') => (
+    <div className={size === 'mobile' ? 'grid grid-cols-3 gap-2' : 'flex justify-end gap-2'}>
+      {STATUS_OPTIONS.map((option) => {
+        const active = attendance[studentId] === option
+        return (
+          <button
+            key={option}
+            type="button"
+            onClick={() => handleAttendanceChange(studentId, option)}
+            className={`${
+              size === 'mobile' ? 'min-h-11 text-sm' : 'h-8 px-3 text-[13px]'
+            } rounded-[6px] transition-all duration-150 ease-in-out active:scale-[0.97] ${statusButtonClass(
+              active,
+              option
+            )}`}
+          >
+            {statusLabels[option]}
+          </button>
+        )
+      })}
+    </div>
+  )
 
   return (
     <DashboardLayout
@@ -170,123 +266,151 @@ export default function TeacherAttendancePage() {
         role: 'Teacher',
         email: session.user.email,
       }}
-      navItems={navItems}
+      navItems={TEACHER_NAV_ITEMS}
     >
-      <div className="space-y-6">
+      <div className="space-y-4 pb-24 md:pb-0">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Attendance</h1>
-          <p className="text-gray-700 mt-2">Mark student attendance</p>
+          <h1 className="text-[20px] font-semibold ui-text-primary">{t('title', 'Attendance')}</h1>
+          <p className="ui-text-secondary mt-1 text-sm">{t('subtitle', 'Mark student attendance')}</p>
         </div>
 
-        <Card className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium ui-text-secondary mb-2">Select Class</label>
-              <Select
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
-              >
-                <option value="">Select Class</option>
-                {classes.map((cls) => (
-                  <option key={cls.id} value={cls.id}>
-                    {cls.name}
-                  </option>
-                ))}
-              </Select>
+        {/* Mobile: compact filter chip + collapsible sheet */}
+        <Card className="p-3 md:hidden">
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((open) => !open)}
+            className="flex w-full min-h-11 items-center justify-between gap-3 rounded-[6px] border border-(--border-subtle) bg-(--surface-soft) px-3 text-left transition-all duration-150"
+            aria-expanded={filtersOpen}
+          >
+            <div className="min-w-0">
+              <p className="text-[11px] uppercase tracking-[0.07em] ui-text-secondary">
+                {t('filters', 'Filters')}
+              </p>
+              <p className="truncate text-sm font-medium ui-text-primary">
+                {selectedClassName}
+                <span className="ui-text-secondary font-normal"> · {selectedDate}</span>
+              </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium ui-text-secondary mb-2">Date</label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-md border border-(--border-subtle) bg-(--surface-card) ui-text-primary"
-              />
-            </div>
-            <div className="flex items-end justify-end gap-2">
+            <span className="shrink-0 text-sm font-medium" style={{ color: '#635bff' }}>
+              {filtersOpen ? t('hideFilters', 'Hide filters') : t('editFilters', 'Edit filters')} →
+            </span>
+          </button>
+
+          {filtersOpen && (
+            <div className="mt-3 space-y-3 border-t border-(--border-subtle) pt-3">
+              {filterControls}
               <Button
                 variant="secondary"
                 onClick={handleMarkAllPresent}
-                disabled={!selectedClass || students.length === 0}
+                disabled={!canSave}
+                className="w-full min-h-11"
               >
-                Mark All Present
+                {t('markAllPresent', 'Mark All Present')}
               </Button>
-              <Button
-                onClick={handleSaveAttendance}
-                isLoading={isSavingAttendance}
-                disabled={!selectedClass || students.length === 0}
-              >
-                Save Attendance
+            </div>
+          )}
+
+          {students.length > 0 && (
+            <p className="mt-3 text-xs ui-text-secondary">{summaryText}</p>
+          )}
+        </Card>
+
+        {/* Desktop filters */}
+        <Card className="hidden p-5 md:block">
+          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+            {filterControls}
+            <div className="flex items-end justify-end gap-2">
+              <Button variant="secondary" onClick={handleMarkAllPresent} disabled={!canSave}>
+                {t('markAllPresent', 'Mark All Present')}
+              </Button>
+              <Button onClick={handleSaveAttendance} isLoading={isSavingAttendance} disabled={!canSave}>
+                {t('saveAttendance', 'Save Attendance')}
               </Button>
             </div>
           </div>
 
           {loading ? (
-            <div>Loading...</div>
+            <div>{tCommon('loading', 'Loading...')}</div>
           ) : selectedClass && students.length > 0 ? (
             <div className="overflow-x-auto ui-table-wrap">
               <table className="ui-table min-w-full">
                 <thead>
                   <tr>
-                    <th>
-                      Admission No
-                    </th>
-                    <th>
-                      Student Name
-                    </th>
-                    <th>
-                      Status
-                    </th>
+                    <th>{t('admissionNoCol', 'Admission No')}</th>
+                    <th>{t('studentNameCol', 'Student Name')}</th>
+                    <th>{t('statusCol', 'Status')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {students.map((student) => (
                     <tr key={student.id} className="hover:bg-(--surface-soft)">
-                      <td>
-                        {student.admissionNumber}
-                      </td>
+                      <td>{student.admissionNumber}</td>
                       <td>
                         {student.firstName} {student.lastName}
                       </td>
-                      <td>
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={attendance[student.id] === 'PRESENT' ? 'primary' : 'ghost'}
-                            onClick={() => handleAttendanceChange(student.id, 'PRESENT')}
-                          >
-                            Present
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={attendance[student.id] === 'ABSENT' ? 'danger' : 'ghost'}
-                            onClick={() => handleAttendanceChange(student.id, 'ABSENT')}
-                          >
-                            Absent
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={attendance[student.id] === 'LATE' ? 'secondary' : 'ghost'}
-                            onClick={() => handleAttendanceChange(student.id, 'LATE')}
-                          >
-                            Late
-                          </Button>
-                        </div>
-                      </td>
+                      <td>{statusToggle(student.id, 'desktop')}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : selectedClass ? (
-            <div className="text-center text-gray-700 py-8">No students in this class</div>
+            <div className="py-8 text-center ui-text-secondary">
+              {t('noStudentsInClass', 'No students in this class')}
+            </div>
           ) : (
-            <div className="text-center text-gray-700">Please select a class</div>
+            <div className="text-center ui-text-secondary">
+              {t('pleaseSelectClass', 'Please select a class')}
+            </div>
           )}
         </Card>
+
+        {/* Mobile: card list */}
+        <div className="md:hidden">
+          {loading ? (
+            <Card className="p-6 text-center ui-text-secondary">{tCommon('loading', 'Loading...')}</Card>
+          ) : selectedClass && students.length > 0 ? (
+            <div className="space-y-3">
+              {students.map((student) => (
+                <Card key={student.id} className="p-4">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold ui-text-primary">
+                        {student.firstName} {student.lastName}
+                      </p>
+                      <p className="mt-0.5 text-[11px] uppercase tracking-[0.07em] ui-text-secondary">
+                        {student.admissionNumber}
+                      </p>
+                    </div>
+                  </div>
+                  {statusToggle(student.id, 'mobile')}
+                </Card>
+              ))}
+            </div>
+          ) : selectedClass ? (
+            <Card className="p-8 text-center ui-text-secondary">
+              {t('noStudentsInClass', 'No students in this class')}
+            </Card>
+          ) : (
+            <Card className="p-8 text-center ui-text-secondary">
+              {t('pleaseSelectClass', 'Please select a class')}
+            </Card>
+          )}
+        </div>
+
+        {/* Mobile sticky primary CTA */}
+        {canSave && (
+          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-(--border-subtle) bg-(--surface-card) p-3 md:hidden safe-area-pb">
+            <Button
+              onClick={handleSaveAttendance}
+              isLoading={isSavingAttendance}
+              disabled={!canSave}
+              className="w-full min-h-11"
+            >
+              {t('saveAttendance', 'Save Attendance')}
+            </Button>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   )

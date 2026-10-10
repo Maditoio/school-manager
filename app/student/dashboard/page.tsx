@@ -405,19 +405,20 @@ export default function StudentDashboardPage() {
                   )}
                 </div>
                 {!restrictedFeaturesBlocked ? (
-                <div className="flex flex-wrap gap-1">
-                  {['ALL', 'EXAM', 'TEST', 'QUIZ', 'ASSIGNMENT'].map(t => (
+                <div className="flex gap-1.5 overflow-x-auto pb-1">
+                  {['ALL', 'EXAM', 'TEST', 'QUIZ', 'ASSIGNMENT'].map((filterKey) => (
                     <button
-                      key={t}
-                      onClick={() => setTypeFilter(t)}
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                        typeFilter === t
+                      key={filterKey}
+                      type="button"
+                      onClick={() => setTypeFilter(filterKey)}
+                      className={`min-h-11 shrink-0 rounded-[6px] px-3 text-xs font-medium transition-all duration-150 active:scale-[0.97] ${
+                        typeFilter === filterKey
                           ? 'text-white'
-                          : 'border border-(--border-subtle) ui-text-secondary hover:ui-text-primary'
+                          : 'border border-(--border-subtle) ui-text-secondary'
                       }`}
-                      style={typeFilter === t ? { background: 'var(--accent)' } : undefined}
+                      style={typeFilter === filterKey ? { background: '#635bff' } : undefined}
                     >
-                      {filterButtonLabels[t] ?? t}
+                      {filterButtonLabels[filterKey] ?? filterKey}
                     </button>
                   ))}
                 </div>
@@ -439,51 +440,112 @@ export default function StudentDashboardPage() {
                     : `No ${filterButtonLabels[typeFilter] ?? typeFilter} assessments yet.`}
                 </p>
               ) : (
-                <div className="overflow-auto rounded-lg border border-(--border-subtle)">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-(--border-subtle)" style={{ background: 'var(--surface-soft)' }}>
-                        <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Évaluation</th>
-                        <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Matière</th>
-                        <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Type</th>
-                        <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">Note</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredResults.map((r, i) => {
-                        const pct = r.graded && r.score !== null
+                <>
+                  {/* Mobile cards */}
+                  <div className="space-y-2 md:hidden">
+                    {filteredResults.map((r) => {
+                      const pct =
+                        r.graded && r.score !== null
                           ? Math.round((r.score / r.assessment.totalMarks) * 100)
                           : null
-                        return (
-                          <tr
-                            key={r.id}
-                            className={`border-b border-(--border-subtle) last:border-0 ${i % 2 === 0 ? '' : ''}`}
-                          >
-                            <td className="px-3 py-2.5 font-medium ui-text-primary">{r.assessment.title}</td>
-                            <td className="px-3 py-2.5 ui-text-secondary text-xs">{r.assessment.subject.name}</td>
-                            <td className="px-3 py-2.5">
-                              <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${typeColors[r.assessment.type] ?? 'bg-gray-100 text-gray-700'}`}>
-                                {typeLabels[r.assessment.type] ?? r.assessment.type}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2.5 text-right">
-                              {r.graded && r.score !== null ? (
-                                <span className={`font-semibold text-sm ${
-                                  pct! >= 75 ? 'text-green-600' : pct! >= 50 ? 'text-amber-600' : 'text-red-600'
-                                }`}>
-                                  {r.score}/{r.assessment.totalMarks}
-                                  <span className="ml-1 text-[11px] font-normal ui-text-secondary">({pct}%)</span>
+                      return (
+                        <div
+                          key={r.id}
+                          className="rounded-[10px] border border-(--border-subtle) bg-(--surface-card) p-3"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold ui-text-primary">{r.assessment.title}</p>
+                              <p className="mt-0.5 text-xs ui-text-secondary">{r.assessment.subject.name}</p>
+                            </div>
+                            <span
+                              className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                                typeColors[r.assessment.type] ?? 'bg-gray-100 text-gray-700'
+                              }`}
+                            >
+                              {typeLabels[r.assessment.type] ?? r.assessment.type}
+                            </span>
+                          </div>
+                          <div className="mt-2 text-sm font-semibold ui-text-primary">
+                            {r.graded && r.score !== null ? (
+                              <>
+                                {r.score}/{r.assessment.totalMarks}
+                                <span className="ml-1 text-[11px] font-normal ui-text-secondary">({pct}%)</span>
+                              </>
+                            ) : (
+                              <span className="text-xs font-medium ui-text-secondary">{t('Pending')}</span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Desktop table */}
+                  <div className="hidden overflow-auto rounded-lg border border-(--border-subtle) md:block">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-(--border-subtle)" style={{ background: 'var(--surface-soft)' }}>
+                          <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">
+                            {t('Assessment')}
+                          </th>
+                          <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">
+                            {t('Subject')}
+                          </th>
+                          <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">
+                            {t('Type')}
+                          </th>
+                          <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">
+                            {t('Score')}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredResults.map((r) => {
+                          const pct =
+                            r.graded && r.score !== null
+                              ? Math.round((r.score / r.assessment.totalMarks) * 100)
+                              : null
+                          return (
+                            <tr key={r.id} className="border-b border-(--border-subtle) last:border-0">
+                              <td className="px-3 py-2.5 font-medium ui-text-primary">{r.assessment.title}</td>
+                              <td className="px-3 py-2.5 text-xs ui-text-secondary">{r.assessment.subject.name}</td>
+                              <td className="px-3 py-2.5">
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                                    typeColors[r.assessment.type] ?? 'bg-gray-100 text-gray-700'
+                                  }`}
+                                >
+                                  {typeLabels[r.assessment.type] ?? r.assessment.type}
                                 </span>
-                              ) : (
-                                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500">{t('Pending')}</span>
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                              </td>
+                              <td className="px-3 py-2.5 text-right">
+                                {r.graded && r.score !== null ? (
+                                  <span
+                                    className={`text-sm font-semibold ${
+                                      pct! >= 75
+                                        ? 'text-green-600'
+                                        : pct! >= 50
+                                          ? 'text-amber-600'
+                                          : 'text-red-600'
+                                    }`}
+                                  >
+                                    {r.score}/{r.assessment.totalMarks}
+                                    <span className="ml-1 text-[11px] font-normal ui-text-secondary">({pct}%)</span>
+                                  </span>
+                                ) : (
+                                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500">
+                                    {t('Pending')}
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
           </div>

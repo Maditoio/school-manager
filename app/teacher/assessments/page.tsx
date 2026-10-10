@@ -66,6 +66,7 @@ export default function TeacherAssessmentsPage() {
   const [formLoading, setFormLoading] = useState(false)
   const [publishLoadingId, setPublishLoadingId] = useState<string | null>(null)
   const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null)
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   const { locale } = useLocale()
   const t = useCallback((s: string) => translateText(s, locale), [locale])
@@ -456,7 +457,29 @@ export default function TeacherAssessmentsPage() {
         )}
 
         <Card className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <button
+            type="button"
+            className="flex w-full min-h-11 items-center justify-between gap-3 rounded-[6px] border border-(--border-subtle) bg-(--surface-soft) px-3 text-left md:hidden"
+            onClick={() => setFiltersOpen((open) => !open)}
+            aria-expanded={filtersOpen}
+          >
+            <div className="min-w-0">
+              <p className="text-[11px] uppercase tracking-[0.07em] ui-text-secondary">{t('Filters')}</p>
+              <p className="truncate text-sm font-medium ui-text-primary">
+                {[
+                  filters.classId ? classes.find((c) => c.id === filters.classId)?.name : t('All classes'),
+                  filters.subjectId ? subjects.find((s) => s.id === filters.subjectId)?.name : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            </div>
+            <span className="shrink-0 text-sm font-medium text-[#635bff]">
+              {filtersOpen ? '▲' : '▼'}
+            </span>
+          </button>
+
+          <div className={`${filtersOpen ? 'mt-3 grid' : 'hidden'} grid-cols-1 gap-3 md:mt-0 md:grid md:grid-cols-4`}>
             <Select
               label={t('Filter Class')}
               value={filters.classId}
@@ -502,8 +525,12 @@ export default function TeacherAssessmentsPage() {
             </Select>
 
             <div className="flex items-end gap-2">
-              <Button onClick={applyFilters} variant="primary" size="md">{t('Apply')}</Button>
-              <Button onClick={clearFilters} variant="secondary" size="md">{t('Clear')}</Button>
+              <Button onClick={applyFilters} variant="primary" size="md" className="min-h-11 md:min-h-0 flex-1 md:flex-none">
+                {t('Apply')}
+              </Button>
+              <Button onClick={clearFilters} variant="secondary" size="md" className="min-h-11 md:min-h-0 flex-1 md:flex-none">
+                {t('Clear')}
+              </Button>
             </div>
           </div>
         </Card>
