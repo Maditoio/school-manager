@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/Form'
 import { useSession } from 'next-auth/react'
 import { redirect, useParams } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
+import { useConfirmDialog } from '@/lib/useConfirmDialog'
 import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 import { useAdminUi } from '@/lib/use-admin-ui'
 
@@ -42,6 +43,7 @@ type Assignment = {
 export default function ClassSubjectsPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { confirm } = useConfirmDialog()
   const { tAdmin, tCommon } = useAdminUi()
   const params = useParams<{ id: string }>()
   const classId = params?.id
@@ -52,6 +54,7 @@ export default function ClassSubjectsPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [removingSubjectId, setRemovingSubjectId] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     subjectIds: [] as string[],
@@ -163,26 +166,60 @@ export default function ClassSubjectsPage() {
   }
 
   const handleRemove = async (subjectId: string) => {
-    if (!classId) return
-    if (!confirm(tAdmin('confirmRemoveAssignment', 'Remove this subject assignment from class?'))) return
+    if (!classId || removingSubjectId) return
+
+    const assignment = assignments.find((item) => item.subject.id === subjectId)
+    const isConfirmed = await confirm({
+      title: tAdmin('removeAssignmentTitle', 'Remove Assignment'),
+      description: tAdmin(
+        'confirmRemoveAssignment',
+        'Remove this subject assignment from class?'
+      ),
+      variant: 'danger',
+      confirmLabel: tAdmin('remove', 'Remove'),
+      cancelLabel: tCommon('cancel', 'Cancel'),
+      loadingLabel: tAdmin('removing', 'Removing...'),
+      entity: assignment
+        ? {
+            name: assignment.subject.name,
+            subtitle: `${assignment.teacher.firstName || ''} ${assignment.teacher.lastName || ''}`.trim(),
+          }
+        : undefined,
+      allowBackdropClose: false,
+      allowEscapeClose: false,
+    })
+
+    if (!isConfirmed) return
+
+    const previousAssignments = assignments
+    // Immediate paint: disable button + optimistic remove before network work
+    setRemovingSubjectId(subjectId)
+    setAssignments((prev) => prev.filter((item) => item.subject.id !== subjectId))
 
     try {
-      const res = await fetch(`/api/classes/${classId}/subjects?subjectId=${encodeURIComponent(subjectId)}`, {
-        method: 'DELETE',
-      })
+      const res = await fetch(
+        `/api/classes/${classId}/subjects?subjectId=${encodeURIComponent(subjectId)}`,
+        { method: 'DELETE' }
+      )
 
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
 
       if (!res.ok) {
-        showToast(data.error || tAdmin('failedRemoveAssignment', 'Failed to remove assignment'), 'error')
+        setAssignments(previousAssignments)
+        showToast(
+          data.error || tAdmin('failedRemoveAssignment', 'Failed to remove assignment'),
+          'error'
+        )
         return
       }
 
       showToast(tAdmin('assignmentRemoved', 'Subject assignment removed'), 'success')
-      await fetchData()
     } catch (error) {
       console.error('Failed to remove assignment:', error)
+      setAssignments(previousAssignments)
       showToast(tAdmin('failedRemoveAssignment', 'Failed to remove assignment'), 'error')
+    } finally {
+      setRemovingSubjectId(null)
     }
   }
 
@@ -309,7 +346,12 @@ export default function ClassSubjectsPage() {
                       )}
                     </p>
                   </div>
-                  <Button variant="danger" onClick={() => handleRemove(assignment.subject.id)}>
+                  <Button
+                    variant="danger"
+                    onClick={() => handleRemove(assignment.subject.id)}
+                    isLoading={removingSubjectId === assignment.subject.id}
+                    disabled={removingSubjectId !== null}
+                  >
                     {tAdmin('remove', 'Remove')}
                   </Button>
                 </div>

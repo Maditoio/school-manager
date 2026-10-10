@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, startTransition } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -65,6 +65,7 @@ export default function TeacherAssessmentsPage() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [formLoading, setFormLoading] = useState(false)
   const [publishLoadingId, setPublishLoadingId] = useState<string | null>(null)
+  const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null)
 
   const { locale } = useLocale()
   const t = useCallback((s: string) => translateText(s, locale), [locale])
@@ -202,9 +203,14 @@ export default function TeacherAssessmentsPage() {
   }
 
   const handleDelete = async (id: string) => {
+    // Yield a frame so the click can paint before confirm() blocks the main thread (INP).
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+
     if (!confirm('Are you sure you want to delete this assessment? This will also delete all student grades.')) {
       return
     }
+
+    setDeleteLoadingId(id)
 
     try {
       const res = await fetch(`/api/assessments/${id}`, {
@@ -212,13 +218,18 @@ export default function TeacherAssessmentsPage() {
       })
 
       if (res.ok) {
-        await fetchAssessments()
+        // Local update avoids a full-list refetch/re-render storm after delete.
+        startTransition(() => {
+          setAssessments((prev) => prev.filter((a) => a.id !== id))
+        })
       } else {
         await showAlert({ title: 'Error', message: 'Failed to delete assessment', variant: 'error' })
       }
     } catch (error) {
       console.error('Error deleting assessment:', error)
       await showAlert({ title: 'Error', message: 'Failed to delete assessment', variant: 'error' })
+    } finally {
+      setDeleteLoadingId(null)
     }
   }
 
@@ -583,7 +594,8 @@ export default function TeacherAssessmentsPage() {
                             size="sm"
                             variant="danger"
                             onClick={() => handleDelete(assessment.id)}
-                            disabled={assessment.termIsLocked}
+                            disabled={assessment.termIsLocked || deleteLoadingId === assessment.id}
+                            isLoading={deleteLoadingId === assessment.id}
                             title={assessment.termIsLocked ? t('Term is locked – cannot delete assessment') : undefined}
                           >
                             {t('Delete')}

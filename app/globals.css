@@ -228,7 +228,8 @@ html[data-theme='calm'] .ui-toolbar {
   padding: 8px 14px;
   font-size: 13px;
   font-weight: 600;
-  transition: all 0.15s ease;
+  /* Narrow transitions — `all` + hover translate/shadow was a common INP cost in dense action columns */
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
 }
 
 .ui-button-primary {
@@ -238,7 +239,6 @@ html[data-theme='calm'] .ui-toolbar {
 
 .ui-button-primary:hover {
   filter: brightness(0.95);
-  transform: translateY(-1px);
 }
 
 .ui-button-secondary {
@@ -249,7 +249,6 @@ html[data-theme='calm'] .ui-toolbar {
 
 .ui-button-secondary:hover {
   filter: brightness(0.98);
-  transform: translateY(-1px);
 }
 
 .ui-input,

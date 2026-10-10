@@ -19,13 +19,17 @@ export function Button({
 }: ButtonProps) {
   const locale = getClientLocale()
 
-  const baseClasses = 'ui-button inline-flex items-center justify-center focus:outline-none shadow-[0_2px_10px_rgba(15,23,42,0.06)]'
+  // Flat styles: no hover translate / soft shadows (those force style recalc + layer work on every button in dense tables).
+  const baseClasses =
+    'ui-button inline-flex items-center justify-center focus:outline-none active:scale-[0.97]'
 
   const variantClasses = {
-    primary: 'ui-button-primary focus:shadow-[0_0_0_3px_var(--accent-soft)]',
-    secondary: 'ui-button-secondary focus:shadow-[0_0_0_3px_var(--accent-soft)]',
-    danger: 'bg-[var(--danger)] text-white hover:brightness-95 hover:-translate-y-0.5 focus:shadow-[0_0_0_3px_rgba(225,29,72,0.18)]',
-    ghost: 'bg-transparent text-[var(--text-secondary)] shadow-none hover:bg-[var(--surface-soft)] border border-transparent',
+    primary: 'ui-button-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-soft)] focus-visible:outline-offset-2',
+    secondary: 'ui-button-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-soft)] focus-visible:outline-offset-2',
+    danger:
+      'bg-[var(--danger)] text-white hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[rgba(225,29,72,0.35)] focus-visible:outline-offset-2',
+    ghost:
+      'bg-transparent text-[var(--text-secondary)] hover:bg-[var(--surface-soft)] border border-transparent',
   }
 
   const sizeClasses = {
@@ -64,7 +68,7 @@ export function Button({
           />
         </svg>
       )}
-      {translateNode(children, locale)}
+      {locale === 'en' ? children : translateNode(children, locale)}
     </button>
   )
 }

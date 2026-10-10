@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, startTransition } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -225,6 +225,9 @@ export default function SuperAdminUsersPage() {
   }
 
   const handleDelete = async (userId: string) => {
+    // Yield a frame so the click can paint before confirm() blocks the main thread (INP).
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+
     if (!confirm('Are you sure you want to permanently delete this user? This cannot be undone.')) return
 
     try {
@@ -236,7 +239,9 @@ export default function SuperAdminUsersPage() {
       }
 
       showToast('User deleted successfully', 'success')
-      await fetchUsers()
+      startTransition(() => {
+        setUsers((prev) => prev.filter((u) => u.id !== userId))
+      })
     } catch (error) {
       console.error('Failed to delete user:', error)
       showToast('Failed to delete user', 'error')
