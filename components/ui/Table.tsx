@@ -53,6 +53,7 @@ type TableProps<T extends RowData = RowData> = {
   onExport?: () => void
   headerControls?: React.ReactNode
   getRowActions?: (row: T) => TableAction<T>[]
+  onRowClick?: (row: T) => void
   rowKey?: string
   ariaLabel?: string
 }
@@ -118,6 +119,7 @@ export default function Table<T extends RowData = RowData>({
   onExport,
   headerControls,
   getRowActions,
+  onRowClick,
   rowKey = 'id',
   ariaLabel,
 }: TableProps<T>) {
@@ -260,92 +262,43 @@ export default function Table<T extends RowData = RowData>({
     const normalized = String(value || '').toUpperCase()
 
     if (normalized.includes('ACTIVE') || normalized.includes('PAID') || normalized.includes('GRADED') || normalized.includes('PRESENT')) {
-      return (
-        <span
-          className="rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-wide"
-          style={{
-            color: '#059669',
-            background: 'rgba(16, 185, 129, 0.08)',
-            borderColor: 'rgba(16, 185, 129, 0.35)',
-          }}
-        >
-          {String(value)}
-        </span>
-      )
+      return <span className="ui-status ui-status-success">{String(value)}</span>
     }
 
     if (normalized.includes('PENDING') || normalized.includes('PARTIAL') || normalized.includes('LATE') || normalized.includes('NOT GRADED')) {
-      return (
-        <span
-          className="rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-wide"
-          style={{
-            color: '#b45309',
-            background: 'rgba(245, 158, 11, 0.08)',
-            borderColor: 'rgba(245, 158, 11, 0.35)',
-          }}
-        >
-          {String(value)}
-        </span>
-      )
+      return <span className="ui-status ui-status-pending">{String(value)}</span>
     }
 
-    return (
-      <span
-        className="rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-wide"
-        style={{
-          color: '#be123c',
-          background: 'rgba(244, 63, 94, 0.08)',
-          borderColor: 'rgba(244, 63, 94, 0.35)',
-        }}
-      >
-        {String(value)}
-      </span>
-    )
+    return <span className="ui-status ui-status-danger">{String(value)}</span>
   }
 
   return (
     <section
-      className="relative overflow-visible rounded-2xl border"
-      style={{
-        background: 'color-mix(in srgb, var(--surface) 92%, #111420 8%)',
-        borderColor: 'var(--border-subtle)',
-        fontFamily: '"Plus Jakarta Sans", "DM Sans", system-ui, sans-serif',
-      }}
+      className="ui-table-wrap relative overflow-visible"
       aria-label={ariaLabel || title || 'Data table'}
     >
-      <div className="flex min-h-14 items-center justify-between gap-3 border-b px-4 py-3 sm:px-5" style={{ borderColor: 'var(--border-subtle)' }}>
+      <div className="ui-table-toolbar px-4 sm:px-5">
         <h3 className="truncate text-[15px] font-semibold ui-text-primary">{tTitle}</h3>
 
-        <div className="flex items-center gap-2">
-          <label className="relative hidden sm:block">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 ui-text-secondary" />
+        <div className="ui-table-toolbar-controls">
+          <label className="ui-search-field hidden w-52 sm:block">
+            <Search className="ui-search-field__icon" aria-hidden />
             <input
-              type="text"
+              type="search"
               value={searchValue}
               onChange={handleSearchChange}
               placeholder={tSearchPlaceholder}
-              className="h-8 w-40 rounded-lg border pl-8 pr-2.5 text-[12px] transition-all duration-200 ease-in-out focus:outline-none"
+              className="ui-input ui-input-search w-full text-[12px]"
               style={{
                 background: 'var(--field-bg)',
                 color: 'var(--text-primary)',
                 borderColor: 'var(--border-subtle)',
-                boxShadow: 'none',
-              }}
-              onFocus={(event) => {
-                event.currentTarget.style.borderColor = 'color-mix(in srgb, var(--accent) 45%, transparent)'
-                event.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.15)'
-                event.currentTarget.style.background = 'var(--field-focus-bg)'
-              }}
-              onBlur={(event) => {
-                event.currentTarget.style.borderColor = 'var(--border-subtle)'
-                event.currentTarget.style.boxShadow = 'none'
-                event.currentTarget.style.background = 'var(--field-bg)'
               }}
               aria-label="Search table"
             />
           </label>
 
-          {headerControls ? <div className="hidden sm:flex items-center">{headerControls}</div> : null}
+          {headerControls ? <div className="hidden sm:flex items-center gap-2">{headerControls}</div> : null}
 
           <div className="relative" ref={filterContainerRef}>
             <button
@@ -357,7 +310,7 @@ export default function Table<T extends RowData = RowData>({
                   onFilterClick?.()
                 }
               }}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/45"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium transition-all duration-150 ease focus-visible:outline-none"
               style={{
                 borderColor: 'var(--border-subtle)',
                 background: 'var(--field-bg)',
@@ -377,15 +330,8 @@ export default function Table<T extends RowData = RowData>({
 
             {filterOptions?.length && isFilterOpen ? (
               <div
-                className="absolute right-0 z-90 mt-1.5 min-w-44 max-w-80 rounded-xl border border-white/15 bg-[#13151F]/85 p-1.5 backdrop-blur-xl"
-                style={{
-                  borderColor: 'var(--border-subtle)',
-                  background: 'color-mix(in srgb, var(--surface) 92%, var(--background) 8%)',
-                  width: 'max-content',
-                  transform: 'translateY(0)',
-                  opacity: 1,
-                  transition: 'transform 150ms ease, opacity 150ms ease',
-                }}
+                className="ui-popover absolute right-0 z-90 mt-1.5 min-w-44 max-w-80 rounded-[10px] p-1.5"
+                style={{ width: 'max-content' }}
               >
                 {filterOptions.map((option) => {
                   const active = option.value === activeFilter
@@ -447,14 +393,11 @@ export default function Table<T extends RowData = RowData>({
       </div>
 
       <div className="max-w-full overflow-x-auto">
-        <table className="min-w-full table-auto">
+        <table className="ui-table no-table-stripes min-w-full table-auto">
           <thead>
-            <tr className="text-left" style={{ background: 'color-mix(in srgb, var(--surface-soft) 88%, var(--background) 12%)' }}>
+            <tr className="text-left">
               {columns.map((column) => (
-                <th
-                  key={column.key}
-                  className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] ui-text-secondary"
-                >
+                <th key={column.key}>
                   {renderHeaderCell(column)}
                 </th>
               ))}
@@ -464,9 +407,9 @@ export default function Table<T extends RowData = RowData>({
           <tbody>
             {loading
               ? Array.from({ length: Math.min(pageSize, 6) }).map((_, index) => (
-                  <tr key={`skeleton-${index}`} className="border-b" style={{ borderColor: 'color-mix(in srgb, var(--border-subtle) 70%, transparent)' }}>
+                  <tr key={`skeleton-${index}`}>
                     {columns.map((column) => (
-                      <td key={`${column.key}-${index}`} className="px-4 py-3.5">
+                      <td key={`${column.key}-${index}`}>
                         <div
                           className="h-4 w-full rounded-md"
                           style={{
@@ -485,43 +428,30 @@ export default function Table<T extends RowData = RowData>({
                   const key = (rowRecord[rowKey] ?? `${rowIndex}`) as string | number
                   const actions = getRowActions?.(row) ?? []
                   const isSelected = key === selectedRowKey
-                  const striped = rowIndex % 2 === 1
 
                   return (
                     <tr
                       key={String(key)}
-                      onClick={() => setSelectedRowKey(key)}
-                      className="group border-b transition-all duration-150 ease-in-out"
-                      style={{
-                        borderColor: 'color-mix(in srgb, var(--border-subtle) 70%, transparent)',
-                        background: isSelected
-                          ? 'color-mix(in srgb, var(--accent-soft) 85%, transparent)'
-                          : striped
-                            ? 'color-mix(in srgb, var(--surface-soft) 65%, transparent)'
-                            : 'color-mix(in srgb, var(--surface-soft) 35%, transparent)',
-                        boxShadow: isSelected
-                          ? 'inset 3px 0 0 var(--accent), inset 0 0 12px color-mix(in srgb, var(--accent) 16%, transparent)'
-                          : 'none',
+                      onClick={() => {
+                        setSelectedRowKey(key)
+                        onRowClick?.(row)
                       }}
-                      onMouseEnter={(event) => {
-                        if (!isSelected) {
-                          event.currentTarget.style.background = 'color-mix(in srgb, var(--accent-soft) 70%, transparent)'
-                          event.currentTarget.style.boxShadow = 'inset 3px 0 0 var(--accent)'
-                        }
-                      }}
-                      onMouseLeave={(event) => {
-                        if (!isSelected) {
-                          event.currentTarget.style.background = striped
-                            ? 'color-mix(in srgb, var(--surface-soft) 65%, transparent)'
-                            : 'color-mix(in srgb, var(--surface-soft) 35%, transparent)'
-                          event.currentTarget.style.boxShadow = 'none'
-                        }
-                      }}
+                      className={`group transition-colors duration-150 ease ${
+                        onRowClick ? 'cursor-pointer' : ''
+                      }`}
+                      style={
+                        isSelected
+                          ? {
+                              background: 'color-mix(in srgb, var(--accent-soft) 70%, transparent)',
+                              boxShadow: 'inset 3px 0 0 #635bff',
+                            }
+                          : undefined
+                      }
                     >
                       {columns.map((column) => {
                         if (column.key === 'actions') {
                           return (
-                            <td key={`${key}-${column.key}`} className="px-4 py-3 text-right">
+                            <td key={`${key}-${column.key}`} className="text-right">
                               <div className="relative inline-flex">
                                 <button
                                   type="button"
@@ -549,7 +479,7 @@ export default function Table<T extends RowData = RowData>({
                                       }
                                     })
                                   }}
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-all duration-200 ease-in-out"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-all duration-150 ease"
                                   style={{
                                     borderColor: 'var(--border-subtle)',
                                     background: 'var(--field-bg)',
@@ -579,10 +509,7 @@ export default function Table<T extends RowData = RowData>({
                             : (rowRecord[column.key] as React.ReactNode) ?? '—'
 
                         return (
-                          <td
-                            key={`${key}-${column.key}`}
-                            className="px-4 py-3 text-[13.5px] ui-text-primary"
-                          >
+                          <td key={`${key}-${column.key}`}>
                             {rendered}
                           </td>
                         )
@@ -593,7 +520,7 @@ export default function Table<T extends RowData = RowData>({
 
             {!loading && visibleRows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-8 text-center text-sm ui-text-secondary">
+                <td colSpan={columns.length} className="py-8 text-center text-sm ui-text-secondary">
                   {tEmptyMessage}
                 </td>
               </tr>
@@ -713,15 +640,10 @@ export default function Table<T extends RowData = RowData>({
       {openMenuState ? (
         <div
           ref={menuContainerRef}
-          className="fixed z-120 min-w-44 rounded-xl border p-1.5 backdrop-blur-xl"
+          className="ui-popover fixed z-120 min-w-44 rounded-[10px] p-1.5"
           style={{
-            borderColor: 'var(--border-subtle)',
-            background: 'color-mix(in srgb, var(--surface) 92%, var(--background) 8%)',
             top: openMenuState.top,
             left: openMenuState.left,
-            transform: 'translateY(0)',
-            opacity: 1,
-            transition: 'transform 150ms ease, opacity 150ms ease',
           }}
         >
           {openMenuState.actions.length > 0 ? (

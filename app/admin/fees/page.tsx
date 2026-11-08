@@ -262,8 +262,8 @@ export default function AdminFeesPage({
         sortable: true,
         renderCell: (student: StudentStatus) => (
           <div className="flex flex-col">
-            <span className="font-medium text-slate-100">{student.studentName}</span>
-            <span className="text-xs text-slate-400">{student.admissionNumber || 'No admission number'}</span>
+            <span className="font-medium ui-text-primary">{student.studentName}</span>
+            <span className="text-xs ui-text-secondary">{student.admissionNumber || 'No admission number'}</span>
           </div>
         ),
       },
@@ -274,7 +274,7 @@ export default function AdminFeesPage({
         sortable: false,
         renderCell: (student: StudentStatus) =>
           student.status === 'NO_SCHEDULE' ? (
-            <span className="text-xs text-amber-400">No schedule</span>
+            <span className="text-xs ui-status ui-status-pending">No schedule</span>
           ) : (
             formatCurrency(student.amountDue - student.adjustmentAmount)
           ),
@@ -287,7 +287,7 @@ export default function AdminFeesPage({
           if (student.status === 'NO_SCHEDULE' || student.adjustmentAmount === 0)
             return <span className="text-xs ui-text-secondary">—</span>
           return (
-            <span className={student.adjustmentAmount < 0 ? 'text-emerald-400' : 'text-rose-400'}>
+            <span className={student.adjustmentAmount < 0 ? 'font-semibold text-[#1b8a5a]' : 'font-semibold text-[var(--danger)]'}>
               {student.adjustmentAmount > 0 ? '+' : ''}{formatCurrency(student.adjustmentAmount)}
             </span>
           )
@@ -315,7 +315,7 @@ export default function AdminFeesPage({
                 setAdjustAmount('')
                 setAdjustReason('')
               }}
-              className="text-xs text-indigo-400 hover:underline whitespace-nowrap"
+              className="ui-table-link text-xs whitespace-nowrap"
               title={hasAdj ? `Current adjustment: ${formatCurrency(student.adjustmentAmount)}` : t('Adjust fee')}
             >
               {hasAdj ? t('Edit Adjustment') : t('Adjust')}
@@ -336,8 +336,8 @@ export default function AdminFeesPage({
         sortable: true,
         renderCell: (student: StudentStatus) => (
           <div className="flex flex-col">
-            <span className="font-medium text-slate-100">{student.studentName}</span>
-            <span className="text-xs text-slate-400">{student.admissionNumber || 'No admission number'}</span>
+            <span className="font-medium ui-text-primary">{student.studentName}</span>
+            <span className="text-xs ui-text-secondary">{student.admissionNumber || 'No admission number'}</span>
           </div>
         ),
       },
@@ -348,7 +348,7 @@ export default function AdminFeesPage({
         sortable: true,
         renderCell: (student: StudentStatus) =>
           student.status === 'NO_SCHEDULE' ? (
-            <span className="text-xs text-amber-400">No schedule</span>
+            <span className="ui-status ui-status-pending text-xs">No schedule</span>
           ) : (
             formatCurrency(student.amountDue)
           ),
@@ -361,10 +361,10 @@ export default function AdminFeesPage({
           const overpaidAmount = Math.max(student.totalPaid - student.amountDue, 0)
           return (
             <div className="flex items-center gap-1.5">
-              <span>{formatCurrency(student.totalPaid)}</span>
+              <span className="font-semibold">{formatCurrency(student.totalPaid)}</span>
               {overpaidAmount > 0 ? (
                 <span
-                  className="text-xs font-semibold text-emerald-500"
+                  className="text-xs font-semibold text-[#1b8a5a]"
                   title={`Overpaid by ${formatCurrency(overpaidAmount)}`}
                 >
                   +{formatCurrency(overpaidAmount)}
@@ -382,12 +382,12 @@ export default function AdminFeesPage({
           if (student.status === 'NO_SCHEDULE') return '-'
           if (student.balance < 0) {
             return (
-              <span className="font-semibold text-emerald-500" title="Credit remaining">
+              <span className="font-semibold text-[#1b8a5a]" title="Credit remaining">
                 +{formatCurrency(Math.abs(student.balance))}
               </span>
             )
           }
-          return formatCurrency(student.balance)
+          return <span className="font-semibold">{formatCurrency(student.balance)}</span>
         },
       },
       {
@@ -395,13 +395,13 @@ export default function AdminFeesPage({
         label: t('Status'),
         sortable: true,
         renderCell: (student: StudentStatus) => {
-          if (student.status === 'NO_SCHEDULE') return <span className="text-xs text-amber-400">—</span>
+          if (student.status === 'NO_SCHEDULE') return <span className="ui-text-secondary text-xs">—</span>
           const label = student.status === 'NOT_PAID' ? 'NOT PAID' : student.status
-          const style =
-            student.status === 'PAID' ? 'bg-emerald-500/20 text-emerald-400' :
-            student.status === 'PARTIAL' ? 'bg-amber-500/20 text-amber-400' :
-            'bg-rose-500/20 text-rose-400'
-          return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${style}`}>{label}</span>
+          const tone =
+            student.status === 'PAID' ? 'ui-status-success' :
+            student.status === 'PARTIAL' ? 'ui-status-pending' :
+            'ui-status-danger'
+          return <span className={`ui-status ${tone}`}>{label}</span>
         },
       },
     ],

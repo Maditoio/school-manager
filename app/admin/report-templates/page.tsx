@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
+import { FilePlus, Pencil, Plus, Save, Trash2 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
@@ -289,7 +290,8 @@ function TemplateFormModal({
 
         <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-gray-200 bg-gray-50 shrink-0">
           <Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
-          <Button size="sm" onClick={handleSave} isLoading={saving}>
+          <Button size="sm" className="inline-flex items-center gap-1.5" onClick={handleSave} isLoading={saving}>
+            {isEdit ? <Save className="h-3.5 w-3.5" /> : <FilePlus className="h-3.5 w-3.5" />}
             {isEdit ? 'Save Changes' : 'Create Template'}
           </Button>
         </div>
@@ -409,14 +411,22 @@ function TemplateCard({
 
           {!template.isSystem && (
             <>
-              <Button size="sm" variant="ghost" onClick={() => onEdit(template.id)}>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="inline-flex items-center gap-1.5"
+                onClick={() => onEdit(template.id)}
+              >
+                <Pencil className="h-3.5 w-3.5" />
                 Edit
               </Button>
               <Button
                 size="sm"
                 variant="danger"
+                className="inline-flex items-center gap-1.5"
                 onClick={() => onDelete(template.id)}
               >
+                <Trash2 className="h-3.5 w-3.5" />
                 Delete
               </Button>
             </>
@@ -570,8 +580,9 @@ export default function ReportTemplatesPage() {
               </p>
             </div>
             {isAdmin && (
-              <Button onClick={() => setShowUploadModal(true)}>
-                + New Template
+              <Button className="inline-flex items-center gap-1.5" onClick={() => setShowUploadModal(true)}>
+                <Plus className="h-4 w-4" />
+                New Template
               </Button>
             )}
           </div>
@@ -643,7 +654,12 @@ export default function ReportTemplatesPage() {
                     Try another name in search or create a new custom template.
                   </p>
                   {isAdmin && (
-                    <Button size="sm" onClick={() => setShowUploadModal(true)}>
+                    <Button
+                      size="sm"
+                      className="inline-flex items-center gap-1.5"
+                      onClick={() => setShowUploadModal(true)}
+                    >
+                      <FilePlus className="h-3.5 w-3.5" />
                       Create Custom Template
                     </Button>
                   )}

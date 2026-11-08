@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
+import { Plus, X } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -405,8 +406,9 @@ export default function FinanceFundRequestsPage() {
             <p className="text-gray-500 mt-1">Review and manage staff fund requests.</p>
           </div>
           {!isFinanceManager && (
-          <Button onClick={() => setShowForm((v) => !v)}>
-            {showForm ? 'Cancel' : '+ New Request'}
+          <Button className="inline-flex items-center gap-1.5" onClick={() => setShowForm((v) => !v)}>
+            {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {showForm ? 'Cancel' : 'New Request'}
           </Button>
           )}
         </div>

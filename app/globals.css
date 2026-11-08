@@ -168,13 +168,13 @@ table td {
   padding: 8px 12px;
   font-size: 13px;
   color: var(--text-primary);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid var(--border-subtle);
   vertical-align: middle;
   font-variant-numeric: tabular-nums;
 }
 
 table tbody tr:nth-child(even) {
-  background: #f9fafb;
+  background: color-mix(in srgb, var(--surface-soft) 60%, var(--surface));
 }
 
 table tbody tr:hover {
@@ -187,6 +187,108 @@ table tbody tr:hover {
 
 .ui-text-secondary {
   color: var(--text-secondary);
+}
+
+/* Status pills — theme via data-theme (not Tailwind dark:) */
+.ui-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.ui-status-success {
+  background: #eafaf3;
+  color: #1b8a5a;
+}
+
+.ui-status-pending {
+  background: #fff8e6;
+  color: #b07d00;
+}
+
+.ui-status-danger {
+  background: #fff0ee;
+  color: #c0392b;
+}
+
+.ui-status-neutral {
+  background: var(--surface-soft);
+  color: var(--text-secondary);
+}
+
+html[data-theme='dark'] .ui-status-success {
+  background: rgba(62, 207, 142, 0.16);
+  color: #7ddea8;
+}
+
+html[data-theme='dark'] .ui-status-pending {
+  background: rgba(245, 158, 11, 0.16);
+  color: #f0c36a;
+}
+
+html[data-theme='dark'] .ui-status-danger {
+  background: rgba(250, 117, 90, 0.16);
+  color: #f2a090;
+}
+
+html[data-theme='dark'] .ui-status-neutral {
+  background: var(--surface-soft);
+  color: var(--text-secondary);
+}
+
+/* Role pills — readable contrast in light + data-theme dark (not Tailwind dark:) */
+.ui-role-teacher {
+  background: #f0effe;
+  color: #5146e8;
+}
+
+.ui-role-parent {
+  background: #eafaf3;
+  color: #1b8a5a;
+}
+
+.ui-role-finance {
+  background: #e8f1ff;
+  color: #1d5bbf;
+}
+
+.ui-role-finance-manager {
+  background: #e6f7fb;
+  color: #0e7490;
+}
+
+.ui-role-deputy {
+  background: #fff8e6;
+  color: #b07d00;
+}
+
+html[data-theme='dark'] .ui-role-teacher {
+  background: rgba(99, 91, 255, 0.18);
+  color: #b4afff;
+}
+
+html[data-theme='dark'] .ui-role-parent {
+  background: rgba(62, 207, 142, 0.16);
+  color: #7ddea8;
+}
+
+html[data-theme='dark'] .ui-role-finance {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+}
+
+html[data-theme='dark'] .ui-role-finance-manager {
+  background: rgba(6, 182, 212, 0.18);
+  color: #67e8f9;
+}
+
+html[data-theme='dark'] .ui-role-deputy {
+  background: rgba(245, 158, 11, 0.16);
+  color: #f0c36a;
 }
 
 .ui-surface {
@@ -274,8 +376,51 @@ html[data-theme='calm'] .ui-toolbar {
   background: var(--field-focus-bg);
 }
 
+/* Search field with leading icon — padding must beat .ui-input shorthand */
+.ui-search-field {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.ui-search-field__icon {
+  pointer-events: none;
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+}
+
+.ui-input.ui-input-search {
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 32px;
+  padding-right: 12px;
+  min-height: 2rem;
+  height: 2rem;
+}
+
+/* Native search decorations collide with our icon + placeholder */
+input[type='search']::-webkit-search-decoration,
+input[type='search']::-webkit-search-cancel-button,
+input[type='search']::-webkit-search-results-button,
+input[type='search']::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+input[type='search'] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Shared table system — prefer <Table /> or ui-table-wrap + ui-table */
 .ui-table-wrap {
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid var(--border-subtle);
   background: var(--surface);
   overflow: hidden;
@@ -284,6 +429,7 @@ html[data-theme='calm'] .ui-toolbar {
 .ui-table {
   width: 100%;
   border-collapse: collapse;
+  background: transparent;
 }
 
 .ui-table thead {
@@ -295,17 +441,19 @@ html[data-theme='calm'] .ui-toolbar {
   font-size: 11px;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.07em;
   color: var(--text-secondary);
   padding: 8px 12px;
 }
 
 .ui-table td {
-  padding: 8px 12px;
-  font-size: 13px;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  line-height: 1.45;
   color: var(--text-primary);
   border-bottom: 1px solid var(--border-subtle);
   font-variant-numeric: tabular-nums;
+  vertical-align: middle;
 }
 
 .ui-table tbody tr:nth-child(even) {
@@ -319,6 +467,46 @@ table.no-table-stripes tbody tr:nth-child(even) {
 
 .ui-table tbody tr:hover {
   background: color-mix(in srgb, var(--surface-soft) 88%, var(--background));
+}
+
+.ui-table-link {
+  color: #635bff;
+  font-weight: 500;
+}
+
+.ui-table-link:hover {
+  text-decoration: underline;
+}
+
+.ui-table-avatar {
+  display: inline-flex;
+  height: 2rem;
+  width: 2rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-soft);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ui-table-toolbar {
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0.75rem 1rem;
+}
+
+.ui-table-toolbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .ui-table.no-table-hover tbody tr:hover,
@@ -386,6 +574,31 @@ table.no-table-hover a:hover {
 .text-stone-400,
 .text-slate-400 {
   color: var(--text-disabled) !important;
+}
+
+/* Dark-theme leftovers inside tables — keep light mode readable */
+.text-slate-50,
+.text-slate-100,
+.text-slate-200,
+.text-zinc-100,
+.text-zinc-200,
+.text-gray-100,
+.text-gray-200,
+.text-neutral-100,
+.text-neutral-200 {
+  color: var(--text-primary) !important;
+}
+
+.text-indigo-100,
+.text-indigo-200,
+.text-indigo-300 {
+  color: #635bff !important;
+}
+
+.text-slate-300,
+.text-zinc-300,
+.text-gray-300 {
+  color: var(--text-secondary) !important;
 }
 
 .placeholder\:text-gray-500::placeholder,

@@ -292,7 +292,7 @@ export async function GET(
       return NextResponse.json({ error: 'Student not found' }, { status: 404 })
     }
 
-    const [attendanceByStatus, recentAttendance, subjectAssignments, results, assessmentSummary, classHistory, statusHistory] = await Promise.all([
+    const [attendanceByStatus, recentAttendance, subjectAssignments, results, assessmentSummary, classHistory, statusHistory, feeInvoices] = await Promise.all([
       prisma.attendance.groupBy({
         by: ['status'],
         where: { studentId: student.id },
@@ -331,6 +331,18 @@ export async function GET(
       }),
       getStudentClassHistory(student.id),
       getStudentStatusHistory(student.id),
+      prisma.feeInvoice.findMany({
+        where: { studentId: student.id },
+        select: {
+          id: true,
+          amountDue: true,
+          status: true,
+          dueDate: true,
+          payments: { select: { amountPaid: true } },
+        },
+        orderBy: { dueDate: 'desc' },
+        take: 50,
+      }),
     ])
 
     const attendanceSummary = (attendanceByStatus as AttendanceStatusCountRow[]).reduce(
@@ -350,8 +362,22 @@ export async function GET(
       teacherName: `${item.teacher.firstName || ''} ${item.teacher.lastName || ''}`.trim() || 'Not assigned',
     }))
 
+    let outstandingFees = 0
+    let openInvoiceCount = 0
+    for (const invoice of feeInvoices) {
+      const paid = invoice.payments.reduce((sum, payment) => sum + payment.amountPaid, 0)
+      const balance = Math.max(0, Number((invoice.amountDue - paid).toFixed(2)))
+      if (invoice.status !== 'PAID' && balance > 0) {
+        outstandingFees += balance
+        openInvoiceCount += 1
+      }
+    }
+
     return NextResponse.json({
-      student,
+      student: {
+        ...student,
+        hasLogin: Boolean(student.userId),
+      },
       attendanceSummary,
       recentAttendance,
       subjects,
@@ -359,6 +385,10 @@ export async function GET(
       assessmentSummary: {
         gradedCount: assessmentSummary._count._all,
         averageScore: assessmentSummary._avg.score,
+      },
+      feeSummary: {
+        outstanding: Number(outstandingFees.toFixed(2)),
+        openInvoiceCount,
       },
       classHistory,
       statusHistory,

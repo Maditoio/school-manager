@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { CheckCheck, Save } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/Button'
 import Table from '@/components/ui/Table'
@@ -190,14 +191,12 @@ export default function AttendancePage() {
           const initials = `${student.firstName?.[0] || ''}${student.lastName?.[0] || ''}`.toUpperCase() || 'S'
           return (
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/10 text-xs font-semibold text-slate-100">
-                {initials}
-              </div>
+              <div className="ui-table-avatar">{initials}</div>
               <div className="flex flex-col">
-                <span className="font-medium text-slate-100">
+                <span className="font-medium ui-text-primary">
                   {student.firstName} {student.lastName}
                 </span>
-                <span className="text-xs text-slate-400">{student.class?.name || 'No class assigned'}</span>
+                <span className="text-xs ui-text-secondary">{student.class?.name || 'No class assigned'}</span>
               </div>
             </div>
           )
@@ -263,12 +262,17 @@ export default function AttendancePage() {
           <div className="flex gap-2">
             <Button
               variant="secondary"
+              className="inline-flex items-center gap-1.5"
               onClick={handleMarkAllPresent}
               disabled={students.length === 0}
             >
+              <CheckCheck className="h-4 w-4" />
               Mark All Present
             </Button>
-            <Button onClick={handleSaveAttendance}>Save Attendance</Button>
+            <Button className="inline-flex items-center gap-1.5" onClick={handleSaveAttendance}>
+              <Save className="h-4 w-4" />
+              Save Attendance
+            </Button>
           </div>
         </div>
 
@@ -291,8 +295,8 @@ export default function AttendancePage() {
                   setSelectedDate(e.target.value)
                   setTablePage(1)
                 }}
-                className="h-8 rounded-lg border border-white/10 bg-white/5 px-2.5 text-[12px] text-slate-100 transition-all duration-200 ease-in-out outline-none focus:border-indigo-300/60 focus:shadow-[0_0_0_3px_rgba(99,102,241,0.15)]"
-                style={{ colorScheme: 'dark' }}
+                className="ui-input h-8 rounded-lg px-2.5 text-[12px]"
+                style={{ minHeight: '2rem', paddingTop: 0, paddingBottom: 0 }}
                 aria-label="Filter attendance by date"
               />
             </label>

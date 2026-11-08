@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Megaphone, Pencil, Plus, Trash2 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -245,7 +246,8 @@ export default function AnnouncementsPage() {
             <p className="text-gray-600 mt-2">{t('Create and manage school announcements')}</p>
           </div>
           {editingAnnouncement ? (
-            <Button variant="secondary" onClick={resetForm}>
+            <Button variant="secondary" className="inline-flex items-center gap-1.5" onClick={resetForm}>
+              <Plus className="h-4 w-4" />
               {t('New Announcement')}
             </Button>
           ) : null}
@@ -335,7 +337,10 @@ export default function AnnouncementsPage() {
                     {t('Cancel')}
                   </Button>
                 ) : null}
-                <Button type="submit" isLoading={saving}>{editingAnnouncement ? t('Update') : t('Create')}</Button>
+                <Button type="submit" isLoading={saving} className="inline-flex items-center gap-1.5">
+                  {editingAnnouncement ? <Pencil className="h-4 w-4" /> : <Megaphone className="h-4 w-4" />}
+                  {editingAnnouncement ? t('Update') : t('Create')}
+                </Button>
               </div>
             </form>
           </Card>
@@ -356,10 +361,20 @@ export default function AnnouncementsPage() {
                         <p className="text-sm text-gray-500 mt-1">{t('Active')} {formatRange(announcement.startDate, announcement.endDate)}</p>
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="secondary" onClick={() => handleEdit(announcement)}>
+                        <Button
+                          variant="secondary"
+                          className="inline-flex items-center gap-1.5"
+                          onClick={() => handleEdit(announcement)}
+                        >
+                          <Pencil className="h-4 w-4" />
                           {t('Edit')}
                         </Button>
-                        <Button variant="danger" onClick={() => handleDelete(announcement.id)}>
+                        <Button
+                          variant="danger"
+                          className="inline-flex items-center gap-1.5"
+                          onClick={() => handleDelete(announcement.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
                           {t('Delete')}
                         </Button>
                       </div>

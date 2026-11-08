@@ -22,6 +22,10 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  // next-pwa injects a webpack config; Next 16 defaults `next dev` to
+  // Turbopack and errors unless turbopack is acknowledged. PWA stays
+  // disabled in development; production builds use `next build --webpack`.
+  turbopack: {},
   typescript: {
     ignoreBuildErrors: false,
   },

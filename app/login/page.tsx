@@ -210,7 +210,7 @@ export default function LoginPage() {
 
                 <div>
                   <label htmlFor="schoolCode" className="block text-sm font-medium text-gray-900 mb-2">
-                    School code
+                    School code <span className="font-normal text-gray-500">(optional for platform admin)</span>
                   </label>
                   <input
                     id="schoolCode"
@@ -218,6 +218,7 @@ export default function LoginPage() {
                     value={schoolCode}
                     onChange={(e) => setSchoolCode(e.target.value.toUpperCase())}
                     autoComplete="organization"
+                    placeholder="Leave blank for super admin"
                     className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors bg-gray-50 text-gray-900"
                   />
                 </div>

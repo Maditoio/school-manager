@@ -1,40 +1,29 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
-import { Input, Select } from '@/components/ui/Form'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
+import { Download, Plus, Upload } from 'lucide-react'
+import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { Button } from '@/components/ui/Button'
+import { Input, Select } from '@/components/ui/Form'
+import Table from '@/components/ui/Table'
 import { useToast } from '@/components/ui/Toast'
-import { BookOpen, CalendarDays, GraduationCap, Info, MoreHorizontal, PencilLine, Trash2, UserRound, Users } from 'lucide-react'
+import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 import enMessages from '@/messages/en.json'
 import frMessages from '@/messages/fr.json'
 import swMessages from '@/messages/sw.json'
-import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 
-interface SubjectSummary {
-  id: string
-  name: string
-  code: string | null
-}
-
-interface TeacherSubjectGroup {
-  teacherId: string
-  teacher: { id: string; firstName: string; lastName: string }
-  subjects: SubjectSummary[]
-}
-
-interface Class {
+interface ClassRow {
   id: string
   name: string
   academicYear: number
   academicYearId: string | null
+  grade: string | null
   teacherId: string | null
   capacity?: number | null
-  teacher?: { firstName: string; lastName: string }
-  teacherSubjectGroups?: TeacherSubjectGroup[]
+  teacher?: { firstName: string | null; lastName: string | null } | null
   _count?: { students: number }
 }
 
@@ -52,23 +41,25 @@ interface Teacher {
 }
 
 export default function ClassesPage() {
+  const router = useRouter()
   const { data: session, status } = useSession()
   const { showToast } = useToast()
 
-  const [classes, setClasses] = useState<Class[]>([])
+  const [classes, setClasses] = useState<ClassRow[]>([])
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([])
   const [defaultAcademicYearId, setDefaultAcademicYearId] = useState('')
   const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [yearFilter, setYearFilter] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 10
+
   const [showModal, setShowModal] = useState(false)
   const [showBulkModal, setShowBulkModal] = useState(false)
   const [bulkUploadLoading, setBulkUploadLoading] = useState(false)
   const [bulkUploadErrors, setBulkUploadErrors] = useState<Array<{ row: number; error: string }>>([])
-  const [openClassMenuId, setOpenClassMenuId] = useState<string | null>(null)
-  const [openTeachersInfoClassId, setOpenTeachersInfoClassId] = useState<string | null>(null)
-  const classMenuRef = useRef<HTMLDivElement | null>(null)
-  const teachersInfoRef = useRef<HTMLDivElement | null>(null)
-  const [editingClass, setEditingClass] = useState<Class | null>(null)
+  const [editingClass, setEditingClass] = useState<ClassRow | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     academicYearId: '',
@@ -76,79 +67,38 @@ export default function ClassesPage() {
     capacity: '',
   })
 
-  const preferredLanguage = session?.user?.preferredLanguage || 'en'
-
-  const languageMessages = useMemo(() => {
-    return preferredLanguage === 'fr' ? frMessages : preferredLanguage === 'sw' ? swMessages : enMessages
-  }, [preferredLanguage])
-
+  const preferredLanguage = session?.user?.preferredLanguage || 'fr'
+  const languageMessages = useMemo(
+    () => (preferredLanguage === 'fr' ? frMessages : preferredLanguage === 'sw' ? swMessages : enMessages),
+    [preferredLanguage]
+  )
   const adminUi = useMemo(
     () => ((languageMessages as Record<string, unknown>).adminUi || {}) as Record<string, string>,
     [languageMessages]
   )
-
   const common = useMemo(
     () => ((languageMessages as Record<string, unknown>).common || {}) as Record<string, string>,
     [languageMessages]
   )
-
-  const navigation = useMemo(
-    () => ((languageMessages as Record<string, unknown>).navigation || {}) as Record<string, string>,
+  const classesDetail = useMemo(
+    () => ((languageMessages as Record<string, unknown>).classesDetail || {}) as Record<string, string>,
     [languageMessages]
   )
 
   const tAdmin = useCallback((key: string, fallback: string) => adminUi[key] || fallback, [adminUi])
   const tCommon = useCallback((key: string, fallback: string) => common[key] || fallback, [common])
-  const tNav = useCallback((key: string, fallback: string) => navigation[key] || fallback, [navigation])
+  const t = useCallback((key: string, fallback: string) => classesDetail[key] || fallback, [classesDetail])
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      redirect('/login')
-    }
+    if (status === 'unauthenticated') redirect('/login')
     if (session?.user?.role !== 'SCHOOL_ADMIN' && session?.user?.role !== 'DEPUTY_ADMIN') {
       redirect('/login')
     }
   }, [session, status])
 
-  useEffect(() => {
-    if (session) {
-      fetchClasses()
-      fetchTeachers()
-      fetchAcademicYears()
-    }
-  }, [session])
-
-  const fetchAcademicYears = async () => {
+  const fetchClasses = useCallback(async () => {
     try {
-      const res = await fetch('/api/terms')
-      if (!res.ok) {
-        setAcademicYears([])
-        setDefaultAcademicYearId('')
-        return
-      }
-
-      const data = await res.json()
-      const years = Array.isArray(data.academicYears) ? data.academicYears : []
-      setAcademicYears(years)
-
-      const currentYear = years.find((year: AcademicYear) => year.isCurrent)
-      const fallbackYear = years[0]
-      const selectedId = currentYear?.id ?? fallbackYear?.id ?? ''
-      setDefaultAcademicYearId(selectedId)
-
-      setFormData((prev) => ({
-        ...prev,
-        academicYearId: prev.academicYearId || selectedId,
-      }))
-    } catch (error) {
-      console.error('Failed to fetch academic years:', error)
-      setAcademicYears([])
-      setDefaultAcademicYearId('')
-    }
-  }
-
-  const fetchClasses = async () => {
-    try {
+      setLoading(true)
       const res = await fetch('/api/classes')
       if (res.ok) {
         const data = await res.json()
@@ -162,9 +112,9 @@ export default function ClassesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const fetchTeachers = async () => {
+  const fetchTeachers = useCallback(async () => {
     try {
       const res = await fetch('/api/users?role=TEACHER')
       if (res.ok) {
@@ -177,161 +127,36 @@ export default function ClassesPage() {
       console.error('Failed to fetch teachers:', error)
       setTeachers([])
     }
-  }
+  }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const fetchAcademicYears = useCallback(async () => {
     try {
-      const url = editingClass ? `/api/classes/${editingClass.id}` : '/api/classes'
-      const method = editingClass ? 'PUT' : 'POST'
-
-      const payload = {
-        name: formData.name,
-        academicYearId: formData.academicYearId,
-        teacherId: formData.teacherId || undefined,
-        capacity: formData.capacity || undefined,
-      }
-
-      if (!payload.academicYearId) {
-        showToast(tAdmin('selectAcademicYear', 'Please select an academic year'), 'error')
+      const res = await fetch('/api/terms')
+      if (!res.ok) {
+        setAcademicYears([])
+        setDefaultAcademicYearId('')
         return
       }
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-
-      if (res.ok) {
-        await fetchClasses()
-        setShowModal(false)
-        resetForm()
-        showToast(tAdmin('classSaved', 'Class saved successfully!'), 'success')
-      } else {
-        const error = await res.json()
-        const apiError =
-          Array.isArray(error.error) && error.error[0]?.message
-            ? String(error.error[0].message)
-            : typeof error.error === 'string'
-              ? error.error
-              : tAdmin('failedSaveClass', 'Failed to save class')
-        showToast(apiError, 'error')
-      }
-    } catch (error) {
-      console.error('Failed to save class:', error)
-      showToast(tAdmin('failedSaveClass', 'Failed to save class'), 'error')
-    }
-  }
-
-  const handleEdit = (cls: Class) => {
-    const resolvedAcademicYearId =
-      cls.academicYearId ||
-      academicYears.find((year) => year.year === cls.academicYear)?.id ||
-      defaultAcademicYearId
-
-    setEditingClass(cls)
-    setFormData({
-      name: cls.name,
-      academicYearId: resolvedAcademicYearId,
-      teacherId: cls.teacherId || '',
-      capacity: cls.capacity ? cls.capacity.toString() : '',
-    })
-    setShowModal(true)
-  }
-
-  const handleDelete = async (id: string) => {
-    if (!confirm(tAdmin('confirmDeleteClass', 'Are you sure you want to delete this class?'))) return
-
-    try {
-      const res = await fetch(`/api/classes/${id}`, { method: 'DELETE' })
       const data = await res.json()
-
-      if (res.ok || res.status === 202) {
-        showToast(
-          data.message ||
-            tAdmin('classDeletionRequested', 'Class deletion request submitted. Awaiting approval from another admin.'),
-          'success'
-        )
-        await fetchClasses()
-      } else {
-        showToast(data.error || tAdmin('failedDeleteClass', 'Failed to delete class'), 'error')
-      }
+      const years = Array.isArray(data.academicYears) ? data.academicYears : []
+      setAcademicYears(years)
+      const currentYear = years.find((year: AcademicYear) => year.isCurrent)
+      const selectedId = currentYear?.id ?? years[0]?.id ?? ''
+      setDefaultAcademicYearId(selectedId)
+      setFormData((prev) => ({ ...prev, academicYearId: prev.academicYearId || selectedId }))
     } catch (error) {
-      console.error('Failed to delete class:', error)
-      showToast(tAdmin('failedDeleteClass', 'Failed to delete class'), 'error')
+      console.error('Failed to fetch academic years:', error)
+      setAcademicYears([])
+      setDefaultAcademicYearId('')
     }
-  }
+  }, [])
 
-  const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setBulkUploadLoading(true)
-    setBulkUploadErrors([])
-
-    try {
-      const formDataToSend = new FormData()
-      formDataToSend.append('file', file)
-
-      const res = await fetch('/api/classes/bulk-upload', {
-        method: 'POST',
-        body: formDataToSend,
-      })
-
-      const data = await res.json()
-
-      if (res.ok) {
-        await fetchClasses()
-        setShowBulkModal(false)
-        showToast(
-          tAdmin('bulkCreatedClasses', 'Successfully created {n} class(es)!').replace(
-            '{n}',
-            String(data.created)
-          ),
-          'success'
-        )
-      } else {
-        if (data.errors && data.errors.length > 0) {
-          setBulkUploadErrors(data.errors)
-          showToast(
-            tAdmin('bulkFailedClasses', 'Failed to create {n} row(s). See errors below.').replace(
-              '{n}',
-              String(data.failed)
-            ),
-            'error'
-          )
-        } else {
-          showToast(data.error || tAdmin('failedUploadClasses', 'Failed to upload classes'), 'error')
-        }
-      }
-    } catch (error) {
-      console.error('Failed to upload classes:', error)
-      showToast(tAdmin('failedUploadClasses', 'Failed to upload classes'), 'error')
-    } finally {
-      setBulkUploadLoading(false)
-    }
-  }
-
-  const downloadTemplate = async () => {
-    try {
-      const res = await fetch('/api/classes/bulk-upload/template')
-      if (res.ok) {
-        const blob = await res.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = 'classes-bulk-upload-template.xlsx'
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-      }
-    } catch (error) {
-      console.error('Failed to download template:', error)
-      showToast(tAdmin('failedDownloadTemplate', 'Failed to download template'), 'error')
-    }
-  }
+  useEffect(() => {
+    if (!session) return
+    fetchClasses()
+    fetchTeachers()
+    fetchAcademicYears()
+  }, [session, fetchClasses, fetchTeachers, fetchAcademicYears])
 
   const resetForm = () => {
     setFormData({
@@ -343,37 +168,233 @@ export default function ClassesPage() {
     setEditingClass(null)
   }
 
-  useEffect(() => {
-    if (!openClassMenuId && !openTeachersInfoClassId) return
-
-    const handlePointerDown = (event: MouseEvent) => {
-      const target = event.target as Node
-      if (openClassMenuId && classMenuRef.current && !classMenuRef.current.contains(target)) {
-        setOpenClassMenuId(null)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const url = editingClass ? `/api/classes/${editingClass.id}` : '/api/classes'
+      const method = editingClass ? 'PUT' : 'POST'
+      const payload = {
+        name: formData.name,
+        academicYearId: formData.academicYearId,
+        teacherId: formData.teacherId || undefined,
+        capacity: formData.capacity || undefined,
       }
-      if (openTeachersInfoClassId && teachersInfoRef.current && !teachersInfoRef.current.contains(target)) {
-        setOpenTeachersInfoClassId(null)
+      if (!payload.academicYearId) {
+        showToast(tAdmin('selectAcademicYear', 'Veuillez sélectionner une année scolaire'), 'error')
+        return
       }
-    }
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setOpenClassMenuId(null)
-        setOpenTeachersInfoClassId(null)
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (res.ok) {
+        await fetchClasses()
+        setShowModal(false)
+        resetForm()
+        showToast(tAdmin('classSaved', 'Classe enregistrée avec succès !'), 'success')
+      } else {
+        const error = await res.json()
+        const apiError =
+          Array.isArray(error.error) && error.error[0]?.message
+            ? String(error.error[0].message)
+            : typeof error.error === 'string'
+              ? error.error
+              : tAdmin('failedSaveClass', "Échec de l'enregistrement de la classe")
+        showToast(apiError, 'error')
       }
+    } catch (error) {
+      console.error('Failed to save class:', error)
+      showToast(tAdmin('failedSaveClass', "Échec de l'enregistrement de la classe"), 'error')
     }
+  }
 
-    document.addEventListener('mousedown', handlePointerDown)
-    document.addEventListener('keydown', handleEscape)
+  const handleEdit = (cls: ClassRow) => {
+    const resolvedAcademicYearId =
+      cls.academicYearId ||
+      academicYears.find((year) => year.year === cls.academicYear)?.id ||
+      defaultAcademicYearId
+    setEditingClass(cls)
+    setFormData({
+      name: cls.name,
+      academicYearId: resolvedAcademicYearId,
+      teacherId: cls.teacherId || '',
+      capacity: cls.capacity ? String(cls.capacity) : '',
+    })
+    setShowModal(true)
+  }
 
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown)
-      document.removeEventListener('keydown', handleEscape)
+  const handleDelete = async (id: string) => {
+    if (!confirm(tAdmin('confirmDeleteClass', 'Êtes-vous sûr de vouloir supprimer cette classe ?'))) return
+    try {
+      const res = await fetch(`/api/classes/${id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (res.ok || res.status === 202) {
+        showToast(
+          data.message ||
+            tAdmin(
+              'classDeletionRequested',
+              "Demande de suppression de classe soumise. En attente d'approbation d'un autre administrateur."
+            ),
+          'success'
+        )
+        await fetchClasses()
+      } else {
+        showToast(data.error || tAdmin('failedDeleteClass', 'Échec de la suppression de la classe'), 'error')
+      }
+    } catch (error) {
+      console.error('Failed to delete class:', error)
+      showToast(tAdmin('failedDeleteClass', 'Échec de la suppression de la classe'), 'error')
     }
-  }, [openClassMenuId, openTeachersInfoClassId])
+  }
+
+  const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setBulkUploadLoading(true)
+    setBulkUploadErrors([])
+    try {
+      const formDataToSend = new FormData()
+      formDataToSend.append('file', file)
+      const res = await fetch('/api/classes/bulk-upload', { method: 'POST', body: formDataToSend })
+      const data = await res.json()
+      if (res.ok) {
+        await fetchClasses()
+        setShowBulkModal(false)
+        showToast(
+          tAdmin('bulkCreatedClasses', '{n} classe(s) créée(s) !').replace('{n}', String(data.created)),
+          'success'
+        )
+      } else if (data.errors?.length) {
+        setBulkUploadErrors(data.errors)
+        showToast(
+          tAdmin('bulkFailedClasses', 'Échec pour {n} ligne(s).').replace('{n}', String(data.failed)),
+          'error'
+        )
+      } else {
+        showToast(data.error || tAdmin('failedUploadClasses', "Échec de l'importation des classes"), 'error')
+      }
+    } catch (error) {
+      console.error('Failed to upload classes:', error)
+      showToast(tAdmin('failedUploadClasses', "Échec de l'importation des classes"), 'error')
+    } finally {
+      setBulkUploadLoading(false)
+    }
+  }
+
+  const downloadTemplate = async () => {
+    try {
+      const res = await fetch('/api/classes/bulk-upload/template')
+      if (!res.ok) return
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'classes-bulk-upload-template.xlsx'
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Failed to download template:', error)
+      showToast(tAdmin('failedDownloadTemplate', 'Échec du téléchargement du modèle'), 'error')
+    }
+  }
+
+  const yearOptions = useMemo(() => {
+    const years = Array.from(new Set(classes.map((c) => c.academicYear))).sort((a, b) => b - a)
+    return years.map((year) => ({ value: String(year), label: String(year) }))
+  }, [classes])
+
+  const filteredClasses = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase()
+    return classes.filter((cls) => {
+      if (yearFilter && String(cls.academicYear) !== yearFilter) return false
+      if (!query) return true
+      const teacherName = cls.teacher
+        ? `${cls.teacher.firstName || ''} ${cls.teacher.lastName || ''}`.trim().toLowerCase()
+        : ''
+      return (
+        cls.name.toLowerCase().includes(query) ||
+        String(cls.grade || '')
+          .toLowerCase()
+          .includes(query) ||
+        String(cls.academicYear).includes(query) ||
+        teacherName.includes(query)
+      )
+    })
+  }, [classes, searchTerm, yearFilter])
+
+  const pageRows = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return filteredClasses.slice(start, start + pageSize)
+  }, [filteredClasses, currentPage])
+
+  const columns = useMemo(
+    () => [
+      {
+        key: 'name',
+        label: t('colName', 'Nom'),
+        sortable: true,
+        renderCell: (cls: ClassRow) => <span className="font-medium ui-text-primary">{cls.name}</span>,
+      },
+      {
+        key: 'grade',
+        label: t('colGrade', 'Niveau'),
+        renderCell: (cls: ClassRow) => cls.grade || '—',
+      },
+      {
+        key: 'academicYear',
+        label: t('colYear', 'Année'),
+        sortable: true,
+      },
+      {
+        key: 'teacher',
+        label: t('colHomeroom', 'Titulaire'),
+        renderCell: (cls: ClassRow) =>
+          cls.teacher
+            ? `${cls.teacher.firstName || ''} ${cls.teacher.lastName || ''}`.trim() || '—'
+            : '—',
+      },
+      {
+        key: 'students',
+        label: t('colStudents', 'Élèves'),
+        renderCell: (cls: ClassRow) => {
+          const count = cls._count?.students || 0
+          return cls.capacity ? `${count} / ${cls.capacity}` : String(count)
+        },
+      },
+      { key: 'actions', label: t('colActions', 'Actions') },
+    ],
+    [t]
+  )
+
+  const getRowActions = (cls: ClassRow) => [
+    {
+      label: t('actionOpen', 'Ouvrir'),
+      onClick: () => router.push(`/admin/classes/${cls.id}`),
+    },
+    {
+      label: tCommon('edit', 'Modifier'),
+      onClick: () => handleEdit(cls),
+    },
+    {
+      label: t('actionManageStudents', 'Gérer les élèves'),
+      onClick: () => router.push(`/admin/classes/${cls.id}?tab=students`),
+    },
+    {
+      label: t('actionManageSubjects', 'Gérer les matières'),
+      onClick: () => router.push(`/admin/classes/${cls.id}?tab=teachers`),
+    },
+    {
+      label: tCommon('delete', 'Supprimer'),
+      danger: true,
+      onClick: () => handleDelete(cls.id),
+    },
+  ]
 
   if (status === 'loading' || !session) {
-    return <div>{tCommon('loading', 'Loading...')}</div>
+    return <div>{tCommon('loading', 'Chargement...')}</div>
   }
 
   const navItems = session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS
@@ -387,315 +408,217 @@ export default function ClassesPage() {
       }}
       navItems={navItems}
     >
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{tAdmin('classesManagement', 'Classes Management')}</h1>
-            <p className="text-gray-600 mt-2">{tAdmin('manageClasses', 'Manage all classes in your school')}</p>
+            <h1 className="text-[20px] font-semibold ui-text-primary">
+              {tAdmin('classesManagement', 'Gestion des classes')}
+            </h1>
+            <p className="mt-1 text-sm ui-text-secondary">
+              {tAdmin('manageClasses', 'Gérez toutes les classes de votre école')}
+            </p>
           </div>
-          <div className="flex gap-2">
-            <a
-              href="/admin/deletion-requests"
-              className="ui-button ui-button-secondary h-8 px-3.5 text-[13px] inline-flex items-center justify-center"
-            >
-              {tAdmin('deletionRequests', 'Deletion Requests')}
-            </a>
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="secondary"
+              className="inline-flex items-center gap-1.5"
               onClick={() => {
                 setShowBulkModal(true)
                 setBulkUploadErrors([])
               }}
             >
-              {tAdmin('bulkUploadClasses', 'Bulk Upload Classes')}
+              <Upload className="h-4 w-4" />
+              {tAdmin('bulkUploadClasses', 'Importation en lot des classes')}
             </Button>
             <Button
+              className="inline-flex items-center gap-1.5"
               onClick={() => {
                 resetForm()
                 setShowModal(true)
               }}
             >
-              {tAdmin('addClass', 'Add Class')}
+              <Plus className="h-4 w-4" />
+              {tAdmin('addClass', 'Ajouter une classe')}
             </Button>
           </div>
         </div>
 
-        {loading ? (
-          <div>{tAdmin('loadingClasses', 'Loading classes...')}</div>
-        ) : classes.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {classes.map((cls) => (
-              <Card
-                key={cls.id}
-                className={`p-6 relative ${
-                  openClassMenuId === cls.id || openTeachersInfoClassId === cls.id ? 'z-30' : 'z-0'
-                }`}
-              >
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-2" ref={openClassMenuId === cls.id ? classMenuRef : undefined}>
-                    <h3 className="text-xl font-semibold text-gray-900">{cls.name}</h3>
-                    <div className="relative">
-                      <button
-                        type="button"
-                        aria-label={tAdmin('classActions', 'Class actions')}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-(--border-subtle) bg-(--surface-soft) ui-text-secondary hover:ui-text-primary"
-                        onClick={() => setOpenClassMenuId((prev) => (prev === cls.id ? null : cls.id))}
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </button>
-
-                      {openClassMenuId === cls.id ? (
-                        <div className="absolute right-0 top-9 z-50 min-w-40 rounded-[10px] border border-(--border-subtle) bg-(--surface) p-1.5 shadow-(--shadow-soft)">
-                          <a
-                            href={`/admin/classes/${cls.id}/students`}
-                            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm ui-text-secondary hover:bg-(--surface-soft) hover:ui-text-primary"
-                            onClick={() => setOpenClassMenuId(null)}
-                          >
-                            <GraduationCap className="h-4 w-4" />
-                            {tNav('students', 'Students')}
-                          </a>
-                          <a
-                            href={`/admin/classes/${cls.id}/subjects`}
-                            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm ui-text-secondary hover:bg-(--surface-soft) hover:ui-text-primary"
-                            onClick={() => setOpenClassMenuId(null)}
-                          >
-                            <BookOpen className="h-4 w-4" />
-                            {tNav('subjects', 'Subjects')}
-                          </a>
-                          <button
-                            type="button"
-                            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ui-text-secondary hover:bg-(--surface-soft) hover:ui-text-primary"
-                            onClick={() => {
-                              setOpenClassMenuId(null)
-                              handleEdit(cls)
-                            }}
-                          >
-                            <PencilLine className="h-4 w-4" />
-                            {tCommon('edit', 'Edit')}
-                          </button>
-                          <button
-                            type="button"
-                            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
-                            onClick={() => {
-                              setOpenClassMenuId(null)
-                              handleDelete(cls.id)
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            {tCommon('delete', 'Delete')}
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="space-y-1 text-sm text-gray-600">
-                    <p className="flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4" />
-                      {tAdmin('year', 'Year:')} {cls.academicYear}
-                    </p>
-                    <p className="flex items-start gap-2">
-                      <UserRound className="h-4 w-4 shrink-0 mt-0.5" />
-                      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                        <span>
-                          {tAdmin('teacher', 'Teacher:')}{' '}
-                          {cls.teacher
-                            ? `${cls.teacher.firstName} ${cls.teacher.lastName}`
-                            : tAdmin('na', 'N/A')}
-                        </span>
-                        {(cls.teacherSubjectGroups?.length ?? 0) > 0 ? (
-                          <span
-                            className="relative inline-flex"
-                            ref={openTeachersInfoClassId === cls.id ? teachersInfoRef : undefined}
-                          >
-                            <button
-                              type="button"
-                              aria-label={tAdmin('classTeachersInfo', 'View teachers and subjects for this class')}
-                              aria-expanded={openTeachersInfoClassId === cls.id}
-                              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-(--border-subtle) bg-(--surface-soft) text-[#635bff] transition-all duration-150 ease-in-out hover:bg-[#f0effe] active:scale-[0.97]"
-                              onClick={() => {
-                                setOpenClassMenuId(null)
-                                setOpenTeachersInfoClassId((prev) => (prev === cls.id ? null : cls.id))
-                              }}
-                            >
-                              <Info className="h-3.5 w-3.5" aria-hidden />
-                            </button>
-                            {openTeachersInfoClassId === cls.id ? (
-                              <div
-                                role="tooltip"
-                                className="absolute left-0 top-full z-50 mt-1.5 w-[min(100vw-2rem,260px)] rounded-md border border-(--border-subtle) bg-(--surface) p-3 shadow-(--shadow-soft)"
-                              >
-                                <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.07em] text-[#8898aa]">
-                                  {tAdmin('classTeachersPanelTitle', 'Teachers & subjects')}
-                                </p>
-                                <ul className="space-y-2.5">
-                                  {cls.teacherSubjectGroups!.map((group) => (
-                                    <li key={group.teacherId}>
-                                      <p className="text-sm font-semibold text-[#0a2540]">
-                                        {group.teacher.firstName} {group.teacher.lastName}
-                                      </p>
-                                      <p className="text-[13px] text-[#8898aa]">
-                                        {group.subjects.map((s) => s.name).join(', ')}
-                                      </p>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            ) : null}
-                          </span>
-                        ) : null}
-                      </span>
-                    </p>
-                    <p className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      {tAdmin('students', 'Students:')} {cls._count?.students || 0}
-                      {cls.capacity ? ` / ${cls.capacity}` : ''}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card className="p-6">
-            <p className="text-center text-gray-500">{tAdmin('noClasses', 'No classes found. Click "Add Class" to create one.')}</p>
-          </Card>
-        )}
-
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <Card className="w-full max-w-md p-6">
-              <h2 className="text-2xl font-bold mb-4">
-                {editingClass ? tAdmin('editClass', 'Edit Class') : tAdmin('addClass', 'Add Class')}
-              </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <Input
-                  label={tAdmin('className', 'Class Name')}
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  placeholder={tAdmin('egGrade', 'e.g., Grade 5A')}
-                />
-                <Select
-                  label={tAdmin('academicYear', 'Academic Year')}
-                  value={formData.academicYearId}
-                  onChange={(e) => setFormData({ ...formData, academicYearId: e.target.value })}
-                  required
-                >
-                  <option value="">{tAdmin('selectAcademicYear', 'Select academic year')}</option>
-                  {academicYears.map((year) => (
-                    <option key={year.id} value={year.id}>
-                      {year.name} ({year.year})
-                    </option>
-                  ))}
-                </Select>
-                <Select
-                  label={tAdmin('classTeacher', 'Class Teacher')}
-                  value={formData.teacherId}
-                  onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
-                >
-                  <option value="">{tAdmin('assignLater', 'Assign later')}</option>
-                  {teachers.map((teacher) => (
-                    <option key={teacher.id} value={teacher.id}>
-                      {teacher.firstName} {teacher.lastName}
-                    </option>
-                  ))}
-                </Select>
-                <Input
-                  label={tAdmin('classCapacity', 'Class Capacity')}
-                  type="number"
-                  value={formData.capacity}
-                  onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
-                  min={1}
-                  max={500}
-                  placeholder={tAdmin('egCapacity', 'e.g., 40')}
-                />
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      setShowModal(false)
-                      resetForm()
-                    }}
-                  >
-                    {tCommon('cancel', 'Cancel')}
-                  </Button>
-                  <Button type="submit">
-                    {editingClass ? tCommon('update', 'Update') : tCommon('create', 'Create')}
-                  </Button>
-                </div>
-              </form>
-            </Card>
-          </div>
-        )}
-
-        {showBulkModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-4">{tAdmin('bulkUploadClasses', 'Bulk Upload Classes')}</h2>
-
-              <div className="space-y-4">
-                <div>
-                  <Button 
-                    variant="secondary" 
-                    onClick={downloadTemplate}
-                    className="mb-4"
-                  >
-                    {tAdmin('downloadTemplate', 'Download Template')}
-                  </Button>
-                  <p className="text-sm text-gray-600 mb-4">
-                    {tAdmin('classesTemplateHelp', 'Download the Excel template, fill it with class details, then upload it here.')}
-                  </p>
-                </div>
-
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={handleBulkUpload}
-                    disabled={bulkUploadLoading}
-                    className="hidden"
-                    id="bulk-file-input-classes"
-                  />
-                  <label htmlFor="bulk-file-input-classes" className="cursor-pointer">
-                    <div className="text-4xl mb-2">📁</div>
-                    <p className="text-gray-700 font-medium">
-                      {bulkUploadLoading ? tAdmin('uploading', 'Uploading...') : tAdmin('clickUploadOrDrag', 'Click to upload or drag and drop')}
-                    </p>
-                    <p className="text-sm text-gray-500">{tAdmin('excelMax5mb', 'Excel files (.xlsx, .xls) - Max 5MB')}</p>
-                  </label>
-                </div>
-
-                {bulkUploadErrors.length > 0 && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-red-900 mb-2">{tAdmin('uploadErrors', 'Upload Errors')}</h3>
-                    <div className="max-h-64 overflow-y-auto space-y-1">
-                      {bulkUploadErrors.map((err, idx) => (
-                        <p key={idx} className="text-sm text-red-700">
-                          <strong>{tAdmin('row', 'Row')} {err.row}:</strong> {err.error}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      setShowBulkModal(false)
-                      setBulkUploadErrors([])
-                    }}
-                  >
-                    {tCommon('cancel', 'Close')}
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
+        <Table
+          title={tAdmin('classesManagement', 'Gestion des classes')}
+          columns={columns}
+          data={pageRows}
+          loading={loading}
+          totalCount={filteredClasses.length}
+          page={currentPage}
+          pageSize={pageSize}
+          onSearch={(value) => {
+            setSearchTerm(value)
+            setCurrentPage(1)
+          }}
+          onPageChange={setCurrentPage}
+          filterLabel={t('filterYear', 'Année')}
+          filterOptions={[{ value: '', label: t('allYears', 'Toutes les années') }, ...yearOptions]}
+          activeFilter={yearFilter}
+          onFilterChange={(value) => {
+            setYearFilter(value)
+            setCurrentPage(1)
+          }}
+          getRowActions={getRowActions}
+          onRowClick={(cls) => router.push(`/admin/classes/${cls.id}`)}
+          rowKey="id"
+          emptyMessage={
+            searchTerm.trim() || yearFilter
+              ? t('noSearchResults', 'Aucune classe ne correspond à votre recherche.')
+              : tAdmin('noClasses', 'Aucune classe trouvée. Cliquez sur « Ajouter une classe » pour en créer une.')
+          }
+          ariaLabel={tAdmin('classesManagement', 'Gestion des classes')}
+        />
       </div>
+
+      {showModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] p-4">
+          <div className="w-full max-w-md rounded-[10px] border border-(--border-subtle) bg-(--surface) p-5">
+            <h2 className="text-[20px] font-semibold ui-text-primary">
+              {editingClass ? tAdmin('editClass', 'Modifier la classe') : tAdmin('addClass', 'Ajouter une classe')}
+            </h2>
+            <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+              <Input
+                label={tAdmin('className', 'Nom de la classe')}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                placeholder={tAdmin('egGrade', 'ex. : Grade 5A')}
+              />
+              <Select
+                label={tAdmin('academicYear', 'Année scolaire')}
+                value={formData.academicYearId}
+                onChange={(e) => setFormData({ ...formData, academicYearId: e.target.value })}
+                required
+              >
+                <option value="">{tAdmin('selectAcademicYear', 'Sélectionner une année scolaire')}</option>
+                {academicYears.map((year) => (
+                  <option key={year.id} value={year.id}>
+                    {year.name} ({year.year})
+                  </option>
+                ))}
+              </Select>
+              <Select
+                label={tAdmin('classTeacher', 'Enseignant de classe')}
+                value={formData.teacherId}
+                onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
+              >
+                <option value="">{tAdmin('assignLater', 'Assigner plus tard')}</option>
+                {teachers.map((teacher) => (
+                  <option key={teacher.id} value={teacher.id}>
+                    {teacher.firstName} {teacher.lastName}
+                  </option>
+                ))}
+              </Select>
+              <Input
+                label={tAdmin('classCapacity', 'Capacité de la classe')}
+                type="number"
+                value={formData.capacity}
+                onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
+                min={1}
+                max={500}
+                placeholder={tAdmin('egCapacity', 'ex. : 40')}
+              />
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setShowModal(false)
+                    resetForm()
+                  }}
+                >
+                  {tCommon('cancel', 'Annuler')}
+                </Button>
+                <Button type="submit">
+                  {editingClass ? tCommon('update', 'Mettre à jour') : tCommon('create', 'Créer')}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {showBulkModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[10px] border border-(--border-subtle) bg-(--surface) p-5">
+            <h2 className="text-[20px] font-semibold ui-text-primary">
+              {tAdmin('bulkUploadClasses', 'Importation en lot des classes')}
+            </h2>
+            <div className="mt-4 space-y-4">
+              <div>
+                <Button
+                  variant="secondary"
+                  onClick={downloadTemplate}
+                  className="mb-3 inline-flex items-center gap-1.5"
+                >
+                  <Download className="h-4 w-4" />
+                  {tAdmin('downloadTemplate', 'Télécharger le modèle')}
+                </Button>
+                <p className="text-sm ui-text-secondary">
+                  {tAdmin(
+                    'classesTemplateHelp',
+                    'Téléchargez le modèle Excel, remplissez les détails de la classe, puis importez-le ici.'
+                  )}
+                </p>
+              </div>
+              <div className="rounded-[10px] border border-dashed border-(--border-subtle) p-8 text-center">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleBulkUpload}
+                  disabled={bulkUploadLoading}
+                  className="hidden"
+                  id="bulk-file-input-classes"
+                />
+                <label htmlFor="bulk-file-input-classes" className="cursor-pointer">
+                  <p className="font-medium ui-text-primary">
+                    {bulkUploadLoading
+                      ? tAdmin('uploading', 'Importation...')
+                      : tAdmin('clickUploadOrDrag', 'Cliquez pour importer ou glissez-déposez')}
+                  </p>
+                  <p className="mt-1 text-sm ui-text-secondary">
+                    {tAdmin('excelMax5mb', 'Fichiers Excel (.xlsx, .xls) - Max 5MB')}
+                  </p>
+                </label>
+              </div>
+              {bulkUploadErrors.length > 0 ? (
+                <div className="rounded-[10px] border border-(--border-subtle) bg-(--surface-soft) p-4">
+                  <h3 className="mb-2 font-semibold text-[var(--danger)]">
+                    {tAdmin('uploadErrors', "Erreurs d'importation")}
+                  </h3>
+                  <div className="max-h-64 space-y-1 overflow-y-auto">
+                    {bulkUploadErrors.map((err, idx) => (
+                      <p key={idx} className="text-sm text-[var(--danger)]">
+                        <strong>
+                          {tAdmin('row', 'Ligne')} {err.row}:
+                        </strong>{' '}
+                        {err.error}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setShowBulkModal(false)
+                    setBulkUploadErrors([])
+                  }}
+                >
+                  {tCommon('cancel', 'Fermer')}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </DashboardLayout>
   )
 }

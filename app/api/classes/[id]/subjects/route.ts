@@ -82,9 +82,10 @@ export async function POST(
         ? [body.subjectId]
         : []
     const teacherId = typeof body.teacherId === 'string' ? body.teacherId : ''
+    const setAsHomeroom = body.setAsHomeroom === true
 
-    if (subjectIds.length === 0 || !teacherId) {
-      return NextResponse.json({ error: 'subjectIds and teacherId are required' }, { status: 400 })
+    if (!teacherId) {
+      return NextResponse.json({ error: 'teacherId is required' }, { status: 400 })
     }
 
     const classData = await prisma.class.findFirst({
@@ -92,42 +93,75 @@ export async function POST(
         id: classId,
         ...(session.user.schoolId ? { schoolId: session.user.schoolId } : {}),
       },
-      select: { id: true, schoolId: true },
+      select: { id: true, schoolId: true, teacherId: true },
     })
 
     if (!classData) {
       return NextResponse.json({ error: 'Class not found' }, { status: 404 })
     }
 
-    const [subjects, teacher] = await Promise.all([
-      prisma.subject.findMany({
-        where: {
-          id: { in: subjectIds },
-          schoolId: classData.schoolId,
-        },
-        select: { id: true },
-      }),
-      prisma.user.findFirst({
-        where: {
-          id: teacherId,
-          schoolId: classData.schoolId,
-          role: 'TEACHER',
-        },
-        select: { id: true },
-      }),
-    ])
-
-    if (subjects.length !== subjectIds.length) {
-      return NextResponse.json({ error: 'One or more subjects were not found in this school' }, { status: 404 })
-    }
+    const teacher = await prisma.user.findFirst({
+      where: {
+        id: teacherId,
+        schoolId: classData.schoolId,
+        role: 'TEACHER',
+      },
+      select: { id: true, firstName: true, lastName: true, email: true },
+    })
 
     if (!teacher) {
       return NextResponse.json({ error: 'Teacher not found in this school' }, { status: 404 })
     }
 
-    await prisma.$transaction(
-      subjectIds.map((subjectId: string) =>
-        prisma.classSubjectTeacher.upsert({
+    // Allow adding a teacher without subjects yet (homeroom / assign later).
+    if (subjectIds.length === 0) {
+      if (setAsHomeroom || !classData.teacherId) {
+        await prisma.class.update({
+          where: { id: classId },
+          data: { teacherId },
+        })
+        return NextResponse.json(
+          {
+            assignments: [],
+            count: 0,
+            homeroomTeacherId: teacherId,
+            teacher,
+          },
+          { status: 201 }
+        )
+      }
+
+      return NextResponse.json(
+        {
+          error:
+            'subjectIds are required when the class already has a homeroom teacher. Assign a subject or set setAsHomeroom=true.',
+        },
+        { status: 400 }
+      )
+    }
+
+    const subjects = await prisma.subject.findMany({
+      where: {
+        id: { in: subjectIds },
+        schoolId: classData.schoolId,
+      },
+      select: { id: true },
+    })
+
+    if (subjects.length !== subjectIds.length) {
+      return NextResponse.json({ error: 'One or more subjects were not found in this school' }, { status: 404 })
+    }
+
+    await prisma.$transaction(async (tx) => {
+      if (setAsHomeroom || !classData.teacherId) {
+        await tx.class.update({
+          where: { id: classId },
+          data: { teacherId },
+        })
+      }
+
+      for (const subjectId of subjectIds) {
+        await tx.classSubjectTeacher.upsert({
           where: {
             classId_subjectId: {
               classId,
@@ -144,8 +178,8 @@ export async function POST(
             teacherId,
           },
         })
-      )
-    )
+      }
+    })
 
     const assignments = await prisma.classSubjectTeacher.findMany({
       where: {
@@ -191,10 +225,12 @@ export async function DELETE(
 
     const { id: classId } = await context.params
     const { searchParams } = new URL(request.url)
+    const assignmentId = searchParams.get('assignmentId')
     const subjectId = searchParams.get('subjectId')
+    const teacherId = searchParams.get('teacherId')
 
-    if (!subjectId) {
-      return NextResponse.json({ error: 'subjectId is required' }, { status: 400 })
+    if (!assignmentId && !subjectId) {
+      return NextResponse.json({ error: 'assignmentId or subjectId is required' }, { status: 400 })
     }
 
     const classData = await prisma.class.findFirst({
@@ -210,11 +246,18 @@ export async function DELETE(
     }
 
     await prisma.classSubjectTeacher.deleteMany({
-      where: {
-        schoolId: classData.schoolId,
-        classId,
-        subjectId,
-      },
+      where: assignmentId
+        ? {
+            id: assignmentId,
+            schoolId: classData.schoolId,
+            classId,
+          }
+        : {
+            schoolId: classData.schoolId,
+            classId,
+            subjectId: subjectId!,
+            ...(teacherId ? { teacherId } : {}),
+          },
     })
 
     return NextResponse.json({ success: true })

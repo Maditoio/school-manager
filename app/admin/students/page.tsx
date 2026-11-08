@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
+import { Upload, UserPlus } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -671,14 +672,14 @@ export default function StudentsPage() {
       sortable: true,
       renderCell: (student: Student) => (
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/10 text-xs font-semibold text-slate-100">
+          <div className="ui-table-avatar">
             {`${student.firstName?.[0] || ''}${student.lastName?.[0] || ''}`.toUpperCase() || 'S'}
           </div>
           <div className="flex flex-col">
-            <Link href={`/admin/students/${student.id}`} className="font-medium text-indigo-200 hover:underline">
+            <Link href={`/admin/students/${student.id}`} className="ui-table-link">
               {student.firstName} {student.lastName}
             </Link>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs ui-text-secondary">
               {student.parentEmail || t('parentEmailOptional', 'Parent Email (optional)')}
             </span>
           </div>
@@ -766,6 +767,7 @@ export default function StudentsPage() {
           <div className="flex gap-2">
             <Button
               variant="secondary"
+              className="inline-flex items-center gap-1.5"
               onClick={() => {
                 setShowBulkUpload(true)
                 setUploadSummary(null)
@@ -774,14 +776,17 @@ export default function StudentsPage() {
                 setUploadFile(null)
               }}
             >
+              <Upload className="h-4 w-4" />
               {t('bulkUpload', 'Bulk Upload')}
             </Button>
             <Button
+              className="inline-flex items-center gap-1.5"
               onClick={() => {
                 resetForm()
                 setShowModal(true)
               }}
             >
+              <UserPlus className="h-4 w-4" />
               {t('enrollStudent', 'Enroll Student')}
             </Button>
           </div>
@@ -932,7 +937,10 @@ export default function StudentsPage() {
                   >
                     {t('cancel', 'Cancel')}
                   </Button>
-                  <Button type="submit" isLoading={formSaving} disabled={formSaving}>{editingStudent ? t('update', 'Update') : t('create', 'Create')}</Button>
+                  <Button type="submit" isLoading={formSaving} disabled={formSaving} className="inline-flex items-center gap-1.5">
+                    {editingStudent ? null : <UserPlus className="h-4 w-4" />}
+                    {editingStudent ? t('update', 'Update') : t('create', 'Create')}
+                  </Button>
                 </div>
               </form>
             </Card>
@@ -1000,9 +1008,11 @@ export default function StudentsPage() {
                   </Button>
                   <Button
                     type="button"
+                    className="inline-flex items-center gap-1.5"
                     onClick={handleExcelUpload}
                     isLoading={uploading}
                   >
+                    <Upload className="h-4 w-4" />
                     {t('upload', 'Upload')}
                   </Button>
                 </div>

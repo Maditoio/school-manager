@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
+import { CalendarPlus, Plus, Save } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -667,7 +668,13 @@ export default function AdminSettingsPage() {
                   </div>
 
                   <div className="mt-5">
-                    <Button type="button" isLoading={invoiceSettingsSaving} onClick={handleSaveInvoiceSettings}>
+                    <Button
+                      type="button"
+                      isLoading={invoiceSettingsSaving}
+                      className="inline-flex items-center gap-1.5"
+                      onClick={handleSaveInvoiceSettings}
+                    >
+                      <Save className="h-4 w-4" />
                       {t('Save Invoice Settings')}
                     </Button>
                   </div>
@@ -733,7 +740,8 @@ export default function AdminSettingsPage() {
                         onChange={(e) => setYearInput(e.target.value)}
                       />
                     </div>
-                    <Button type="submit" isLoading={termsSaving} className="shrink-0">
+                    <Button type="submit" isLoading={termsSaving} className="shrink-0 inline-flex items-center gap-1.5">
+                      <CalendarPlus className="h-4 w-4" />
                       {t('Create')}
                     </Button>
                   </form>
@@ -761,7 +769,8 @@ export default function AdminSettingsPage() {
                         onChange={(e) => setEndDate(e.target.value)}
                       />
                       <div className="flex items-end">
-                        <Button type="submit" isLoading={termsSaving} className="w-full sm:w-auto">
+                        <Button type="submit" isLoading={termsSaving} className="w-full sm:w-auto inline-flex items-center gap-1.5">
+                          <Plus className="h-4 w-4" />
                           {t('Add')}
                         </Button>
                       </div>

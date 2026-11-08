@@ -128,14 +128,16 @@ declare module "next-auth" {
   }
 }
 
-const NEXTAUTH_URL =
-  process.env.NEXTAUTH_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 const NEXTAUTH_SECRET =
+  process.env.AUTH_SECRET ||
   process.env.NEXTAUTH_SECRET ||
   '43eb2c8b82455b61983b548370adab249bbf5aae126fc53b1d479355a392e7b2'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  // Auth.js v5: trust request Host / X-Forwarded-* (required on Vercel/proxies).
+  // Avoid pinning AUTH_URL/NEXTAUTH_URL to a different origin than the browser —
+  // that forces Secure CSRF cookies and causes MissingCSRF on http://localhost.
+  trustHost: true,
   providers: [
     Credentials({
       credentials: {
@@ -169,6 +171,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         try {
           let schoolIdFilter: string | null = null
+          let schoolCodeInvalid = false
           if (schoolCodeInput) {
             const school = await prisma.school.findUnique({
               where: { code: schoolCodeInput },
@@ -176,22 +179,46 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             })
             if (!school) {
               console.log('Invalid school code:', schoolCodeInput)
-              return null
+              schoolCodeInvalid = true
+            } else {
+              schoolIdFilter = school.id
             }
-            schoolIdFilter = school.id
           }
 
           let user: AuthUserRecord | null = null
 
-          if (normalizedEmail.includes('@')) {
-            user = await prisma.user.findFirst({
+          const findSuperAdminByEmail = async () =>
+            prisma.user.findFirst({
               where: {
                 email: { equals: normalizedEmail, mode: 'insensitive' },
-                ...(schoolIdFilter ? { schoolId: schoolIdFilter } : {}),
+                role: 'SUPER_ADMIN',
               },
               include: { school: true },
             })
+
+          if (normalizedEmail.includes('@')) {
+            // School code scopes school staff/students. Super admins have no school —
+            // always allow them by email even if a code was entered or is invalid.
+            if (!schoolCodeInvalid) {
+              user = await prisma.user.findFirst({
+                where: {
+                  email: { equals: normalizedEmail, mode: 'insensitive' },
+                  ...(schoolIdFilter ? { schoolId: schoolIdFilter } : {}),
+                },
+                include: { school: true },
+              })
+            }
+
+            if (!user) {
+              user = await findSuperAdminByEmail()
+              if (!user && schoolCodeInvalid) {
+                return null
+              }
+            }
           } else if (phoneUsername) {
+            if (schoolCodeInvalid) {
+              return null
+            }
             user = await prisma.user.findFirst({
               where: {
                 OR: [
@@ -203,6 +230,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               include: { school: true },
             })
           } else {
+            if (schoolCodeInvalid) {
+              return null
+            }
             // Admission number / username — never unscoped findFirst on admission alone.
             user = await resolveUsernameOrAdmissionLogin(rawIdentifier, schoolIdFilter)
           }

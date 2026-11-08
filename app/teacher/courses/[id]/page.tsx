@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, use } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect, useRouter } from 'next/navigation'
+import { Plus } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -384,7 +385,15 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
                     Free preview (visible without payment)
                   </label>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={handleAddLesson} isLoading={savingLesson}>Add Lesson</Button>
+                    <Button
+                      size="sm"
+                      className="inline-flex items-center gap-1.5"
+                      onClick={handleAddLesson}
+                      isLoading={savingLesson}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add Lesson
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => setShowAddLesson(false)}>Cancel</Button>
                   </div>
                 </div>

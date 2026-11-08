@@ -59,3 +59,4 @@
 When editing an existing page, always match the existing component patterns exactly.
 When adding a new page or component, refer back to this file before writing any styles.
 Never introduce a new color, font size, or spacing value not listed here.
+Admin entity detail pages (header / KPIs / tabs / More menu / dark-mode tokens): follow `.cursor/rules/admin-detail-page-design.mdc`.

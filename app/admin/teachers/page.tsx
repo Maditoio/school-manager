@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Download, Upload, UserPlus } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -341,25 +342,29 @@ export default function TeachersPage() {
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{tAdmin('schoolPulse', 'School Pulse')}</p>
-              <h1 className="text-3xl font-bold text-slate-100">{tAdmin('teachersManagement', 'Teachers Management')}</h1>
+              <h1 className="text-3xl font-bold ui-text-primary">{tAdmin('teachersManagement', 'Teachers Management')}</h1>
               <p className="mt-2 text-sm text-slate-400">{tAdmin('manageTeachers', 'Manage all teachers in your school')}</p>
             </div>
             <div className="flex gap-2">
               <Button
                 variant="secondary"
+                className="inline-flex items-center gap-1.5"
                 onClick={() => {
                   setShowBulkModal(true)
                   setBulkUploadErrors([])
                 }}
               >
+                <Upload className="h-4 w-4" />
                 {tAdmin('bulkUpload', 'Bulk Upload')}
               </Button>
               <Button
+                className="inline-flex items-center gap-1.5"
                 onClick={() => {
                   resetForm()
                   setShowModal(true)
                 }}
               >
+                <UserPlus className="h-4 w-4" />
                 {tAdmin('addTeacher', 'Add Teacher')}
               </Button>
             </div>
@@ -641,11 +646,12 @@ export default function TeachersPage() {
               
               <div className="space-y-4">
                 <div>
-                  <Button 
-                    variant="secondary" 
+                  <Button
+                    variant="secondary"
                     onClick={downloadTemplate}
-                    className="mb-4"
+                    className="mb-4 inline-flex items-center gap-1.5"
                   >
+                    <Download className="h-4 w-4" />
                     {tAdmin('downloadTemplate', 'Download Template')}
                   </Button>
                   <p className="text-sm text-gray-600 mb-4">

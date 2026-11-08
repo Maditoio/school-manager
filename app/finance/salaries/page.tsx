@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
+import { Plus } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -374,7 +375,10 @@ export default function TeacherSalariesPage() {
             >
               {generating ? t('Generating…') : `${t('Generate')} ${periodLabel}`}
             </button>
-            <Button onClick={() => setShowForm(true)}>{t('+ Add Salary')}</Button>
+            <Button className="inline-flex items-center gap-1.5" onClick={() => setShowForm(true)}>
+              <Plus className="h-4 w-4" />
+              {t('Add Salary')}
+            </Button>
           </div>
         </div>
 

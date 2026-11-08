@@ -1,19 +1,21 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo, useCallback, startTransition } from 'react'
+import { useState, useEffect, useMemo, useCallback, startTransition } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Form'
+import Table from '@/components/ui/Table'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
 import { useConfirmDialog } from '@/lib/useConfirmDialog'
-import { Barcode, BookOpen, ChevronDown, ChevronRight, MoreHorizontal, PencilLine, Trash2, Zap } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronRight, Plus, School, Search, Zap } from 'lucide-react'
 import enMessages from '@/messages/en.json'
 import frMessages from '@/messages/fr.json'
 import swMessages from '@/messages/sw.json'
 import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { getSubjectPresets } from '@/lib/subject-presets'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,45 +44,9 @@ interface PresetSubject {
   customCode: string
 }
 
-// ─── Preset subject lists ─────────────────────────────────────────────────────
-
-const PRIMARY_PRESETS: Array<{ name: string; code: string }> = [
-  { name: 'Mathematics', code: 'MATH' },
-  { name: 'English Language', code: 'ENG' },
-  { name: 'Kiswahili', code: 'KSW' },
-  { name: 'Science', code: 'SCI' },
-  { name: 'Social Studies', code: 'SST' },
-  { name: 'Religious Education', code: 'RE' },
-  { name: 'Creative Arts', code: 'ART' },
-  { name: 'Physical Education', code: 'PE' },
-  { name: 'Computer Studies', code: 'COMP' },
-  { name: 'Life Skills', code: 'LS' },
-  { name: 'Environmental Studies', code: 'ENV' },
-  { name: 'Health Education', code: 'HE' },
-]
-
-const SECONDARY_PRESETS: Array<{ name: string; code: string }> = [
-  { name: 'Mathematics', code: 'MATH' },
-  { name: 'English Language', code: 'ENG' },
-  { name: 'Kiswahili', code: 'KSW' },
-  { name: 'Physics', code: 'PHY' },
-  { name: 'Chemistry', code: 'CHEM' },
-  { name: 'Biology', code: 'BIO' },
-  { name: 'History', code: 'HIST' },
-  { name: 'Geography', code: 'GEO' },
-  { name: 'Civics', code: 'CIV' },
-  { name: 'Commerce', code: 'COM' },
-  { name: 'Economics', code: 'ECON' },
-  { name: 'Literature', code: 'LIT' },
-  { name: 'Computer Science', code: 'CS' },
-  { name: 'Agriculture', code: 'AGR' },
-  { name: 'Business Studies', code: 'BUS' },
-  { name: 'Fine Arts', code: 'ART' },
-  { name: 'Physical Education', code: 'PE' },
-  { name: 'Religious Education', code: 'RE' },
-  { name: 'French', code: 'FRE' },
-  { name: 'Arabic', code: 'ARB' },
-]
+function toPresetState(list: Array<{ name: string; code: string }>): PresetSubject[] {
+  return list.map((p) => ({ ...p, selected: false, customCode: p.code }))
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -98,8 +64,9 @@ export default function SubjectsPage() {
   // UI state
   const [activeTab, setActiveTab] = useState<'byClass' | 'catalog'>('byClass')
   const [expandedClassIds, setExpandedClassIds] = useState<Set<string>>(new Set())
-  const [openSubjectMenuId, setOpenSubjectMenuId] = useState<string | null>(null)
-  const subjectMenuRef = useRef<HTMLDivElement | null>(null)
+  const [catalogSearch, setCatalogSearch] = useState('')
+  const [catalogPage, setCatalogPage] = useState(1)
+  const catalogPageSize = 10
 
   // Manual add/edit modal
   const [showModal, setShowModal] = useState(false)
@@ -109,12 +76,10 @@ export default function SubjectsPage() {
   // Quick-add presets modal
   const [showPresetsModal, setShowPresetsModal] = useState(false)
   const [presetTab, setPresetTab] = useState<'primary' | 'secondary'>('primary')
-  const [primaryPresets, setPrimaryPresets] = useState<PresetSubject[]>(
-    PRIMARY_PRESETS.map((p) => ({ ...p, selected: false, customCode: p.code }))
-  )
-  const [secondaryPresets, setSecondaryPresets] = useState<PresetSubject[]>(
-    SECONDARY_PRESETS.map((p) => ({ ...p, selected: false, customCode: p.code }))
-  )
+  const [presetLocale, setPresetLocale] = useState<'fr' | 'en'>('fr')
+  const [primaryPresets, setPrimaryPresets] = useState<PresetSubject[]>([])
+  const [secondaryPresets, setSecondaryPresets] = useState<PresetSubject[]>([])
+  const [presetSearch, setPresetSearch] = useState('')
   const [batchLoading, setBatchLoading] = useState(false)
 
   // ─── Translations ────────────────────────────────────────────────────────
@@ -145,23 +110,17 @@ export default function SubjectsPage() {
     }
   }, [session, status])
 
-  // ─── Close menu on outside click ────────────────────────────────────────
+  // French UI → French curriculum presets; otherwise English pack
+  useEffect(() => {
+    setPresetLocale(preferredLanguage === 'fr' ? 'fr' : 'en')
+  }, [preferredLanguage])
 
   useEffect(() => {
-    if (!openSubjectMenuId) return
-    const handlePointerDown = (event: MouseEvent) => {
-      if (!subjectMenuRef.current?.contains(event.target as Node)) setOpenSubjectMenuId(null)
-    }
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpenSubjectMenuId(null)
-    }
-    document.addEventListener('mousedown', handlePointerDown)
-    document.addEventListener('keydown', handleEscape)
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown)
-      document.removeEventListener('keydown', handleEscape)
-    }
-  }, [openSubjectMenuId])
+    const packs = getSubjectPresets(presetLocale)
+    setPrimaryPresets(toPresetState(packs.primary))
+    setSecondaryPresets(toPresetState(packs.secondary))
+    setPresetSearch('')
+  }, [presetLocale])
 
   // ─── Data fetching ───────────────────────────────────────────────────────
 
@@ -306,6 +265,36 @@ export default function SubjectsPage() {
 
   const selectedCount = currentPresets.filter((p) => p.selected).length
 
+  const filteredPresets = useMemo(() => {
+    const q = presetSearch.trim().toLowerCase()
+    if (!q) return currentPresets.map((preset, index) => ({ preset, index }))
+    return currentPresets
+      .map((preset, index) => ({ preset, index }))
+      .filter(
+        ({ preset }) =>
+          preset.name.toLowerCase().includes(q) ||
+          preset.customCode.toLowerCase().includes(q) ||
+          preset.code.toLowerCase().includes(q)
+      )
+  }, [currentPresets, presetSearch])
+
+  const filteredCatalog = useMemo(() => {
+    const q = catalogSearch.trim().toLowerCase()
+    if (!q) return subjects
+    return subjects.filter(
+      (subject) =>
+        subject.name.toLowerCase().includes(q) ||
+        String(subject.code || '')
+          .toLowerCase()
+          .includes(q)
+    )
+  }, [subjects, catalogSearch])
+
+  const catalogPageRows = useMemo(() => {
+    const start = (catalogPage - 1) * catalogPageSize
+    return filteredCatalog.slice(start, start + catalogPageSize)
+  }, [filteredCatalog, catalogPage, catalogPageSize])
+
   const togglePreset = (idx: number) => {
     setCurrentPresets((prev) => prev.map((p, i) => (i === idx ? { ...p, selected: !p.selected } : p)))
   }
@@ -316,6 +305,57 @@ export default function SubjectsPage() {
 
   const selectAllPresets = () => setCurrentPresets((prev) => prev.map((p) => ({ ...p, selected: true })))
   const clearAllPresets = () => setCurrentPresets((prev) => prev.map((p) => ({ ...p, selected: false })))
+
+  const catalogColumns = useMemo(
+    () => [
+      {
+        key: 'name',
+        label: tAdmin('subjectName', 'Nom'),
+        sortable: true,
+        renderCell: (subject: Subject) => (
+          <span className="font-medium ui-text-primary">{subject.name}</span>
+        ),
+      },
+      {
+        key: 'code',
+        label: tAdmin('subjectCodeShort', 'Code'),
+        sortable: true,
+        renderCell: (subject: Subject) => (
+          <span className="ui-text-secondary">{subject.code || '—'}</span>
+        ),
+      },
+      {
+        key: 'passRate',
+        label: tAdmin('subjectPassRateShort', 'Seuil'),
+        sortable: true,
+        renderCell: (subject: Subject) =>
+          subject.passRate !== null && subject.passRate !== undefined ? (
+            <span className="font-semibold">{subject.passRate}%</span>
+          ) : (
+            <span className="text-xs ui-text-secondary">
+              {tAdmin('schoolDefault', 'Défaut école')}
+            </span>
+          ),
+      },
+      { key: 'actions', label: tAdmin('tableActions', 'Actions') },
+    ],
+    [tAdmin]
+  )
+
+  const catalogRowActions = (subject: Subject) => [
+    {
+      label: tCommon('edit', 'Modifier'),
+      onClick: () => handleEdit(subject),
+    },
+    {
+      label: tCommon('delete', 'Supprimer'),
+      danger: true,
+      onClick: () => {
+        if (deletingSubjectId) return
+        void handleDelete(subject)
+      },
+    },
+  ]
 
   const handleBatchCreate = async () => {
     const selected = currentPresets.filter((p) => p.selected)
@@ -442,7 +482,10 @@ export default function SubjectsPage() {
                       {tAdmin('mustCreateClasses', 'No classes found. Please create classes first before organizing subjects.')}
                     </p>
                     <a href="/admin/classes">
-                      <Button>{tAdmin('createClassesFirst', 'Create Classes')}</Button>
+                      <Button className="inline-flex items-center gap-1.5">
+                        <School className="h-4 w-4" />
+                        {tAdmin('createClassesFirst', 'Create Classes')}
+                      </Button>
                     </a>
                   </Card>
                 ) : (
@@ -479,11 +522,11 @@ export default function SubjectsPage() {
                                 {tAdmin('subjectsInClass', '{count} subject(s)').replace('{count}', String(assignmentCount))}
                               </span>
                               <a
-                                href={`/admin/classes/${cls.id}/subjects`}
+                                href={`/admin/classes/${cls.id}?tab=teachers`}
                                 onClick={(e) => e.stopPropagation()}
-                                className="text-xs text-blue-600 hover:text-blue-800 underline whitespace-nowrap"
+                                className="ui-table-link text-xs whitespace-nowrap"
                               >
-                                {tAdmin('manageClassSubjects', 'Manage for this class')}
+                                {tAdmin('manageClassSubjects', 'Gérer pour cette classe')}
                               </a>
                             </div>
                           </button>
@@ -525,73 +568,23 @@ export default function SubjectsPage() {
 
             {/* ── Catalog tab ── */}
             {activeTab === 'catalog' && (
-              <div>
-                {subjects.length === 0 ? (
-                  <Card className="p-8 text-center">
-                    <p className="ui-text-secondary">{tAdmin('noSubjects', 'No subjects in catalog yet.')}</p>
-                  </Card>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {subjects.map((subject) => (
-                      <Card key={subject.id} className={`p-5 relative ${openSubjectMenuId === subject.id ? 'z-30' : 'z-0'}`}>
-                        <div
-                          className="flex items-start justify-between gap-2"
-                          ref={openSubjectMenuId === subject.id ? subjectMenuRef : undefined}
-                        >
-                          <div className="min-w-0">
-                            <h3 className="font-semibold ui-text-primary truncate">{subject.name}</h3>
-                            {subject.code && (
-                              <p className="flex items-center gap-1 text-sm ui-text-secondary mt-1">
-                                <Barcode className="h-3.5 w-3.5" />
-                                {subject.code}
-                              </p>
-                            )}
-                            {subject.passRate !== null && subject.passRate !== undefined ? (
-                              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">Pass mark: {subject.passRate}%</p>
-                            ) : (
-                              <p className="text-xs ui-text-secondary mt-1">Pass mark: school default</p>
-                            )}
-                          </div>
-                          <div className="relative shrink-0">
-                            <button
-                              type="button"
-                              aria-label={tAdmin('subjectActions', 'Subject actions')}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-(--border-subtle) bg-(--surface-soft) ui-text-secondary hover:ui-text-primary"
-                              onClick={() => setOpenSubjectMenuId((prev) => (prev === subject.id ? null : subject.id))}
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </button>
-                            {openSubjectMenuId === subject.id && (
-                              <div className="absolute right-0 top-9 z-50 min-w-36 rounded-[10px] border border-(--border-subtle) bg-(--surface) p-1.5 shadow-(--shadow-soft)">
-                                <button
-                                  type="button"
-                                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ui-text-secondary hover:bg-(--surface-soft) hover:ui-text-primary"
-                                  onClick={() => { setOpenSubjectMenuId(null); handleEdit(subject) }}
-                                >
-                                  <PencilLine className="h-4 w-4" />
-                                  {tCommon('edit', 'Edit')}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
-                                  disabled={deletingSubjectId === subject.id}
-                                  onClick={() => {
-                                    setOpenSubjectMenuId(null)
-                                    void handleDelete(subject)
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                  {tCommon('delete', 'Delete')}
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <Table
+                title={tAdmin('catalog', 'Catalogue des matières')}
+                columns={catalogColumns}
+                data={catalogPageRows}
+                loading={loading}
+                totalCount={filteredCatalog.length}
+                page={catalogPage}
+                pageSize={catalogPageSize}
+                onSearch={(value) => {
+                  setCatalogSearch(value)
+                  setCatalogPage(1)
+                }}
+                onPageChange={setCatalogPage}
+                emptyMessage={tAdmin('noSubjects', 'Aucune matière dans le catalogue.')}
+                getRowActions={catalogRowActions}
+                rowKey="id"
+              />
             )}
           </>
         )}
@@ -646,84 +639,130 @@ export default function SubjectsPage() {
 
       {/* ── Quick Add Presets modal ── */}
       {showPresetsModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold ui-text-primary mb-1 shrink-0">
-              {tAdmin('quickAddTitle', 'Quick Add Subjects from Presets')}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] p-4">
+          <div className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-[10px] border border-(--border-subtle) bg-(--surface) p-5">
+            <h2 className="text-[20px] font-semibold ui-text-primary">
+              {tAdmin('quickAddTitle', 'Ajout rapide depuis les modèles')}
             </h2>
-            <p className="text-sm ui-text-secondary mb-4 shrink-0">
-              {tAdmin('quickAddHelp', 'Select subjects below and click "Add to Catalog". Subjects already in your catalog will be skipped.')}
+            <p className="mt-1 text-sm ui-text-secondary">
+              {tAdmin(
+                'quickAddHelp',
+                'Sélectionnez des matières ci-dessous et ajoutez-les au catalogue. Les matières déjà présentes seront ignorées.'
+              )}
             </p>
 
-            {/* Preset level tabs */}
-            <div className="flex gap-1 mb-4 shrink-0">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              {(['fr', 'en'] as const).map((locale) => (
+                <button
+                  key={locale}
+                  type="button"
+                  onClick={() => setPresetLocale(locale)}
+                  className={`rounded-[6px] border px-3 py-1.5 text-sm font-medium transition-colors ${
+                    presetLocale === locale
+                      ? 'border-[#635bff] bg-[#f0effe] text-[#635bff]'
+                      : 'border-(--border-subtle) ui-text-secondary hover:ui-text-primary'
+                  }`}
+                >
+                  {locale === 'fr'
+                    ? tAdmin('frenchCurriculum', 'Programme français')
+                    : tAdmin('englishCurriculum', 'English curriculum')}
+                </button>
+              ))}
+              <span className="mx-1 ui-text-secondary">·</span>
               {(['primary', 'secondary'] as const).map((level) => (
                 <button
                   key={level}
                   type="button"
-                  onClick={() => setPresetTab(level)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  onClick={() => {
+                    setPresetTab(level)
+                    setPresetSearch('')
+                  }}
+                  className={`rounded-[6px] border px-3 py-1.5 text-sm font-medium transition-colors ${
                     presetTab === level
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-(--surface-soft) ui-text-secondary hover:ui-text-primary border border-(--border-subtle)'
+                      ? 'border-[#635bff] bg-[#f0effe] text-[#635bff]'
+                      : 'border-(--border-subtle) ui-text-secondary hover:ui-text-primary'
                   }`}
                 >
-                  {level === 'primary' ? tAdmin('primary', 'Primary') : tAdmin('secondary', 'Secondary')}
+                  {level === 'primary'
+                    ? tAdmin('primary', 'Primaire')
+                    : tAdmin('secondary', 'Secondaire')}
                 </button>
               ))}
             </div>
 
-            {/* Select/clear all */}
-            <div className="flex gap-2 mb-3 shrink-0 items-center">
-              <button type="button" onClick={selectAllPresets} className="text-sm text-blue-600 hover:underline">
-                {tAdmin('selectAll', 'Select All')}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <label className="ui-search-field max-w-[280px] flex-1">
+                <Search className="ui-search-field__icon" aria-hidden />
+                <input
+                  type="search"
+                  value={presetSearch}
+                  onChange={(e) => setPresetSearch(e.target.value)}
+                  placeholder={tAdmin('searchPresets', 'Rechercher une matière...')}
+                  className="ui-input ui-input-search w-full"
+                />
+              </label>
+              <button type="button" onClick={selectAllPresets} className="ui-table-link text-sm">
+                {tAdmin('selectAll', 'Tout sélectionner')}
               </button>
-              <span className="ui-text-secondary">·</span>
-              <button type="button" onClick={clearAllPresets} className="text-sm ui-text-secondary hover:ui-text-primary hover:underline">
-                {tAdmin('clearAll', 'Clear All')}
+              <button type="button" onClick={clearAllPresets} className="text-sm ui-text-secondary hover:underline">
+                {tAdmin('clearAll', 'Tout effacer')}
               </button>
               <span className="ml-auto text-sm ui-text-secondary">
-                {selectedCount} {tCommon('selected', 'selected')}
+                {selectedCount} {tCommon('selected', 'sélectionné(s)')} · {filteredPresets.length}/
+                {currentPresets.length}
               </span>
             </div>
 
-            {/* Presets list */}
-            <div className="overflow-y-auto max-h-96 space-y-2 pr-1 border border-(--border-subtle) rounded-lg p-2">
-              {currentPresets.map((preset, idx) => (
-                <div
-                  key={preset.name}
-                  className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors cursor-pointer select-none ${
-                    preset.selected
-                      ? 'border-blue-400 bg-blue-50 dark:bg-blue-950/30'
-                      : 'border-(--border-subtle) bg-(--surface-soft) hover:bg-(--surface)'
-                  }`}
-                  onClick={() => togglePreset(idx)}
-                >
-                  <input
-                    type="checkbox"
-                    checked={preset.selected}
-                    onChange={() => togglePreset(idx)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="shrink-0"
-                  />
-                  <span className="flex-1 text-sm font-medium ui-text-primary">{preset.name}</span>
-                  <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <span className="text-xs ui-text-secondary">{tAdmin('autoCodeLabel', 'Code')}:</span>
-                    <input
-                      type="text"
-                      value={preset.customCode}
-                      onChange={(e) => updatePresetCode(idx, e.target.value.toUpperCase())}
-                      placeholder={tAdmin('codeOptionalHint', 'optional')}
-                      maxLength={10}
-                      className="w-20 px-2 py-0.5 text-xs border border-(--border-subtle) rounded bg-(--surface) ui-text-primary uppercase"
-                    />
-                  </div>
-                </div>
-              ))}
+            <div className="ui-table-wrap mt-3 min-h-0 flex-1 overflow-auto">
+              <table className="ui-table no-table-stripes min-w-full">
+                <thead>
+                  <tr>
+                    <th className="w-10" />
+                    <th>{tAdmin('subjectName', 'Nom')}</th>
+                    <th className="w-28">{tAdmin('autoCodeLabel', 'Code')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPresets.length > 0 ? (
+                    filteredPresets.map(({ preset, index }) => (
+                      <tr
+                        key={`${preset.name}-${index}`}
+                        className="cursor-pointer"
+                        onClick={() => togglePreset(index)}
+                      >
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={preset.selected}
+                            onChange={() => togglePreset(index)}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={preset.name}
+                          />
+                        </td>
+                        <td className="font-medium ui-text-primary">{preset.name}</td>
+                        <td onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="text"
+                            value={preset.customCode}
+                            onChange={(e) => updatePresetCode(index, e.target.value.toUpperCase())}
+                            maxLength={10}
+                            className="ui-input h-8 min-h-8 w-24 py-0 text-xs uppercase"
+                          />
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="py-8 text-center text-sm ui-text-secondary">
+                        {tAdmin('noSearchMatches', 'Aucune matière ne correspond à la recherche.')}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
 
-            {/* Footer */}
-            <div className="flex gap-2 justify-end pt-4 border-t border-(--border-subtle) mt-4">
+            <div className="mt-4 flex justify-end gap-2 border-t border-(--border-subtle) pt-4">
               <Button
                 type="button"
                 variant="secondary"
@@ -731,19 +770,25 @@ export default function SubjectsPage() {
                   setShowPresetsModal(false)
                   setPrimaryPresets((p) => p.map((s) => ({ ...s, selected: false })))
                   setSecondaryPresets((p) => p.map((s) => ({ ...s, selected: false })))
+                  setPresetSearch('')
                 }}
               >
-                {tCommon('cancel', 'Cancel')}
+                {tCommon('cancel', 'Annuler')}
               </Button>
               <Button
+                className="inline-flex items-center gap-1.5"
                 onClick={handleBatchCreate}
                 isLoading={batchLoading}
                 disabled={selectedCount === 0}
               >
-                {tAdmin('addSelected', 'Add {count} to Catalog').replace('{count}', String(selectedCount))}
+                <Plus className="h-4 w-4" />
+                {tAdmin('addSelected', 'Ajouter {count} au catalogue').replace(
+                  '{count}',
+                  String(selectedCount)
+                )}
               </Button>
             </div>
-          </Card>
+          </div>
         </div>
       )}
     </DashboardLayout>

@@ -3,17 +3,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
+import { Download, Save } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { Card, StatCard } from '@/components/ui/Card'
+import { DetailCard, DetailTabs, KpiStrip } from '@/components/admin/detail'
 import { Button } from '@/components/ui/Button'
 import Table from '@/components/ui/Table'
-import { Input, Select, TextArea } from '@/components/ui/Form'
+import { Input, TextArea } from '@/components/ui/Form'
 import { useToast } from '@/components/ui/Toast'
-import { BadgeDollarSign, ReceiptText, ShieldCheck, Wallet } from 'lucide-react'
-import { translateText } from '@/lib/client-i18n'
-import { useLocale } from '@/lib/locale-context'
 import { useCurrency } from '@/lib/currency-context'
 import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import { useAdminUi } from '@/lib/use-admin-ui'
 
 type ExpenseCategory =
   | 'MAINTENANCE' | 'SALARIES' | 'BURSARIES' | 'SPECIAL_DISCOUNTS'
@@ -21,6 +20,8 @@ type ExpenseCategory =
   | 'REFRESHMENTS' | 'KITCHEN' | 'UTILITIES' | 'TRANSPORT' | 'EQUIPMENT' | 'OTHER'
 
 type ExpenseStatus = 'RECORDED' | 'APPROVED' | 'VOID'
+
+type ExpenseTab = 'all' | 'pending' | 'approved' | 'void' | 'audit'
 
 type ExpenseItem = {
   id: string
@@ -62,28 +63,60 @@ type Summary = {
   voidCount: number
 }
 
-const categoryOptions: Array<{ value: ExpenseCategory; label: string }> = [
-  { value: 'MAINTENANCE', label: 'Maintenance' },
-  { value: 'SALARIES', label: 'Salaries' },
-  { value: 'BURSARIES', label: 'Bursaries' },
-  { value: 'SPECIAL_DISCOUNTS', label: 'Special Discounts' },
-  { value: 'CLEANING', label: 'Cleaning' },
-  { value: 'SOFTWARE_LICENSES', label: 'Software Licenses' },
-  { value: 'TRAINING_PROGRAMS', label: 'Training Programs' },
-  { value: 'SPORTS_TRIPS', label: 'Sports Trips' },
-  { value: 'REFRESHMENTS', label: 'Refreshments' },
-  { value: 'KITCHEN', label: 'Super Kitchen' },
-  { value: 'UTILITIES', label: 'Utilities' },
-  { value: 'TRANSPORT', label: 'Transport' },
-  { value: 'EQUIPMENT', label: 'Equipment' },
-  { value: 'OTHER', label: 'Other' },
-]
+const CATEGORY_KEYS: Record<ExpenseCategory, string> = {
+  MAINTENANCE: 'categoryMaintenance',
+  SALARIES: 'categorySalaries',
+  BURSARIES: 'categoryBursaries',
+  SPECIAL_DISCOUNTS: 'categorySpecialDiscounts',
+  CLEANING: 'categoryCleaning',
+  SOFTWARE_LICENSES: 'categorySoftwareLicenses',
+  TRAINING_PROGRAMS: 'categoryTrainingPrograms',
+  SPORTS_TRIPS: 'categorySportsTrips',
+  REFRESHMENTS: 'categoryRefreshments',
+  KITCHEN: 'categoryKitchen',
+  UTILITIES: 'categoryUtilities',
+  TRANSPORT: 'categoryTransport',
+  EQUIPMENT: 'categoryEquipment',
+  OTHER: 'categoryOther',
+}
+
+const CATEGORY_FALLBACKS: Record<ExpenseCategory, string> = {
+  MAINTENANCE: 'Maintenance',
+  SALARIES: 'Salaires',
+  BURSARIES: 'Bourses',
+  SPECIAL_DISCOUNTS: 'Remises spéciales',
+  CLEANING: 'Nettoyage',
+  SOFTWARE_LICENSES: 'Licences logicielles',
+  TRAINING_PROGRAMS: 'Programmes de formation',
+  SPORTS_TRIPS: 'Sorties sportives',
+  REFRESHMENTS: 'Rafraîchissements',
+  KITCHEN: 'Cuisine',
+  UTILITIES: 'Services publics',
+  TRANSPORT: 'Transport',
+  EQUIPMENT: 'Équipement',
+  OTHER: 'Autre',
+}
+
+const TAB_STATUS: Record<Exclude<ExpenseTab, 'audit'>, ExpenseStatus | ''> = {
+  all: '',
+  pending: 'RECORDED',
+  approved: 'APPROVED',
+  void: 'VOID',
+}
 
 export default function AdminExpensesPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
-  const { locale } = useLocale()
+  const { locale, languageMessages, tCommon } = useAdminUi()
   const { formatCurrency } = useCurrency()
+
+  const expensesMsg = useMemo(
+    () => ((languageMessages as Record<string, unknown>).expenses || {}) as Record<string, string>,
+    [languageMessages]
+  )
+  const t = useCallback((key: string, fallback: string) => expensesMsg[key] || fallback, [expensesMsg])
+
+  const dateLocale = locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-TZ' : 'en-GB'
 
   const [loading, setLoading] = useState(true)
   const [expenses, setExpenses] = useState<ExpenseItem[]>([])
@@ -93,8 +126,8 @@ export default function AdminExpensesPage() {
     recordedCount: 0, approvedCount: 0, voidCount: 0,
   })
   const [selectedExpenseId, setSelectedExpenseId] = useState('')
+  const [activeTab, setActiveTab] = useState<ExpenseTab>('pending')
   const [categoryFilter, setCategoryFilter] = useState('')
-  const [statusFilter, setStatusFilter] = useState('RECORDED')
   const [searchQuery, setSearchQuery] = useState('')
   const [tablePage, setTablePage] = useState(1)
   const pageSize = 15
@@ -105,24 +138,24 @@ export default function AdminExpensesPage() {
   const [dateTo, setDateTo] = useState('')
   const [incomeSummary, setIncomeSummary] = useState<{ totalIncome: number; totalExpenses: number; net: number } | null>(null)
 
-  // Approve state
   const [approvingSaving, setApprovingSaving] = useState(false)
-
-  // Threshold settings state
   const [threshold, setThreshold] = useState(0)
   const [thresholdInput, setThresholdInput] = useState('0')
   const [thresholdSaving, setThresholdSaving] = useState(false)
   const [invoicePreview, setInvoicePreview] = useState<{ url: string; fileName: string; mimeType: string | null } | null>(null)
 
-  // Void modal state
   const [showVoidModal, setShowVoidModal] = useState(false)
   const [voidTargetId, setVoidTargetId] = useState<string | null>(null)
   const [voidReason, setVoidReason] = useState('')
   const [voidSaving, setVoidSaving] = useState(false)
 
+  const statusFilter = activeTab === 'audit' ? '' : TAB_STATUS[activeTab]
+
   useEffect(() => {
     if (status === 'unauthenticated') redirect('/login')
-    if (session?.user?.role && session.user.role !== 'SCHOOL_ADMIN' && session.user.role !== 'DEPUTY_ADMIN') redirect('/admin/dashboard')
+    if (session?.user?.role && session.user.role !== 'SCHOOL_ADMIN' && session.user.role !== 'DEPUTY_ADMIN') {
+      redirect('/admin/dashboard')
+    }
   }, [session, status])
 
   const fetchExpenses = useCallback(async () => {
@@ -139,23 +172,26 @@ export default function AdminExpensesPage() {
       const res = await fetch(`/api/expenses?${params}`, { cache: 'no-store' })
       const data = await res.json()
       if (!res.ok) {
-        showToast(data.error || translateText('Failed to load expenses', locale), 'error')
+        showToast(data.error || t('failedLoadExpenses', 'Échec du chargement des dépenses'), 'error')
         return
       }
       setExpenses(Array.isArray(data.expenses) ? data.expenses : [])
       setAuditLogs(Array.isArray(data.recentAuditLogs) ? data.recentAuditLogs : [])
       setAuditTotal(data.auditTotal ?? 0)
-      setSummary(data.summary || { totalAmount: 0, monthAmount: 0, peopleAmount: 0, recordedCount: 0, approvedCount: 0, voidCount: 0 })
-      const t = data.expenseApprovalThreshold ?? 0
-      setThreshold(t)
-      setThresholdInput(String(t))
+      setSummary(data.summary || {
+        totalAmount: 0, monthAmount: 0, peopleAmount: 0,
+        recordedCount: 0, approvedCount: 0, voidCount: 0,
+      })
+      const nextThreshold = data.expenseApprovalThreshold ?? 0
+      setThreshold(nextThreshold)
+      setThresholdInput(String(nextThreshold))
       setSelectedExpenseId((cur) => cur || data.expenses?.[0]?.id || '')
     } catch {
-      showToast(translateText('Failed to load expenses', locale), 'error')
+      showToast(t('failedLoadExpenses', 'Échec du chargement des dépenses'), 'error')
     } finally {
       setLoading(false)
     }
-  }, [locale, categoryFilter, statusFilter, searchQuery, dateFrom, dateTo, auditPage, auditPageSize])
+  }, [t, categoryFilter, statusFilter, searchQuery, dateFrom, dateTo, auditPage, auditPageSize])
 
   useEffect(() => {
     if (session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'DEPUTY_ADMIN') fetchExpenses()
@@ -186,16 +222,39 @@ export default function AdminExpensesPage() {
     return filteredExpenses.slice(start, start + pageSize)
   }, [filteredExpenses, tablePage])
 
-  const selectedAuditLogs = useMemo(() => auditLogs.filter((l) => l.expenseId === selectedExpenseId), [auditLogs, selectedExpenseId])
+  const selectedAuditLogs = useMemo(
+    () => auditLogs.filter((l) => l.expenseId === selectedExpenseId),
+    [auditLogs, selectedExpenseId]
+  )
+
+  const categoryLabel = useCallback(
+    (category: ExpenseCategory) => t(CATEGORY_KEYS[category], CATEGORY_FALLBACKS[category]),
+    [t]
+  )
 
   const handleExportCSV = () => {
-    const headers = ['Title', 'Category', 'Amount', 'Date', 'Status', 'Vendor', 'Reference', 'Beneficiary', 'Recorded By']
+    const headers = [
+      t('columnExpense', 'Dépense'),
+      t('labelCategory', 'Catégorie'),
+      t('columnAmount', 'Montant'),
+      t('columnDate', 'Date'),
+      t('columnStatus', 'Statut'),
+      t('labelVendor', 'Fournisseur'),
+      t('labelReference', 'Référence'),
+      t('labelBeneficiary', 'Bénéficiaire'),
+      t('columnRecordedBy', 'Enregistré par'),
+    ]
+    const statusLabels: Record<ExpenseStatus, string> = {
+      RECORDED: t('statusRecorded', 'Enregistré'),
+      APPROVED: t('statusApproved', 'Approuvé'),
+      VOID: t('statusVoid', 'Annulé'),
+    }
     const rows = filteredExpenses.map((e) => [
       e.title,
-      categoryOptions.find((o) => o.value === e.category)?.label || e.category,
+      categoryLabel(e.category),
       e.amount,
-      new Date(e.expenseDate).toLocaleDateString(),
-      e.status,
+      new Date(e.expenseDate).toLocaleDateString(dateLocale),
+      statusLabels[e.status],
       e.vendorName || '',
       e.referenceNumber || '',
       e.beneficiaryName || '',
@@ -214,7 +273,7 @@ export default function AdminExpensesPage() {
   const handleSaveThreshold = async () => {
     const value = parseFloat(thresholdInput)
     if (isNaN(value) || value < 0) {
-      showToast(translateText('Please enter a valid amount', locale), 'warning')
+      showToast(t('pleaseEnterValidAmount', 'Veuillez saisir un montant valide'), 'warning')
       return
     }
     try {
@@ -226,14 +285,14 @@ export default function AdminExpensesPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        showToast(data.error || translateText('Failed to save setting', locale), 'error')
+        showToast(data.error || t('failedSaveSetting', "Échec de l'enregistrement du paramètre"), 'error')
         return
       }
       setThreshold(data.expenseApprovalThreshold)
       setThresholdInput(String(data.expenseApprovalThreshold))
-      showToast(translateText('Approval limit saved', locale), 'success')
+      showToast(t('approvalLimitSaved', "Limite d'approbation enregistrée"), 'success')
     } catch {
-      showToast(translateText('Failed to save setting', locale), 'error')
+      showToast(t('failedSaveSetting', "Échec de l'enregistrement du paramètre"), 'error')
     } finally {
       setThresholdSaving(false)
     }
@@ -245,13 +304,13 @@ export default function AdminExpensesPage() {
       const res = await fetch(`/api/expenses/${expenseId}`, { method: 'PATCH' })
       const data = await res.json()
       if (!res.ok) {
-        showToast(data.error || translateText('Failed to approve expense', locale), 'error')
+        showToast(data.error || t('approveFailed', "Échec de l'approbation de la dépense"), 'error')
         return
       }
-      showToast(translateText('Expense approved', locale), 'success')
+      showToast(t('approveSuccess', 'Dépense approuvée'), 'success')
       await fetchExpenses()
     } catch {
-      showToast(translateText('Failed to approve expense', locale), 'error')
+      showToast(t('approveFailed', "Échec de l'approbation de la dépense"), 'error')
     } finally {
       setApprovingSaving(false)
     }
@@ -267,7 +326,7 @@ export default function AdminExpensesPage() {
     if (!voidTargetId) return
     const trimmed = voidReason.trim()
     if (trimmed.length < 3) {
-      showToast(translateText('Void reason is required (minimum 3 characters)', locale), 'warning')
+      showToast(t('voidReasonRequired', 'Une raison est requise (minimum 3 caractères)'), 'warning')
       return
     }
     try {
@@ -279,131 +338,214 @@ export default function AdminExpensesPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        showToast(data.error || translateText('Failed to void expense', locale), 'error')
+        showToast(data.error || t('failedVoidExpense', "Échec de l'annulation de la dépense"), 'error')
         return
       }
-      showToast(translateText('Expense voided', locale), 'success')
+      showToast(t('expenseVoided', 'Dépense annulée'), 'success')
       setShowVoidModal(false)
       setVoidTargetId(null)
       await fetchExpenses()
     } catch {
-      showToast(translateText('Failed to void expense', locale), 'error')
+      showToast(t('failedVoidExpense', "Échec de l'annulation de la dépense"), 'error')
     } finally {
       setVoidSaving(false)
     }
   }
 
+  const clearFilters = () => {
+    setDateFrom('')
+    setDateTo('')
+    setCategoryFilter('')
+    setSearchQuery('')
+    setTablePage(1)
+  }
+
+  const hasActiveFilters = Boolean(dateFrom || dateTo || categoryFilter || searchQuery.trim())
+
+  const handleTabChange = (tab: ExpenseTab) => {
+    setActiveTab(tab)
+    setTablePage(1)
+  }
+
+  const tabs = useMemo(
+    () => [
+      { key: 'all' as const, label: t('tabAll', 'Tous') },
+      {
+        key: 'pending' as const,
+        label: `${t('tabPending', 'En attente')}${summary.recordedCount ? ` (${summary.recordedCount})` : ''}`,
+      },
+      {
+        key: 'approved' as const,
+        label: `${t('tabApproved', 'Approuvées')}${summary.approvedCount ? ` (${summary.approvedCount})` : ''}`,
+      },
+      {
+        key: 'void' as const,
+        label: `${t('tabVoid', 'Annulées')}${summary.voidCount ? ` (${summary.voidCount})` : ''}`,
+      },
+      { key: 'audit' as const, label: t('tabAudit', 'Audit') },
+    ],
+    [t, summary.recordedCount, summary.approvedCount, summary.voidCount]
+  )
+
   const columns = useMemo(() => [
     {
       key: 'title',
-      label: translateText('Expense', locale),
+      label: t('columnExpense', 'Dépense'),
       sortable: true,
-      renderCell: (e: ExpenseItem) => {
-        const catLabel = categoryOptions.find((o) => o.value === e.category)?.label || e.category.replaceAll('_', ' ')
-        return (
-          <div className="flex flex-col">
-            <span className="font-medium ui-text-primary">{e.title}</span>
-            <span className="text-xs ui-text-secondary">{translateText(catLabel, locale)}{e.referenceNumber ? ` • ${e.referenceNumber}` : ''}</span>
-          </div>
-        )
-      },
+      renderCell: (e: ExpenseItem) => (
+        <div className="flex flex-col">
+          <span className="font-medium ui-text-primary">{e.title}</span>
+          <span className="text-xs ui-text-secondary">
+            {categoryLabel(e.category)}
+            {e.referenceNumber ? ` · ${e.referenceNumber}` : ''}
+          </span>
+        </div>
+      ),
     },
     {
       key: 'amount',
-      label: translateText('Amount', locale),
+      label: t('columnAmount', 'Montant'),
       sortable: true,
-      renderCell: (e: ExpenseItem) => formatCurrency(e.amount),
+      renderCell: (e: ExpenseItem) => (
+        <span className="font-semibold ui-text-primary">{formatCurrency(e.amount)}</span>
+      ),
     },
     {
       key: 'expenseDate',
-      label: translateText('Date', locale),
+      label: t('columnDate', 'Date'),
       sortable: true,
-      renderCell: (e: ExpenseItem) => new Date(e.expenseDate).toLocaleDateString(),
+      renderCell: (e: ExpenseItem) => (
+        <span className="ui-text-secondary">{new Date(e.expenseDate).toLocaleDateString(dateLocale)}</span>
+      ),
     },
     {
       key: 'createdByName',
-      label: translateText('Recorded By', locale),
+      label: t('columnRecordedBy', 'Enregistré par'),
       sortable: true,
+      renderCell: (e: ExpenseItem) => <span className="ui-text-secondary">{e.createdByName}</span>,
     },
     {
       key: 'invoice',
-      label: translateText('Invoice', locale),
+      label: t('columnInvoice', 'Facture'),
       renderCell: (e: ExpenseItem) => (
         e.invoiceUrl ? (
           <button
             type="button"
-            onClick={() => setInvoicePreview({
-              url: e.invoiceUrl as string,
-              fileName: e.invoiceFileName || translateText('Invoice', locale),
-              mimeType: e.invoiceMimeType,
-            })}
-            className="text-indigo-400 hover:underline"
+            onClick={(event) => {
+              event.stopPropagation()
+              setInvoicePreview({
+                url: e.invoiceUrl as string,
+                fileName: e.invoiceFileName || t('columnInvoice', 'Facture'),
+                mimeType: e.invoiceMimeType,
+              })
+            }}
+            className="ui-table-link text-sm"
           >
-            {e.invoiceFileName || translateText('View invoice', locale)}
+            {e.invoiceFileName || t('viewInvoice', 'Voir la facture')}
           </button>
         ) : <span className="text-xs ui-text-secondary">—</span>
       ),
     },
     {
       key: 'status',
-      label: translateText('Status', locale),
+      label: t('columnStatus', 'Statut'),
       sortable: true,
       renderCell: (e: ExpenseItem) => {
-        const colors: Record<ExpenseStatus, string> = {
-          RECORDED: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
-          APPROVED: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
-          VOID: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
+        const tones: Record<ExpenseStatus, string> = {
+          RECORDED: 'ui-status-pending',
+          APPROVED: 'ui-status-success',
+          VOID: 'ui-status-neutral',
         }
         const labels: Record<ExpenseStatus, string> = {
-          RECORDED: translateText('Recorded', locale),
-          APPROVED: translateText('Approved', locale),
-          VOID: translateText('Void', locale),
+          RECORDED: t('statusRecorded', 'Enregistré'),
+          APPROVED: t('statusApproved', 'Approuvé'),
+          VOID: t('statusVoid', 'Annulé'),
         }
         return (
-          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colors[e.status]}`}>
+          <span className={`ui-status ${tones[e.status]}`}>
             {labels[e.status]}
           </span>
         )
       },
     },
-    {
-      key: 'auditCount',
-      label: translateText('Audit', locale),
-      renderCell: (e: ExpenseItem) => (
-        <button type="button" onClick={() => setSelectedExpenseId(e.id)} className="text-indigo-400 hover:underline">
-          {translateText('View', locale)} {e.auditCount}
-        </button>
-      ),
-    },
-    {
-      key: 'actions',
-      label: translateText('Actions', locale),
-      renderCell: (e: ExpenseItem) => {
-        if (e.status === 'VOID') return <span className="text-xs ui-text-secondary">—</span>
-        return (
-          <div className="flex gap-2">
-            {e.status === 'RECORDED' ? (
-              <button
-                type="button"
-                disabled={approvingSaving}
-                onClick={() => handleApprove(e.id)}
-                className="text-emerald-500 hover:underline disabled:opacity-50"
-              >
-                {translateText('Approve', locale)}
-              </button>
-            ) : null}
-            <button type="button" onClick={() => handleVoidClick(e.id)} className="text-rose-400 hover:underline">
-              {translateText('Void', locale)}
-            </button>
-          </div>
-        )
+  ], [t, categoryLabel, formatCurrency, dateLocale])
+
+  const getRowActions = (e: ExpenseItem) => {
+    const actions: Array<{ label: string; danger?: boolean; onClick?: () => void }> = [
+      {
+        label: `${t('columnAudit', 'Audit')} (${e.auditCount})`,
+        onClick: () => {
+          setSelectedExpenseId(e.id)
+          setActiveTab('audit')
+        },
       },
-    },
-  ], [locale, approvingSaving])
+    ]
+    if (e.status === 'RECORDED') {
+      actions.push({
+        label: t('approveExpense', 'Approuver'),
+        onClick: () => {
+          if (!approvingSaving) void handleApprove(e.id)
+        },
+      })
+    }
+    if (e.status !== 'VOID') {
+      actions.push({
+        label: t('voidReasonTitle', 'Annuler la dépense'),
+        danger: true,
+        onClick: () => handleVoidClick(e.id),
+      })
+    }
+    return actions
+  }
+
+  const categoryFilterOptions = useMemo(
+    () => [
+      { value: '', label: t('allCategories', 'Toutes les catégories') },
+      ...(Object.keys(CATEGORY_KEYS) as ExpenseCategory[]).map((value) => ({
+        value,
+        label: categoryLabel(value),
+      })),
+    ],
+    [t, categoryLabel]
+  )
+
+  const kpiItems = useMemo(() => {
+    const items = [
+      {
+        id: 'total',
+        label: t('totalExpenses', 'Total des dépenses'),
+        value: formatCurrency(summary.totalAmount),
+      },
+      {
+        id: 'month',
+        label: t('thisMonth', 'Ce mois-ci'),
+        value: formatCurrency(summary.monthAmount),
+        hint: incomeSummary
+          ? `${t('feeIncomeThisMonth', 'Revenus des frais (ce mois)')}: ${formatCurrency(incomeSummary.totalIncome)}`
+          : undefined,
+      },
+      {
+        id: 'pending',
+        label: t('pendingApproval', "En attente d'approbation"),
+        value: summary.recordedCount,
+      },
+      {
+        id: 'approved',
+        label: t('approvedRecords', 'Dossiers approuvés'),
+        value: summary.approvedCount,
+        hint: incomeSummary
+          ? `${t('netPosition', 'Position nette')}: ${incomeSummary.net >= 0 ? '+' : ''}${formatCurrency(incomeSummary.net)}`
+          : undefined,
+      },
+    ]
+    return items
+  }, [t, formatCurrency, summary, incomeSummary])
 
   const navItems = session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS
 
-  if (status === 'loading' || !session?.user) return <div>Loading...</div>
+  if (status === 'loading' || !session?.user) {
+    return <div>{tCommon('loading', 'Chargement...')}</div>
+  }
 
   return (
     <DashboardLayout
@@ -415,247 +557,357 @@ export default function AdminExpensesPage() {
       navItems={navItems}
     >
       <div className="space-y-4">
-        <div>
-          <h1 className="text-[24px] font-bold ui-text-primary">
-            {translateText('Expense Approval', locale)}
-          </h1>
-          <p className="mt-1 ui-text-secondary">
-            {translateText('Review and approve expenses submitted by the finance team. Approved records are locked from further editing.', locale)}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard title="Total Expenses" value={formatCurrency(summary.totalAmount)} icon={<Wallet className="h-4 w-4" />} />
-          <StatCard title="This Month" value={formatCurrency(summary.monthAmount)} icon={<ReceiptText className="h-4 w-4" />} />
-          <StatCard title="Pending Approval" value={summary.recordedCount} icon={<BadgeDollarSign className="h-4 w-4" />} />
-          <StatCard title="Approved" value={summary.approvedCount} icon={<ShieldCheck className="h-4 w-4" />} />
-        </div>
-
-        {incomeSummary && (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
-              <p className="text-xs font-medium uppercase tracking-wide ui-text-secondary">Fee Income (this month)</p>
-              <p className="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(incomeSummary.totalIncome)}</p>
-            </div>
-            <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
-              <p className="text-xs font-medium uppercase tracking-wide ui-text-secondary">Expenses (this month)</p>
-              <p className="mt-1 text-xl font-bold text-red-600 dark:text-red-400">{formatCurrency(incomeSummary.totalExpenses)}</p>
-            </div>
-            <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
-              <p className="text-xs font-medium uppercase tracking-wide ui-text-secondary">Net Position</p>
-              <p className={`mt-1 text-xl font-bold ${incomeSummary.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                {incomeSummary.net >= 0 ? '+' : ''}{formatCurrency(incomeSummary.net)}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {session?.user?.role === 'SCHOOL_ADMIN' && (
-          <Card title={translateText('Finance Manager Approval Limit', locale)} className="p-4">
-            <p className="text-sm ui-text-secondary mb-3">
-              {translateText('Finance managers can approve expenses up to this amount. Set to 0 to disable delegation. Expenses above this limit require administrator approval.', locale)}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-[20px] font-semibold ui-text-primary">
+              {t('approvalPageTitle', 'Approbation des dépenses')}
+            </h1>
+            <p className="mt-1 text-sm ui-text-secondary">
+              {t(
+                'approvalPageSubtitle',
+                "Examinez et approuvez les dépenses soumises par l'équipe financière. Les enregistrements approuvés sont verrouillés."
+              )}
             </p>
-            <div className="flex items-end gap-3 max-w-sm">
-              <Input
-                label={translateText('Approval limit amount', locale)}
-                type="number"
-                min="0"
-                step="0.01"
-                value={thresholdInput}
-                onChange={(e) => setThresholdInput(e.target.value)}
-              />
-              <Button
-                type="button"
-                isLoading={thresholdSaving}
-                onClick={handleSaveThreshold}
-                className="shrink-0"
-              >
-                {translateText('Save Limit', locale)}
-              </Button>
-            </div>
-            {threshold > 0 ? (
-              <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
-                {translateText('Current limit', locale)}: {formatCurrency(threshold)}
-              </p>
-            ) : (
-              <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-                {translateText('Delegation disabled — only administrators can approve expenses', locale)}
-              </p>
-            )}
-          </Card>
-        )}
-
-        <Card title={translateText('Filters', locale)} className="p-4">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <Select label={translateText('Status', locale)} value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setTablePage(1) }}>
-              <option value="">{translateText('All statuses', locale)}</option>
-              <option value="RECORDED">{translateText('Recorded', locale)}</option>
-              <option value="APPROVED">{translateText('Approved', locale)}</option>
-              <option value="VOID">{translateText('Void', locale)}</option>
-            </Select>
-            <Select label={translateText('Category', locale)} value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setTablePage(1) }}>
-              <option value="">{translateText('All categories', locale)}</option>
-              {categoryOptions.map((o) => <option key={o.value} value={o.value}>{translateText(o.label, locale)}</option>)}
-            </Select>
-            <Input
-              label={translateText('Search', locale)}
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setTablePage(1) }}
-              placeholder={translateText('Search title, vendor, recorded by...', locale)}
-            />
           </div>
-          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-            <Input label={translateText('From date', locale)} type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setTablePage(1) }} />
-            <Input label={translateText('To date', locale)} type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setTablePage(1) }} />
-            <div className="flex items-end gap-2">
-              <Button onClick={() => { fetchExpenses(); setTablePage(1) }} className="flex-1">
-                {translateText('Apply Filters', locale)}
-              </Button>
-              {(dateFrom || dateTo || categoryFilter || statusFilter || searchQuery) ? (
-                <Button variant="secondary" onClick={() => { setDateFrom(''); setDateTo(''); setCategoryFilter(''); setStatusFilter(''); setSearchQuery(''); setTablePage(1) }}>
-                  {translateText('Clear', locale)}
-                </Button>
-              ) : null}
-            </div>
-          </div>
-        </Card>
+          {activeTab !== 'audit' ? (
+            <Button
+              type="button"
+              variant="secondary"
+              className="inline-flex h-8 items-center gap-1.5"
+              onClick={handleExportCSV}
+              disabled={filteredExpenses.length === 0}
+            >
+              <Download className="h-4 w-4" />
+              {t('exportCsv', 'Exporter CSV')}
+            </Button>
+          ) : null}
+        </div>
 
-        <Table
-          title={translateText('Expense Register', locale)}
-          columns={columns}
-          data={currentPageRows}
-          loading={loading}
-          totalCount={filteredExpenses.length}
-          page={tablePage}
-          pageSize={pageSize}
-          onPageChange={setTablePage}
-          emptyMessage={translateText('No expenses found.', locale)}
-          rowKey="id"
-          onExport={filteredExpenses.length > 0 ? handleExportCSV : undefined}
-        />
+        <KpiStrip items={kpiItems} />
 
-        <Card title={translateText('Audit Trail', locale)} className="p-4">
-          {selectedAuditLogs.length === 0 ? (
-            <p className="ui-text-secondary">{translateText('Select an expense to inspect its audit trail.', locale)}</p>
-          ) : (
-            <div className="space-y-3">
-              {selectedAuditLogs.map((log) => (
-                <div key={log.id} className="rounded-xl border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-medium ui-text-primary">{log.expenseTitle}</p>
-                      <p className="text-sm ui-text-secondary">
-                        {log.action} {translateText('by', locale)} {log.actorName}
-                        {log.details && typeof log.details === 'object' && 'reason' in log.details
-                          ? ` — ${log.details.reason}`
-                          : null}
-                      </p>
-                    </div>
-                    <span className="text-xs ui-text-secondary">{new Date(log.createdAt).toLocaleString()}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Paginated full audit log */}
-        <Card title={`${translateText('All Audit Events', locale)}${auditTotal > 0 ? ` (${auditTotal})` : ''}`} className="p-4">
-          {auditLogs.length === 0 ? (
-            <p className="ui-text-secondary">{translateText('No audit events yet.', locale)}</p>
-          ) : (
-            <>
-              <div className="space-y-2">
-                {auditLogs.map((log) => (
-                  <div key={log.id} className="flex items-center justify-between gap-3 rounded-lg px-3 py-2" style={{ background: 'var(--surface-soft)' }}>
-                    <div className="min-w-0">
-                      <span className="font-medium ui-text-primary truncate">{log.expenseTitle}</span>
-                      <span className="ml-2 text-xs ui-text-secondary">{log.action} · {log.actorName}</span>
-                    </div>
-                    <span className="shrink-0 text-xs ui-text-secondary">{new Date(log.createdAt).toLocaleString()}</span>
-                  </div>
-                ))}
+        {session?.user?.role === 'SCHOOL_ADMIN' ? (
+          <DetailCard>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm font-semibold ui-text-primary">
+                  {t('financeManagerApprovalLimit', "Limite d'approbation du Responsable Financier")}
+                </h2>
+                <p className="mt-1 text-sm ui-text-secondary">
+                  {t(
+                    'financeManagerLimitDesc',
+                    'Les responsables financiers peuvent approuver les dépenses jusqu’à ce montant. Définir à 0 pour désactiver la délégation.'
+                  )}
+                </p>
+                {threshold > 0 ? (
+                  <p className="mt-1 text-xs ui-text-secondary">
+                    {t('currentLimit', 'Limite actuelle')}: <span className="font-semibold ui-text-primary">{formatCurrency(threshold)}</span>
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs ui-text-secondary">
+                    {t('delegationDisabled', 'Délégation désactivée — seuls les administrateurs peuvent approuver les dépenses')}
+                  </p>
+                )}
               </div>
-              {auditTotal > auditPageSize && (
-                <div className="mt-3 flex items-center justify-between text-sm ui-text-secondary">
-                  <span>{translateText('Showing', locale)} {(auditPage - 1) * auditPageSize + 1}–{Math.min(auditPage * auditPageSize, auditTotal)} {translateText('of', locale)} {auditTotal}</span>
-                  <div className="flex gap-2">
-                    <Button variant="secondary" size="sm" disabled={auditPage === 1} onClick={() => setAuditPage((p) => p - 1)}>← {translateText('Prev', locale)}</Button>
-                    <Button variant="secondary" size="sm" disabled={auditPage * auditPageSize >= auditTotal} onClick={() => setAuditPage((p) => p + 1)}>{translateText('Next', locale)} →</Button>
-                  </div>
+              <div className="flex items-end gap-2">
+                <div className="w-40">
+                  <Input
+                    label={t('approvalLimitAmount', "Montant limite d'approbation")}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={thresholdInput}
+                    onChange={(e) => setThresholdInput(e.target.value)}
+                    className="h-8 min-h-8 py-0"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  isLoading={thresholdSaving}
+                  onClick={handleSaveThreshold}
+                  className="h-8 shrink-0 inline-flex items-center gap-1.5"
+                >
+                  <Save className="h-4 w-4" />
+                  {t('saveLimit', 'Enregistrer la limite')}
+                </Button>
+              </div>
+            </div>
+          </DetailCard>
+        ) : null}
+
+        <DetailTabs tabs={tabs} active={activeTab} onChange={handleTabChange} />
+
+        {activeTab !== 'audit' ? (
+          <Table
+            title={t('expenseRegister', 'Registre des dépenses')}
+            columns={columns}
+            data={currentPageRows}
+            loading={loading}
+            totalCount={filteredExpenses.length}
+            page={tablePage}
+            pageSize={pageSize}
+            onPageChange={setTablePage}
+            onSearch={(value) => {
+              setSearchQuery(value)
+              setTablePage(1)
+            }}
+            filterLabel={t('labelCategory', 'Catégorie')}
+            filterOptions={categoryFilterOptions}
+            activeFilter={categoryFilter}
+            onFilterChange={(value) => {
+              setCategoryFilter(value)
+              setTablePage(1)
+            }}
+            headerControls={
+              <>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => {
+                    setDateFrom(e.target.value)
+                    setTablePage(1)
+                  }}
+                  className="ui-input h-8 rounded-lg px-2.5 text-[12px]"
+                  style={{ minHeight: '2rem', paddingTop: 0, paddingBottom: 0 }}
+                  aria-label={t('fromDate', 'Du')}
+                />
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => {
+                    setDateTo(e.target.value)
+                    setTablePage(1)
+                  }}
+                  className="ui-input h-8 rounded-lg px-2.5 text-[12px]"
+                  style={{ minHeight: '2rem', paddingTop: 0, paddingBottom: 0 }}
+                  aria-label={t('toDate', 'Au')}
+                />
+                {hasActiveFilters ? (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="ui-table-link text-sm whitespace-nowrap"
+                  >
+                    {t('clearFilters', 'Effacer')}
+                  </button>
+                ) : null}
+              </>
+            }
+            getRowActions={getRowActions}
+            onRowClick={(row) => setSelectedExpenseId(row.id)}
+            emptyMessage={t('noExpensesFound', 'Aucune dépense trouvée.')}
+            rowKey="id"
+            ariaLabel={t('expenseRegister', 'Registre des dépenses')}
+          />
+        ) : (
+          <div className="space-y-4">
+            <DetailCard>
+              <h2 className="text-sm font-semibold ui-text-primary">
+                {t('auditTrail', "Piste d'audit")}
+              </h2>
+              {selectedAuditLogs.length === 0 ? (
+                <p className="mt-2 text-sm ui-text-secondary">
+                  {t('selectExpenseAudit', 'Sélectionnez une dépense pour inspecter sa piste d’audit.')}
+                </p>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {selectedAuditLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="rounded-[10px] border border-(--border-subtle) bg-(--surface-soft) px-3 py-2.5"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-medium ui-text-primary">{log.expenseTitle}</p>
+                          <p className="text-sm ui-text-secondary">
+                            {log.action} {t('by', 'par')} {log.actorName}
+                            {log.details && typeof log.details === 'object' && 'reason' in log.details
+                              ? ` — ${String(log.details.reason)}`
+                              : null}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-xs ui-text-secondary">
+                          {new Date(log.createdAt).toLocaleString(dateLocale)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
-            </>
-          )}
-        </Card>
+            </DetailCard>
+
+            <DetailCard>
+              <h2 className="text-sm font-semibold ui-text-primary">
+                {t('allAuditEvents', "Tous les événements d'audit")}
+                {auditTotal > 0 ? ` (${auditTotal})` : ''}
+              </h2>
+              {auditLogs.length === 0 ? (
+                <p className="mt-2 text-sm ui-text-secondary">
+                  {t('noAuditEvents', "Aucun événement d'audit pour l’instant.")}
+                </p>
+              ) : (
+                <>
+                  <div className="mt-3 ui-table-wrap overflow-x-auto">
+                    <table className="ui-table no-table-stripes min-w-full">
+                      <thead>
+                        <tr>
+                          <th>{t('columnExpense', 'Dépense')}</th>
+                          <th>{t('columnActions', 'Actions')}</th>
+                          <th>{t('columnDate', 'Date')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {auditLogs.map((log) => (
+                          <tr
+                            key={log.id}
+                            className="cursor-pointer"
+                            onClick={() => setSelectedExpenseId(log.expenseId)}
+                          >
+                            <td>
+                              <span className="font-medium ui-text-primary">{log.expenseTitle}</span>
+                            </td>
+                            <td>
+                              <span className="ui-text-secondary">
+                                {log.action} · {log.actorName}
+                              </span>
+                            </td>
+                            <td>
+                              <span className="ui-text-secondary">
+                                {new Date(log.createdAt).toLocaleString(dateLocale)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {auditTotal > auditPageSize ? (
+                    <div className="mt-3 flex items-center justify-between text-sm ui-text-secondary">
+                      <span>
+                        {t('showing', 'Affichage')} {(auditPage - 1) * auditPageSize + 1}–
+                        {Math.min(auditPage * auditPageSize, auditTotal)} {t('of', 'sur')} {auditTotal}
+                      </span>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          disabled={auditPage === 1}
+                          onClick={() => setAuditPage((p) => p - 1)}
+                        >
+                          ← {t('prev', 'Préc.')}
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          disabled={auditPage * auditPageSize >= auditTotal}
+                          onClick={() => setAuditPage((p) => p + 1)}
+                        >
+                          {t('next', 'Suiv.')} →
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </DetailCard>
+          </div>
+        )}
       </div>
 
-      {/* Void reason modal */}
       {showVoidModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--overlay) p-4">
-          <Card title={translateText('Void Expense', locale)} className="w-full max-w-md p-6">
-            <div className="space-y-4">
-              <p className="ui-text-secondary text-sm">
-                {translateText('Please provide a reason for voiding this expense. This will be permanently recorded in the audit trail.', locale)}
+          <div className="w-full max-w-md rounded-[10px] border border-(--border-subtle) bg-(--surface) p-5">
+            <h2 className="text-[20px] font-semibold ui-text-primary">
+              {t('voidReasonTitle', 'Annuler la dépense')}
+            </h2>
+            <div className="mt-4 space-y-4">
+              <p className="text-sm ui-text-secondary">
+                {t(
+                  'voidConfirm',
+                  'Annuler cet enregistrement de dépense ? La piste d’audit sera préservée.'
+                )}
               </p>
               <TextArea
-                label={translateText('Reason for voiding', locale)}
+                label={t('voidReasonLabel', "Raison de l'annulation")}
                 rows={3}
                 value={voidReason}
                 onChange={(e) => setVoidReason(e.target.value)}
-                placeholder={translateText('Enter the reason for voiding this expense...', locale)}
+                placeholder={t('voidReasonPlaceholder', "Saisissez la raison de l'annulation...")}
               />
-              <div className="flex gap-2 pt-1">
+              <div className="flex justify-end gap-2 pt-1">
                 <Button
                   type="button"
-                  isLoading={voidSaving}
-                  onClick={handleVoidConfirm}
-                  className="flex-1 !bg-rose-600 hover:!bg-rose-700"
-                >
-                  {translateText('Confirm Void', locale)}
-                </Button>
-                <button
-                  type="button"
-                  onClick={() => { setShowVoidModal(false); setVoidTargetId(null) }}
-                  className="flex-1 ui-button ui-button-secondary"
+                  variant="secondary"
+                  onClick={() => {
+                    setShowVoidModal(false)
+                    setVoidTargetId(null)
+                  }}
                   disabled={voidSaving}
                 >
-                  {translateText('Cancel', locale)}
-                </button>
+                  {tCommon('cancel', 'Annuler')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  isLoading={voidSaving}
+                  onClick={handleVoidConfirm}
+                >
+                  {t('confirmVoid', "Confirmer l'annulation")}
+                </Button>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       ) : null}
 
       {invoicePreview ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--overlay) p-4">
-          <Card title={translateText('Invoice Preview', locale)} className="w-full max-w-3xl p-4">
+          <div className="w-full max-w-3xl rounded-[10px] border border-(--border-subtle) bg-(--surface) p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <p className="truncate text-sm ui-text-secondary">{invoicePreview.fileName}</p>
+              <div className="min-w-0">
+                <h2 className="text-[20px] font-semibold ui-text-primary">
+                  {t('invoicePreview', 'Aperçu de la facture')}
+                </h2>
+                <p className="truncate text-sm ui-text-secondary">{invoicePreview.fileName}</p>
+              </div>
               <div className="flex items-center gap-2">
-                <a href={invoicePreview.url} download={invoicePreview.fileName} className="ui-button ui-button-secondary px-3 py-1.5 text-sm">
-                  {translateText('Download', locale)}
+                <a
+                  href={invoicePreview.url}
+                  download={invoicePreview.fileName}
+                  className="ui-button ui-button-secondary h-8 px-3.5 text-[13px] inline-flex items-center"
+                >
+                  {t('download', 'Télécharger')}
                 </a>
-                <button type="button" onClick={() => setInvoicePreview(null)} className="ui-button ui-button-secondary px-3 py-1.5 text-sm">
-                  {translateText('Close', locale)}
+                <button
+                  type="button"
+                  onClick={() => setInvoicePreview(null)}
+                  className="ui-button ui-button-secondary h-8 px-3.5 text-[13px]"
+                >
+                  {t('close', 'Fermer')}
                 </button>
               </div>
             </div>
-            <div className="max-h-[70vh] overflow-auto rounded-[10px] border p-2" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
+            <div className="max-h-[70vh] overflow-auto rounded-[10px] border border-(--border-subtle) bg-(--surface-soft) p-2">
               {invoicePreview.mimeType?.startsWith('image/') ? (
-                <img src={invoicePreview.url} alt={invoicePreview.fileName} className="mx-auto h-auto max-h-[65vh] w-auto rounded" />
+                <img
+                  src={invoicePreview.url}
+                  alt={invoicePreview.fileName}
+                  className="mx-auto h-auto max-h-[65vh] w-auto rounded"
+                />
               ) : invoicePreview.mimeType === 'application/pdf' ? (
-                <iframe src={invoicePreview.url} title={invoicePreview.fileName} className="h-[65vh] w-full rounded" />
+                <iframe
+                  src={invoicePreview.url}
+                  title={invoicePreview.fileName}
+                  className="h-[65vh] w-full rounded"
+                />
               ) : (
                 <div className="p-6 text-center">
-                  <a href={invoicePreview.url} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">
-                    {translateText('Open invoice', locale)}
+                  <a href={invoicePreview.url} target="_blank" rel="noreferrer" className="ui-table-link">
+                    {t('openInvoice', 'Ouvrir la facture')}
                   </a>
                 </div>
               )}
             </div>
-          </Card>
+          </div>
         </div>
       ) : null}
     </DashboardLayout>

@@ -1,0 +1,112 @@
+---
+description: Admin detail page layout, French copy, actions menu, and dark-mode tokens
+globs: app/admin/**
+alwaysApply: false
+---
+
+# Admin detail page design
+
+User taste: **minimal, clean, intuitive** — no redundant info, French-first copy, no centered max-width column. Prefer quiet visuals and a clear hierarchy.
+
+Use shared primitives in `components/admin/detail/`.
+
+References:
+- Student detail: `app/admin/students/[id]/page.tsx`
+- Class detail: `app/admin/classes/[id]/page.tsx`
+
+## List → detail pattern
+
+Admin entity **lists** (e.g. classes) should prefer a searchable `Table` with:
+- Important columns only
+- Row click → detail/overview (`onRowClick`)
+- Row actions in ⋯ (`getRowActions`)
+- One primary CTA on the page (e.g. Ajouter une classe)
+- Lean list APIs (no heavy nested assignment graphs on list fetch)
+
+Class overview tabs fold former `/admin/classes/[id]/students` and `.../subjects` into one place.
+
+## Layout
+
+- Full-width, left-aligned — same as other admin pages (`space-y-4` / `DetailShell`).
+- **Do not** center content or use `max-w-[960–1100px]`.
+- Hierarchy: breadcrumb → compact header → small KPI row → tabs → panels.
+- Cards: `DetailCard` — `rounded-[10px]`, `border border-(--border-subtle)`, `bg-(--surface)`.
+- No gradients, heavy shadows, or blurs. Transitions `0.15s`. Follow `.cursorrules` for light mode.
+
+## Header
+
+`DetailHeader`:
+
+- Title = entity name (20px / 600).
+- One status badge only (`StatusPill`) — Active / Left (or equivalent).
+- Meta = one muted line (`class · admission`). No year/gender/login chrome in the header.
+- **No visible primary button.** No secondary text links (no `Fees →`, no Edit).
+- Actions = `ActionMenu` (⋯) only, on the right.
+
+## Actions / More menu
+
+- Put Edit, status, login create/remove, parent password, message parent, etc. in the ⋯ menu.
+- Login must **not** appear on the main page (no badge, no hint). Login management stays menu-only.
+- Destructive items: `tone: 'danger'` + `separatorBefore`.
+- Escape + outside-click handled by `ActionMenu`. Pass a French `label` for aria.
+
+## KPI strip
+
+- `KpiStrip` — 2–3 essential metrics only (e.g. attendance %, average, outstanding fees).
+- Do not duplicate KPI values inside the default tab.
+
+## Tabs & redundancy
+
+- `DetailTabs` — brand active underline `#635bff`.
+- Each fact once (header **or** KPI **or** tab).
+- Overview = unique context (contacts, subjects), not a second identity dump.
+- Empty states: one short muted sentence.
+
+## Copy / i18n
+
+- Admin UI is French-first. Wire every visible string through locale messages (`studentsDetail` or page-specific keys) with French fallbacks.
+- Dates: `toLocaleDateString('fr-FR')` when locale is French.
+- No leftover hardcoded English on the page (labels, tabs, toasts, confirms, aria-labels, empty states).
+
+## Theme tokens (light + dark)
+
+| Role | Use |
+|------|-----|
+| Surfaces | `bg-(--surface)`, `bg-(--surface-soft)` |
+| Borders | `border-(--border-subtle)` |
+| Text | `ui-text-primary`, `ui-text-secondary` |
+| Overlay | `bg-[var(--overlay)]` |
+| Danger | `text-[var(--danger)]` |
+| Brand | `#635bff` / hover `#5146e8` |
+
+Status pills: use `.ui-status` / `.ui-status-success|pending|danger|neutral` from `globals.css`.
+These react to `html[data-theme='dark']` — **do not** rely on Tailwind `dark:` (this app uses `data-theme`).
+
+## Shared components
+
+| Piece | Path |
+|-------|------|
+| Shell / card / meta / breadcrumb | `components/admin/detail/DetailShell.tsx` |
+| Header + status pill | `components/admin/detail/DetailHeader.tsx` |
+| KPI strip | `components/admin/detail/KpiStrip.tsx` |
+| Tabs | `components/admin/detail/DetailTabs.tsx` |
+| More menu | `components/admin/detail/ActionMenu.tsx` |
+| Barrel | `components/admin/detail/index.ts` |
+
+## Tables (single system)
+
+Prefer **`components/ui/Table.tsx`** for list pages. For custom markup use:
+
+```html
+<div class="ui-table-wrap">
+  <table class="ui-table">…</table>
+</div>
+```
+
+Rules:
+- Theme tokens only — never hardcode `#111420`, `text-slate-100`, `text-indigo-200`, or light-only `#f9fafb` stripes.
+- Cell text: `ui-text-primary` / `ui-text-secondary`. Links: `ui-table-link`. Avatars: `ui-table-avatar`.
+- Status in cells: `.ui-status` / `.ui-status-success|pending|danger|neutral` (data-theme aware).
+- Toolbar: search + filters + buttons on one row, matching `h-8` heights (`ui-table-toolbar`).
+- Amounts: `font-semibold`. Headers: 11px uppercase muted.
+- Do not invent a new table look per page.

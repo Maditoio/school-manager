@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, startTransition } from 'react'
+import { ClipboardPlus, Plus, X } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -309,8 +310,13 @@ export default function TeacherAssessmentsPage() {
             <h1 className="text-[24px] font-bold ui-text-primary">Assessments</h1>
             <p className="ui-text-secondary mt-2">{t('Create and manage assessments for your classes')}</p>
           </div>
-          <Button onClick={() => setShowCreateForm(!showCreateForm)} variant="primary">
-            {showCreateForm ? t('Cancel') : '+ ' + t('Create Assessment')}
+          <Button
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            variant="primary"
+            className="inline-flex items-center gap-1.5"
+          >
+            {showCreateForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {showCreateForm ? t('Cancel') : t('Create Assessment')}
           </Button>
         </div>
 
@@ -439,7 +445,8 @@ export default function TeacherAssessmentsPage() {
               />
 
               <div className="flex gap-3">
-                <Button type="submit" isLoading={formLoading} variant="primary">
+                <Button type="submit" isLoading={formLoading} variant="primary" className="inline-flex items-center gap-1.5">
+                  <ClipboardPlus className="h-4 w-4" />
                   {t('Create Assessment')}
                 </Button>
                 <Button

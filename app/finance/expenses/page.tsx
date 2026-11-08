@@ -482,7 +482,7 @@ export default function FinanceExpensesPage() {
         const catLabel = categoryOptions.find((o) => o.value === expense.category)?.label || expense.category.replaceAll('_', ' ')
         return (
           <div className="flex flex-col">
-            <span className="font-medium text-slate-100">{expense.title}</span>
+            <span className="font-medium ui-text-primary">{expense.title}</span>
             <span className="text-xs text-slate-400">{translateText(catLabel, locale)}{expense.referenceNumber ? ` • ${expense.referenceNumber}` : ''}</span>
           </div>
         )
