@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams, redirect } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { StatusPill } from '@/components/admin/detail'
 import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
 
 interface StudentOverviewResponse {
@@ -67,13 +68,6 @@ const leaveReasonLabels: Record<'SUSPENSION' | 'GRADUATION' | 'TRANSFERRED_SCHOO
   GRADUATION: 'Graduation',
   TRANSFERRED_SCHOOL: 'Transferred',
   OTHER: 'Other',
-}
-
-const typeColors: Record<string, string> = {
-  QUIZ: 'bg-purple-100 text-purple-700',
-  TEST: 'bg-blue-100 text-blue-700',
-  EXAM: 'bg-red-100 text-red-700',
-  ASSIGNMENT: 'bg-amber-100 text-amber-700',
 }
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
@@ -321,62 +315,48 @@ export default function TeacherStudentDetailsPage() {
                   <p className="text-sm ui-text-secondary">No assessment results found for the selected filters.</p>
                 </div>
               ) : (
-                <div className="overflow-auto">
-                  <table className="w-full text-sm">
+                <div className="ui-table-wrap overflow-x-auto">
+                  <table className="ui-table no-table-stripes min-w-full">
                     <thead>
-                      <tr className="border-b border-(--border-subtle) text-[11px] font-medium uppercase tracking-wide ui-text-secondary">
-                        <th className="px-5 py-2.5 text-left">Assessment</th>
-                        <th className="px-4 py-2.5 text-left">Subject</th>
-                        <th className="px-4 py-2.5 text-center">Type</th>
-                        <th className="px-4 py-2.5 text-center">Score</th>
-                        <th className="px-4 py-2.5 text-center">Status</th>
+                      <tr>
+                        <th>Assessment</th>
+                        <th>Subject</th>
+                        <th>Type</th>
+                        <th>Score</th>
+                        <th>Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-(--border-subtle)">
-                      {filteredResults.map((r) => {
-                        const pct = r.graded && r.score !== null
-                          ? Math.round((r.score / r.assessment.totalMarks) * 100)
-                          : null
-                        const scoreColor = pct === null ? '' : pct >= 70 ? 'text-emerald-600' : pct >= 50 ? 'text-amber-600' : 'text-red-600'
-
-                        return (
-                          <tr key={r.id} className="hover:bg-(--surface-soft) transition-colors">
-                            <td className="px-5 py-3">
-                              <p className="font-medium ui-text-primary leading-snug">{r.assessment.title}</p>
-                              {r.feedback && (
-                                <p className="text-[11px] ui-text-secondary mt-0.5 max-w-50 truncate" title={r.feedback}>
-                                  {r.feedback}
-                                </p>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-[13px] ui-text-secondary">
-                              {r.assessment.subject.name}
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${typeColors[r.assessment.type] ?? 'bg-gray-100 text-gray-600'}`}>
-                                {r.assessment.type.charAt(0) + r.assessment.type.slice(1).toLowerCase()}
-                              </span>
-                            </td>
-                            <td className={`px-4 py-3 text-center font-semibold text-[13px] ${scoreColor}`}>
-                              {r.graded && r.score !== null
-                                ? `${r.score}/${r.assessment.totalMarks}`
-                                : <span className="ui-text-secondary font-normal">—</span>
-                              }
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              {r.graded ? (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                                  Graded
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">
-                                  Not Graded
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      })}
+                    <tbody>
+                      {filteredResults.map((r) => (
+                        <tr key={r.id}>
+                          <td>
+                            <p className="font-medium ui-text-primary leading-snug">{r.assessment.title}</p>
+                            {r.feedback ? (
+                              <p className="mt-0.5 max-w-50 truncate text-[11px] ui-text-secondary" title={r.feedback}>
+                                {r.feedback}
+                              </p>
+                            ) : null}
+                          </td>
+                          <td>{r.assessment.subject.name}</td>
+                          <td>
+                            <StatusPill tone="neutral">
+                              {r.assessment.type.charAt(0) + r.assessment.type.slice(1).toLowerCase()}
+                            </StatusPill>
+                          </td>
+                          <td className="font-semibold">
+                            {r.graded && r.score !== null
+                              ? `${r.score}/${r.assessment.totalMarks}`
+                              : '—'}
+                          </td>
+                          <td>
+                            {r.graded ? (
+                              <StatusPill tone="success">Graded</StatusPill>
+                            ) : (
+                              <StatusPill tone="pending">Not Graded</StatusPill>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>

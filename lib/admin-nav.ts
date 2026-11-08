@@ -17,31 +17,30 @@ export interface NavItem {
 export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/admin/dashboard' },
 
-  // ── Academic roster (collapsible group) ──────────────────────────
+  // ── Academic (people → structure → daily ops → reporting) ─────────
   { label: 'Students',          href: '/admin/students',          group: 'Academic' },
   { label: 'Teachers',          href: '/admin/teachers',          group: 'Academic' },
   { label: 'Classes',           href: '/admin/classes',           group: 'Academic' },
-  { label: 'Timetable',         href: '/admin/timetable',         group: 'Academic' },
   { label: 'Subjects',          href: '/admin/subjects',          group: 'Academic' },
+  { label: 'Timetable',         href: '/admin/timetable',         group: 'Academic' },
+  { label: 'Attendance',        href: '/admin/attendance',        group: 'Academic' },
+  { label: 'Results',           href: '/admin/results',           group: 'Academic' },
   { label: 'Reports',           href: '/admin/reports',           group: 'Academic' },
   { label: 'Report Templates',  href: '/admin/report-templates',  group: 'Academic' },
 
-  // ── Academic activity ─────────────────────────────────────────────
-  { label: 'Attendance',  href: '/admin/attendance' },
-  { label: 'Results',     href: '/admin/results' },
-
-  // ── Finance ───────────────────────────────────────────────────────
-  { label: 'Fees',          href: '/admin/fees' },
+  // ── Finance (daily money first; invoice last) ─────────────────────
+  { label: 'Fees',           href: '/admin/fees' },
+  { label: 'Expenses',       href: '/admin/expenses' },
+  { label: 'Fund Requests',  href: '/admin/fund-requests' },
   { label: 'School invoice', href: '/admin/billing' },
-  { label: 'Expenses',      href: '/admin/expenses' },
-  { label: 'Fund Requests', href: '/admin/fund-requests' },
-  { label: 'Meeting Agenda',href: '/admin/meeting-agenda' },
 
-  // ── Admin ─────────────────────────────────────────────────────────
+  // ── Communications ────────────────────────────────────────────────
+  { label: 'Announcements', href: '/admin/announcements' },
+  { label: 'Messages',      href: '/admin/messages' },
+
+  // ── System (rare tools; Settings always last) ─────────────────────
   { label: 'Users',             href: '/admin/users' },
   { label: 'Deletion Requests', href: '/admin/deletion-requests' },
-  { label: 'Announcements',     href: '/admin/announcements' },
-  { label: 'Messages',          href: '/admin/messages' },
   { label: 'Interaction Logs',  href: '/admin/interaction-logs' },
   { label: 'Settings',          href: '/admin/settings' },
 ]
@@ -54,20 +53,18 @@ export const DEPUTY_ADMIN_NAV_ITEMS: NavItem[] = ADMIN_NAV_ITEMS.filter(
 /** Finance-role navigation (FINANCE, FINANCE_MANAGER) */
 export const FINANCE_NAV_ITEMS: NavItem[] = [
   { label: 'Fees',           href: '/finance/fees' },
-  { label: 'School invoice', href: '/finance/billing' },
   { label: 'Expenses',       href: '/finance/expenses' },
   { label: 'Fund Requests',  href: '/finance/fund-requests' },
-  { label: 'Meeting Agenda', href: '/admin/meeting-agenda' },
+  { label: 'School invoice', href: '/finance/billing' },
 ]
 
 /** Finance Manager navigation (superset of FINANCE_NAV_ITEMS with salary management) */
 export const FINANCE_MANAGER_NAV_ITEMS: NavItem[] = [
   { label: 'Fees',             href: '/finance/fees' },
-  { label: 'School invoice',   href: '/finance/billing' },
   { label: 'Expenses',         href: '/finance/expenses' },
   { label: 'Fund Requests',    href: '/finance/fund-requests' },
   { label: 'Teacher Salaries', href: '/finance/salaries' },
-  { label: 'Meeting Agenda',   href: '/admin/meeting-agenda' },
+  { label: 'School invoice',   href: '/finance/billing' },
 ]
 
 /** Teacher navigation */

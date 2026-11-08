@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback, startTransition } from 'react'
 import { ClipboardPlus, Plus, X } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { StatusPill } from '@/components/admin/detail'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Form'
+import Table from '@/components/ui/Table'
 import { useSession } from 'next-auth/react'
 import { redirect, useRouter } from 'next/navigation'
 import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
@@ -542,107 +544,99 @@ export default function TeacherAssessmentsPage() {
           </div>
         </Card>
 
-        <Card className="overflow-hidden p-0">
-          {loading ? (
-            <div className="px-6 py-12 text-center ui-text-secondary text-sm">{t('Loading...')}</div>
-          ) : assessments.length === 0 ? (
-            <div className="px-6 py-12 text-center ui-text-secondary text-sm">
-              {t('No assessments yet. Click "+ Create Assessment" to get started.')}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b" style={{ borderColor: 'var(--border-subtle)', backgroundColor: 'var(--surface-soft)' }}>
-                    <th className="px-4 py-3 text-left ui-text-secondary font-semibold">Title</th>
-                    <th className="px-4 py-3 text-left ui-text-secondary font-semibold">Subject</th>
-                    <th className="px-4 py-3 text-center ui-text-secondary font-semibold">Type</th>
-                    <th className="px-4 py-3 text-center ui-text-secondary font-semibold">Marks</th>
-                    <th className="px-4 py-3 text-center ui-text-secondary font-semibold">Due Date</th>
-                    <th className="px-4 py-3 text-center ui-text-secondary font-semibold">{t('Students Graded')}</th>
-                    <th className="px-4 py-3 text-center ui-text-secondary font-semibold">Status</th>
-                    <th className="px-4 py-3 text-right ui-text-secondary font-semibold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
-                  {assessments.map((assessment) => (
-                    <tr key={assessment.id} style={{ borderColor: 'var(--border-subtle)' }}>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium ui-text-primary">{assessment.title}</span>
-                          {assessment.termIsLocked && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700" title="Term is locked">
-                              🔒 Locked
-                            </span>
-                          )}
-                        </div>
-                        {assessment.description && (
-                          <div className="text-xs ui-text-secondary mt-0.5 max-w-xs truncate" title={assessment.description}>
-                            {assessment.description}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 ui-text-secondary">{assessment.subject.name}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                          {assessment.type}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center font-medium ui-text-primary">{assessment.totalMarks}</td>
-                      <td className="px-4 py-3 text-center ui-text-secondary">{formatDate(assessment.dueDate)}</td>
-                      <td className="px-4 py-3 text-center ui-text-secondary">
-                        {assessment.gradedCount ?? 0}/{assessment._count?.studentAssessments ?? 0}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {assessment.published ? (
-                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">{t('Published')}</span>
-                        ) : (
-                          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{t('Draft')}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            onClick={() => router.push(`/teacher/assessments/${assessment.id}/grade`)}
-                            disabled={assessment.termIsLocked}
-                            title={assessment.termIsLocked ? t('Term is locked – grading is not allowed') : undefined}
-                          >
-                            {t('Grade')}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={assessment.published ? 'secondary' : 'primary'}
-                            onClick={() => handleTogglePublish(assessment)}
-                            disabled={publishLoadingId === assessment.id || (assessment.termIsLocked && assessment.published)}
-                            title={assessment.termIsLocked && assessment.published ? t('Term is locked – cannot unpublish') : undefined}
-                          >
-                            {publishLoadingId === assessment.id
-                              ? t('Saving...')
-                              : assessment.published
-                                ? t('Unpublish')
-                                : t('Publish')}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            onClick={() => handleDelete(assessment.id)}
-                            disabled={assessment.termIsLocked || deleteLoadingId === assessment.id}
-                            isLoading={deleteLoadingId === assessment.id}
-                            title={assessment.termIsLocked ? t('Term is locked – cannot delete assessment') : undefined}
-                          >
-                            {t('Delete')}
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
+        <Table
+          title={t('Assessments')}
+          columns={[
+            {
+              key: 'title',
+              label: 'Title',
+              renderCell: (assessment: Assessment) => (
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium ui-text-primary">{assessment.title}</span>
+                    {assessment.termIsLocked ? (
+                      <StatusPill tone="pending">Locked</StatusPill>
+                    ) : null}
+                  </div>
+                  {assessment.description ? (
+                    <div className="mt-0.5 max-w-xs truncate text-xs ui-text-secondary" title={assessment.description}>
+                      {assessment.description}
+                    </div>
+                  ) : null}
+                </div>
+              ),
+            },
+            {
+              key: 'subject',
+              label: 'Subject',
+              renderCell: (assessment: Assessment) => assessment.subject.name,
+            },
+            {
+              key: 'type',
+              label: 'Type',
+              renderCell: (assessment: Assessment) => (
+                <StatusPill tone="neutral">{assessment.type}</StatusPill>
+              ),
+            },
+            {
+              key: 'totalMarks',
+              label: 'Marks',
+              renderCell: (assessment: Assessment) => (
+                <span className="font-semibold ui-text-primary">{assessment.totalMarks}</span>
+              ),
+            },
+            {
+              key: 'dueDate',
+              label: 'Due Date',
+              renderCell: (assessment: Assessment) => formatDate(assessment.dueDate),
+            },
+            {
+              key: 'graded',
+              label: t('Students Graded'),
+              renderCell: (assessment: Assessment) =>
+                `${assessment.gradedCount ?? 0}/${assessment._count?.studentAssessments ?? 0}`,
+            },
+            {
+              key: 'status',
+              label: 'Status',
+              renderCell: (assessment: Assessment) =>
+                assessment.published ? (
+                  <StatusPill tone="success">{t('Published')}</StatusPill>
+                ) : (
+                  <StatusPill tone="pending">{t('Draft')}</StatusPill>
+                ),
+            },
+            { key: 'actions', label: 'Actions' },
+          ]}
+          data={assessments}
+          loading={loading}
+          rowKey="id"
+          emptyMessage={t('No assessments yet. Click "+ Create Assessment" to get started.')}
+          searchPlaceholder={t('Search assessments…')}
+          getRowActions={(assessment: Assessment) => {
+            const actions = []
+            if (!assessment.termIsLocked) {
+              actions.push({
+                label: t('Grade'),
+                onClick: () => router.push(`/teacher/assessments/${assessment.id}/grade`),
+              })
+            }
+            if (!(assessment.termIsLocked && assessment.published) && publishLoadingId !== assessment.id) {
+              actions.push({
+                label: assessment.published ? t('Unpublish') : t('Publish'),
+                onClick: () => handleTogglePublish(assessment),
+              })
+            }
+            if (!assessment.termIsLocked && deleteLoadingId !== assessment.id) {
+              actions.push({
+                label: t('Delete'),
+                danger: true,
+                onClick: () => handleDelete(assessment.id),
+              })
+            }
+            return actions
+          }}
+        />
       </div>
     </DashboardLayout>
   )

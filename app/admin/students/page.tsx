@@ -802,7 +802,7 @@ export default function StudentsPage() {
             page={currentPage}
             pageSize={pageSize}
             onSort={() => {
-              // Server API currently returns sorted results by backend defaults.
+              // Default order is admissionNumber asc from /api/students; header clicks are not wired to server sort yet.
             }}
             onSearch={(value) => {
               setSearchTerm(value)

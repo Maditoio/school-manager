@@ -4,11 +4,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { Button } from '@/components/ui/Button'
-import { MaterialIcon } from '@/components/ui/MaterialIcon'
+import Table from '@/components/ui/Table'
 import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
 import { translateText } from '@/lib/client-i18n'
-import { useCurrency } from '@/lib/currency-context'
 import { useLocale } from '@/lib/locale-context'
 
 interface CourseEarnings {
@@ -32,7 +30,6 @@ interface EarningsSummary {
 
 export default function TeacherEarningsPage() {
   const { data: session, status } = useSession()
-  const { formatCurrency } = useCurrency()
   const { locale } = useLocale()
   const t = useCallback((s: string) => translateText(s, locale), [locale])
 
@@ -81,126 +78,106 @@ export default function TeacherEarningsPage() {
       }}
       navItems={TEACHER_NAV_ITEMS}
     >
-      <div className="p-4 sm:p-6 space-y-6 max-w-6xl mx-auto">
-        {/* Header */}
+      <div className="space-y-4">
         <div>
-          <h1 className="text-2xl font-bold ui-text-primary">{t('Course Earnings')}</h1>
-          <p className="text-sm ui-text-secondary mt-1">{t('Track revenue from your paid courses')}</p>
+          <h1 className="text-[20px] font-semibold ui-text-primary">{t('Course Earnings')}</h1>
+          <p className="mt-1 text-sm ui-text-secondary">{t('Track revenue from your paid courses')}</p>
         </div>
 
-        {/* Summary Cards */}
-        {summary && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="ui-card p-4 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs ui-text-secondary font-medium uppercase tracking-wide">{t('Total Revenue')}</p>
-                  <p className="text-2xl font-bold ui-text-primary mt-1">
-                    ${summary.totalRevenue.toFixed(2)}
-                  </p>
-                </div>
-                <MaterialIcon name="trending_up" className="text-4xl text-emerald-500" />
+        {summary ? (
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[
+              { label: t('Total Revenue'), value: `$${summary.totalRevenue.toFixed(2)}` },
+              { label: t('Paid Students'), value: summary.totalPaidEnrollments },
+              { label: t('Total Students'), value: summary.totalStudents },
+              { label: t('Active Courses'), value: summary.totalCourses },
+            ].map((card) => (
+              <div
+                key={card.label}
+                className="rounded-[10px] border border-(--border-subtle) bg-(--surface) p-4"
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+                  {card.label}
+                </p>
+                <p className="mt-2 text-[22px] font-semibold ui-text-primary">{card.value}</p>
               </div>
-            </div>
-
-            <div className="ui-card p-4 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs ui-text-secondary font-medium uppercase tracking-wide">{t('Paid Students')}</p>
-                  <p className="text-2xl font-bold ui-text-primary mt-1">{summary.totalPaidEnrollments}</p>
-                </div>
-                <MaterialIcon name="person_add" className="text-4xl text-blue-500" />
-              </div>
-            </div>
-
-            <div className="ui-card p-4 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs ui-text-secondary font-medium uppercase tracking-wide">{t('Total Students')}</p>
-                  <p className="text-2xl font-bold ui-text-primary mt-1">{summary.totalStudents}</p>
-                </div>
-                <MaterialIcon name="group" className="text-4xl text-purple-500" />
-              </div>
-            </div>
-
-            <div className="ui-card p-4 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs ui-text-secondary font-medium uppercase tracking-wide">{t('Active Courses')}</p>
-                  <p className="text-2xl font-bold ui-text-primary mt-1">{summary.totalCourses}</p>
-                </div>
-                <MaterialIcon name="video_library" className="text-4xl text-orange-500" />
-              </div>
-            </div>
+            ))}
           </div>
+        ) : null}
+
+        {error ? (
+          <div className="rounded-[10px] border border-(--border-subtle) bg-(--surface) p-4 text-sm text-[#c0392b]">
+            {error}
+          </div>
+        ) : (
+          <Table
+            title={t('Your Courses')}
+            columns={[
+              {
+                key: 'title',
+                label: t('Course Title'),
+                renderCell: (course: CourseEarnings) => (
+                  <div className="flex items-center gap-3">
+                    {course.thumbnailUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={course.thumbnailUrl}
+                        alt=""
+                        className="h-10 w-10 rounded-[6px] object-cover border border-(--border-subtle)"
+                      />
+                    ) : null}
+                    <div className="min-w-0">
+                      <p className="truncate font-medium ui-text-primary">{course.title}</p>
+                      {course.freeEnrollments > 0 ? (
+                        <p className="mt-0.5 text-xs ui-text-secondary">
+                          {course.freeEnrollments} {t('Free')}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: 'price',
+                label: t('Price'),
+                renderCell: (course: CourseEarnings) => (
+                  <span className="font-semibold ui-text-primary">
+                    {course.price > 0 ? `$${course.price.toFixed(2)}` : t('Free')}
+                  </span>
+                ),
+              },
+              {
+                key: 'enrollments',
+                label: t('Paid / Total Students'),
+                renderCell: (course: CourseEarnings) => (
+                  <span>
+                    <span className="font-semibold ui-text-primary">{course.paidEnrollments}</span>
+                    <span className="ui-text-secondary"> / {course.totalEnrollments}</span>
+                  </span>
+                ),
+              },
+              {
+                key: 'earnings',
+                label: t('Total Earnings'),
+                renderCell: (course: CourseEarnings) => (
+                  <span className="font-semibold ui-text-primary">
+                    ${course.totalEarnings.toFixed(2)}
+                  </span>
+                ),
+              },
+              {
+                key: 'lessons',
+                label: t('Lessons'),
+                renderCell: (course: CourseEarnings) => course.totalLessons,
+              },
+            ]}
+            data={courses}
+            loading={loading}
+            rowKey="id"
+            emptyMessage={t('No courses yet')}
+            searchPlaceholder={t('Search courses…')}
+          />
         )}
-
-        {/* Courses Table */}
-        <div className="ui-card rounded-lg overflow-hidden">
-          <div className="border-b ui-border p-4">
-            <h2 className="font-semibold ui-text-primary">{t('Your Courses')}</h2>
-          </div>
-
-          {loading ? (
-            <div className="p-8 text-center ui-text-secondary text-sm">{t('Loading courses…')}</div>
-          ) : error ? (
-            <div className="p-8 text-center text-red-500 text-sm">{error}</div>
-          ) : courses.length === 0 ? (
-            <div className="p-8 text-center ui-text-secondary">
-              <MaterialIcon name="video_library" className="text-6xl mb-2" />
-              <p className="font-medium ui-text-primary">{t('No courses yet')}</p>
-              <p className="text-sm mt-1">{t('Create your first course to start earning')}</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="ui-text-secondary border-b ui-border bg-opacity-50">
-                  <tr className="text-left">
-                    <th className="p-4 font-semibold">{t('Course Title')}</th>
-                    <th className="p-4 font-semibold text-right">{t('Price')}</th>
-                    <th className="p-4 font-semibold text-right">{t('Paid / Total Students')}</th>
-                    <th className="p-4 font-semibold text-right">{t('Total Earnings')}</th>
-                    <th className="p-4 font-semibold text-center">{t('Lessons')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y ui-border">
-                  {courses.map((course) => (
-                    <tr key={course.id} className="hover:bg-opacity-50 transition-colors">
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          {course.thumbnailUrl && (
-                            <img
-                              src={course.thumbnailUrl}
-                              alt={course.title}
-                              className="w-10 h-10 rounded object-cover"
-                            />
-                          )}
-                          <div className="min-w-0">
-                            <p className="font-medium ui-text-primary truncate">{course.title}</p>
-                            <p className="text-xs ui-text-secondary mt-0.5">
-                              {course.freeEnrollments > 0 && `${course.freeEnrollments} ${t('Free')}`}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4 text-right font-semibold ui-text-primary">
-                        {course.price > 0 ? `$${course.price.toFixed(2)}` : t('Free')}
-                      </td>
-                      <td className="p-4 text-right ui-text-primary">
-                        <span className="font-medium">{course.paidEnrollments}</span>
-                        <span className="ui-text-secondary"> / {course.totalEnrollments}</span>
-                      </td>
-                      <td className="p-4 text-right font-bold">
-                        <span className="text-emerald-600">${course.totalEarnings.toFixed(2)}</span>
-                      </td>
-                      <td className="p-4 text-center ui-text-secondary">{course.totalLessons}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
       </div>
     </DashboardLayout>
   )

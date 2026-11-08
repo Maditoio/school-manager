@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { createStudentSchema } from "@/lib/validations"
 import { hasRole } from "@/lib/auth-utils"
 import { getTeacherAccessibleClassIds } from "@/lib/teacher-class-access"
+import { STUDENT_LIST_ORDER_BY } from "@/lib/student-sort"
 import { Prisma } from "@prisma/client"
 import { hash } from "bcryptjs"
 
@@ -255,7 +256,7 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+        orderBy: STUDENT_LIST_ORDER_BY,
         skip,
         take: pageSize,
       })
@@ -289,7 +290,7 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: { lastName: 'asc' },
+      orderBy: STUDENT_LIST_ORDER_BY,
     })
 
     return NextResponse.json({ students })

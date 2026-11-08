@@ -333,7 +333,7 @@ export default function TeacherAttendancePage() {
             <div>{tCommon('loading', 'Loading...')}</div>
           ) : selectedClass && students.length > 0 ? (
             <div className="overflow-x-auto ui-table-wrap">
-              <table className="ui-table min-w-full">
+              <table className="ui-table no-table-stripes min-w-full">
                 <thead>
                   <tr>
                     <th>{t('admissionNoCol', 'Admission No')}</th>

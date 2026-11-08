@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { assertTermEditableById, assertTermEditableByLegacyValues, TermLockedError } from '@/lib/term-utils'
+import { STUDENT_LIST_ORDER_BY, compareStudentsByAdmissionNumber } from '@/lib/student-sort'
 
 // GET a single assessment with student grades
 export async function GET(
@@ -62,7 +63,7 @@ export async function GET(
         lastName: true,
         admissionNumber: true,
       },
-      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      orderBy: STUDENT_LIST_ORDER_BY,
     })
 
     const classStudentIds = classStudents.map((student) => student.id)
@@ -113,11 +114,7 @@ export async function GET(
           admissionNumber: null,
         },
       }))
-      .sort((a, b) => {
-        const aName = `${a.student.firstName ?? ''} ${a.student.lastName ?? ''}`.trim().toLowerCase()
-        const bName = `${b.student.firstName ?? ''} ${b.student.lastName ?? ''}`.trim().toLowerCase()
-        return aName.localeCompare(bName)
-      })
+      .sort((a, b) => compareStudentsByAdmissionNumber(a.student, b.student))
 
     return NextResponse.json({
       assessment: {

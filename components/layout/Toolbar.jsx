@@ -144,12 +144,12 @@ export default function Toolbar({
 
         <div className="flex h-full items-center justify-between">
           <div className="flex min-w-0 items-center gap-2.5">
-            <GraduationCap className={`h-4 w-4 shrink-0 ${isDark ? 'text-indigo-400/70' : 'text-indigo-600'}`} aria-hidden="true" />
+            <GraduationCap className={`h-5 w-5 shrink-0 ${isDark ? 'text-indigo-400/70' : 'text-indigo-600'}`} aria-hidden="true" />
             <p
-              className="truncate text-lg font-semibold tracking-tight sm:text-xl"
+              className="truncate text-xl font-semibold leading-tight tracking-tight"
               style={{
                 fontFamily: '"Plus Jakarta Sans", "DM Sans", system-ui, sans-serif',
-                color: isDark ? undefined : '#0f172a',
+                color: isDark ? undefined : '#0a2540',
                 backgroundImage: isDark ? 'linear-gradient(90deg, #ffffff 0%, #f1f5f9 78%, #c7d2fe 100%)' : undefined,
                 WebkitBackgroundClip: isDark ? 'text' : undefined,
                 WebkitTextFillColor: isDark ? 'transparent' : undefined,

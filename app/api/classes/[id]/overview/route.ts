@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { hasRole } from '@/lib/auth-utils'
+import { STUDENT_LIST_ORDER_BY, compareStudentsByAdmissionNumber } from '@/lib/student-sort'
 
 export async function GET(
   _request: Request,
@@ -59,7 +60,7 @@ export async function GET(
             status: true,
             gender: true,
           },
-          orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+          orderBy: STUDENT_LIST_ORDER_BY,
         }),
         prisma.studentAdditionalClass.findMany({
           where: { classId },
@@ -75,7 +76,11 @@ export async function GET(
               },
             },
           },
-          orderBy: [{ student: { lastName: 'asc' } }, { student: { firstName: 'asc' } }],
+          orderBy: [
+            { student: { admissionNumber: 'asc' } },
+            { student: { lastName: 'asc' } },
+            { student: { firstName: 'asc' } },
+          ],
         }),
         prisma.attendance.groupBy({
           by: ['status'],
@@ -175,7 +180,7 @@ export async function GET(
         ...student,
         enrollmentType: 'additional' as const,
       })),
-    ]
+    ].sort(compareStudentsByAdmissionNumber)
 
     const attendanceSummary = attendanceByStatus.reduce(
       (acc, row) => {

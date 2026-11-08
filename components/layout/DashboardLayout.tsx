@@ -163,19 +163,8 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
     const enhancedNavItems = [...navItems]
     const isSchoolAdmin = session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'DEPUTY_ADMIN' || user.role.toLowerCase() === 'school admin' || user.role.toLowerCase() === 'deputy admin'
 
-    if (isSchoolAdmin && !enhancedNavItems.some((item) => item.href === '/admin/terms')) {
-      const insertAfter = enhancedNavItems.findIndex((item) => item.href === '/admin/fees')
-      const termsItem = { label: 'Terms', href: '/admin/terms', icon: '🗓️' }
-
-      if (insertAfter >= 0) {
-        enhancedNavItems.splice(insertAfter + 1, 0, termsItem)
-      } else {
-        enhancedNavItems.push(termsItem)
-      }
-    }
-
     if (isSchoolAdmin && !enhancedNavItems.some((item) => item.href === '/admin/expenses')) {
-      const insertAfter = enhancedNavItems.findIndex((item) => item.href === '/admin/terms')
+      const insertAfter = enhancedNavItems.findIndex((item) => item.href === '/admin/fees')
       const expensesItem = { label: 'Expenses', href: '/admin/expenses', icon: '🧾' }
 
       if (insertAfter >= 0) {

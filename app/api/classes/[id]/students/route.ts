@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { hasRole } from '@/lib/auth-utils'
+import { STUDENT_LIST_ORDER_BY, compareStudentsByAdmissionNumber } from '@/lib/student-sort'
 
 export async function GET(
   request: NextRequest,
@@ -52,7 +53,7 @@ export async function GET(
           classId: true,
           class: { select: { id: true, name: true } },
         },
-        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+        orderBy: STUDENT_LIST_ORDER_BY,
       })
 
       return NextResponse.json({ students })
@@ -69,7 +70,7 @@ export async function GET(
         classId: true,
         class: { select: { id: true, name: true } },
       },
-      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      orderBy: STUDENT_LIST_ORDER_BY,
     })
 
     // Additional (cross-enrolled) students
@@ -87,13 +88,17 @@ export async function GET(
           },
         },
       },
-      orderBy: [{ student: { lastName: 'asc' } }, { student: { firstName: 'asc' } }],
+      orderBy: [
+        { student: { admissionNumber: 'asc' } },
+        { student: { lastName: 'asc' } },
+        { student: { firstName: 'asc' } },
+      ],
     })
 
     const students = [
       ...primaryStudents.map((s) => ({ ...s, enrollmentType: 'primary' as const })),
       ...additionalEnrollments.map(({ student }) => ({ ...student, enrollmentType: 'additional' as const })),
-    ]
+    ].sort(compareStudentsByAdmissionNumber)
 
     return NextResponse.json({ students })
   } catch (error) {

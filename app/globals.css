@@ -446,6 +446,14 @@ input[type='search'] {
   padding: 8px 12px;
 }
 
+.ui-table th.text-right {
+  text-align: right;
+}
+
+.ui-table td.text-right {
+  text-align: right;
+}
+
 .ui-table td {
   padding: 10px 12px;
   font-size: 13.5px;

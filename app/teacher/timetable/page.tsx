@@ -125,20 +125,25 @@ export default function TeacherTimetablePage() {
             <p className="ui-text-secondary">No timetable slots assigned to you yet.</p>
           </Card>
         ) : (
-          <div className="ui-surface overflow-hidden p-0"><div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
+          <div className="ui-table-wrap overflow-hidden rounded-[10px] border border-(--border-subtle) bg-(--surface)">
+            <div className="overflow-x-auto">
+            <table className="ui-table no-table-stripes min-w-full border-collapse text-sm">
               <thead>
-                <tr className="bg-(--surface-soft)">
-                  <th className="ui-border border p-2 text-left ui-text-secondary font-medium min-w-20 bg-(--surface-soft)">Time</th>
+                <tr>
+                  <th className="min-w-20">Time</th>
                   {displayDays.map(d => (
                     <th
                       key={d}
-                      className={`ui-border border p-2 text-center font-medium min-w-35 bg-(--surface-soft) ${
-                        d === TODAY_DOW ? 'border-t-2 border-t-blue-400 text-blue-600 dark:text-blue-400' : 'ui-text-secondary'
+                      className={`min-w-35 text-center ${
+                        d === TODAY_DOW ? 'text-[#635bff]' : ''
                       }`}
                     >
                       {DAYS[d]}
-                      {d === TODAY_DOW && <span className="ml-1 text-[9px] rounded-full px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Today</span>}
+                      {d === TODAY_DOW ? (
+                        <span className="ml-1 rounded-[20px] bg-[#f0effe] px-1.5 py-0.5 text-[9px] font-semibold text-[#635bff]">
+                          Today
+                        </span>
+                      ) : null}
                     </th>
                   ))}
                 </tr>

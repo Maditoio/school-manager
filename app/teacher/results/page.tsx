@@ -410,10 +410,8 @@ export default function TeacherResultsPage() {
                         </td>
                         <td>
                           <span
-                            className={`rounded px-2 py-1 text-xs font-medium ${
-                              result.graded
-                                ? 'bg-[#eafaf3] text-[#1b8a5a]'
-                                : 'bg-[#fff8e6] text-[#b07d00]'
+                            className={`ui-status ${
+                              result.graded ? 'ui-status-success' : 'ui-status-pending'
                             }`}
                           >
                             {result.graded ? t('gradedStatus', 'Graded') : t('notGraded', 'Not Graded')}

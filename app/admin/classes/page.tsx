@@ -334,14 +334,9 @@ export default function ClassesPage() {
     () => [
       {
         key: 'name',
-        label: t('colName', 'Nom'),
+        label: t('colGrade', 'Grade'),
         sortable: true,
         renderCell: (cls: ClassRow) => <span className="font-medium ui-text-primary">{cls.name}</span>,
-      },
-      {
-        key: 'grade',
-        label: t('colGrade', 'Niveau'),
-        renderCell: (cls: ClassRow) => cls.grade || '—',
       },
       {
         key: 'academicYear',
@@ -483,7 +478,7 @@ export default function ClassesPage() {
             </h2>
             <form onSubmit={handleSubmit} className="mt-4 space-y-3">
               <Input
-                label={tAdmin('className', 'Nom de la classe')}
+                label={t('colGrade', 'Grade')}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required

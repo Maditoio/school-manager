@@ -1,54 +1,67 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { Card, StatCard } from '@/components/ui/Card'
-import { prisma } from '@/lib/prisma'
+import { TeacherDashboardClient } from '@/components/teacher/TeacherDashboardClient'
 import { TEACHER_NAV_ITEMS } from '@/lib/admin-nav'
+import { prisma } from '@/lib/prisma'
 import { getTeacherAccessibleClassIds } from '@/lib/teacher-class-access'
 
-async function getDashboardStats(teacherId: string, schoolId: string) {
+async function getDashboardData(teacherId: string, schoolId: string) {
   try {
     const classIds = await getTeacherAccessibleClassIds(teacherId, schoolId)
-    const myClasses = classIds.length
 
-    const myStudents = classIds.length > 0
-      ? await prisma.student.count({
-          where: {
-            schoolId,
-            classId: { in: classIds },
-          },
-        })
-      : 0
-
-    const mySubjectRows = await prisma.$queryRaw<Array<{ subject_id: string }>>`
-      SELECT DISTINCT subject_id
-      FROM class_subject_teachers
-      WHERE school_id = ${schoolId}
-        AND teacher_id = ${teacherId}
-    `
-
-    const mySubjects = mySubjectRows.length
-
-    const pendingResults = classIds.length > 0
-      ? await prisma.result.count({
-          where: {
-            student: {
-              classId: { in: classIds },
+    const [myStudents, mySubjectRows, pendingResults, classes] = await Promise.all([
+      classIds.length > 0
+        ? prisma.student.count({
+            where: { schoolId, classId: { in: classIds } },
+          })
+        : Promise.resolve(0),
+      prisma.$queryRaw<Array<{ subject_id: string }>>`
+        SELECT DISTINCT subject_id
+        FROM class_subject_teachers
+        WHERE school_id = ${schoolId}
+          AND teacher_id = ${teacherId}
+      `,
+      classIds.length > 0
+        ? prisma.result.count({
+            where: {
+              student: { classId: { in: classIds } },
+              published: false,
             },
-            published: false,
-          },
-        })
-      : 0
+          })
+        : Promise.resolve(0),
+      classIds.length > 0
+        ? prisma.class.findMany({
+            where: { id: { in: classIds }, schoolId },
+            select: {
+              id: true,
+              name: true,
+              _count: { select: { students: true } },
+            },
+            orderBy: { name: 'asc' },
+          })
+        : Promise.resolve([]),
+    ])
 
     return {
-      myClasses,
-      myStudents,
-      mySubjects,
-      pendingResults
+      stats: {
+        myClasses: classIds.length,
+        myStudents,
+        mySubjects: mySubjectRows.length,
+        pendingResults,
+      },
+      classes: classes.map((cls) => ({
+        id: cls.id,
+        name: cls.name,
+        studentCount: cls._count.students,
+      })),
     }
   } catch (error) {
-    console.error('Error getting dashboard stats:', error)
-    return null
+    console.error('Error getting teacher dashboard data:', error)
+    return {
+      stats: { myClasses: 0, myStudents: 0, mySubjects: 0, pendingResults: 0 },
+      classes: [] as Array<{ id: string; name: string; studentCount: number }>,
+    }
   }
 }
 
@@ -63,9 +76,7 @@ export default async function TeacherDashboard() {
     redirect('/login')
   }
 
-  const stats = await getDashboardStats(session.user.id, session.user.schoolId)
-
-  const navItems = TEACHER_NAV_ITEMS
+  const data = await getDashboardData(session.user.id, session.user.schoolId)
 
   return (
     <DashboardLayout
@@ -74,66 +85,9 @@ export default async function TeacherDashboard() {
         role: 'Teacher',
         email: session.user.email,
       }}
-      navItems={navItems}
+      navItems={TEACHER_NAV_ITEMS}
     >
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Teacher Dashboard</h1>
-          <p className="text-gray-600 mt-2">Manage your classes and students</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <StatCard
-            title="Assigned Classes"
-            value={stats?.myClasses || 0}
-            icon="🏫"
-          />
-          <StatCard
-            title="Total Students"
-            value={stats?.myStudents || 0}
-            icon="👨‍🎓"
-          />
-          <StatCard
-            title="My Subjects"
-            value={stats?.mySubjects || 0}
-            icon="📚"
-          />
-          <StatCard
-            title="Pending Results"
-            value={stats?.pendingResults || 0}
-            icon="⏳"
-          />
-        </div>
-
-        <Card title="Quick Actions">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <a
-              href="/teacher/attendance"
-              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <div className="text-2xl mb-2">📅</div>
-              <h3 className="font-semibold text-gray-900">Mark Attendance</h3>
-              <p className="text-sm text-gray-600 mt-1">Take attendance for your classes</p>
-            </a>
-            <a
-              href="/teacher/results"
-              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <div className="text-2xl mb-2">📝</div>
-              <h3 className="font-semibold text-gray-900">Enter Results</h3>
-              <p className="text-sm text-gray-600 mt-1">Add test and exam scores</p>
-            </a>
-            <a
-              href="/teacher/off-days"
-              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <div className="text-2xl mb-2">🛌</div>
-              <h3 className="font-semibold text-gray-900">Book Off Day</h3>
-              <p className="text-sm text-gray-600 mt-1">Submit your leave date range</p>
-            </a>
-          </div>
-        </Card>
-      </div>
+      <TeacherDashboardClient stats={data.stats} classes={data.classes} />
     </DashboardLayout>
   )
 }

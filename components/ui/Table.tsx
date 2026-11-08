@@ -241,16 +241,19 @@ export default function Table<T extends RowData = RowData>({
   const renderHeaderCell = (column: TableColumn<T>) => {
     const sortable = Boolean(column.sortable)
     const tLabel = translateText(column.label, locale)
+    const isActions = column.key === 'actions'
 
     if (!sortable) {
-      return <span>{tLabel}</span>
+      return <span className={isActions ? 'block text-right' : undefined}>{tLabel}</span>
     }
 
     return (
       <button
         type="button"
         onClick={() => onSort?.(column.key)}
-        className="group inline-flex items-center gap-1.5 text-left text-inherit"
+        className={`group inline-flex items-center gap-1.5 text-inherit ${
+          isActions ? 'w-full justify-end text-right' : 'text-left'
+        }`}
       >
         <span>{tLabel}</span>
         <ArrowDownUp className="h-3.5 w-3.5 opacity-0 transition-opacity duration-150 ease-in-out group-hover:opacity-70" />
@@ -397,7 +400,10 @@ export default function Table<T extends RowData = RowData>({
           <thead>
             <tr className="text-left">
               {columns.map((column) => (
-                <th key={column.key}>
+                <th
+                  key={column.key}
+                  className={column.key === 'actions' ? 'text-right' : undefined}
+                >
                   {renderHeaderCell(column)}
                 </th>
               ))}
