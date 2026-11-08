@@ -13,12 +13,10 @@ import { PARENT_NAV_ITEMS } from '@/lib/admin-nav'
 import { getChildResults, getParentChildren, resolveSelectedChild } from '@/lib/parent-data'
 import { formatParentDate, tParent } from '@/lib/parent-i18n'
 
-type SearchParams = Promise<{ childId?: string }> | { childId?: string }
-
 export default async function ParentResultsPage({
   searchParams,
 }: {
-  searchParams: SearchParams
+  searchParams: Promise<{ childId?: string }>
 }) {
   const session = await auth()
   if (!session?.user || session.user.role !== 'PARENT') {
