@@ -42,6 +42,8 @@ const ROLE_VALUES: UserRole[] = [
   'FINANCE_MANAGER',
 ]
 
+const DEFAULT_USER_PASSWORD = 'default12345'
+
 const ROLE_PILL_CLASS: Record<UserRole, string> = {
   TEACHER: 'ui-role-teacher',
   PARENT: 'ui-role-parent',
@@ -67,7 +69,6 @@ export default function AdminUsersPage() {
     firstName: '',
     lastName: '',
     email: '',
-    password: '',
     role: 'TEACHER' as UserRole,
   })
 
@@ -158,7 +159,7 @@ export default function AdminUsersPage() {
   )
 
   const resetForm = () => {
-    setFormData({ firstName: '', lastName: '', email: '', password: '', role: 'TEACHER' })
+    setFormData({ firstName: '', lastName: '', email: '', role: 'TEACHER' })
   }
 
   const openCreateModal = () => {
@@ -168,11 +169,6 @@ export default function AdminUsersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const trimmedPassword = formData.password.trim()
-    if (trimmedPassword && trimmedPassword.length < 6) {
-      showToast(t('passwordMin6', 'Le mot de passe doit contenir au moins 6 caractères'), 'warning')
-      return
-    }
 
     try {
       setSaving(true)
@@ -181,8 +177,8 @@ export default function AdminUsersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          // Empty → API applies default12345 + mustResetPassword
-          password: trimmedPassword || '',
+          // Password is fixed server-side to default12345 + mustResetPassword
+          password: '',
         }),
       })
       const data = await res.json()
@@ -196,7 +192,8 @@ export default function AdminUsersPage() {
         showToast(msg, 'error')
         return
       }
-      const tempPassword = typeof data.temporaryPassword === 'string' ? data.temporaryPassword : 'default12345'
+      const tempPassword =
+        typeof data.temporaryPassword === 'string' ? data.temporaryPassword : DEFAULT_USER_PASSWORD
       showToast(
         t(
           'userCreatedWithDefaultPassword',
@@ -418,15 +415,19 @@ export default function AdminUsersPage() {
                 required
               />
               <Input
-                label={t('passwordOptional', 'Mot de passe (optionnel)')}
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData((p) => ({ ...p, password: e.target.value }))}
-                placeholder={t(
-                  'passwordDefaultHint',
-                  'Laissez vide pour utiliser : default12345'
-                )}
+                label={t('password', 'Mot de passe')}
+                type="text"
+                value={DEFAULT_USER_PASSWORD}
+                readOnly
+                disabled
+                autoComplete="off"
               />
+              <p className="text-xs ui-text-secondary">
+                {t(
+                  'mustResetNote',
+                  'Mot de passe par défaut — l’utilisateur doit le changer à la première connexion.'
+                )}
+              </p>
               <Select
                 label={t('columnRole', 'Rôle')}
                 value={formData.role}
@@ -438,12 +439,6 @@ export default function AdminUsersPage() {
                   </option>
                 ))}
               </Select>
-              <p className="text-xs ui-text-secondary">
-                {t(
-                  'mustResetNote',
-                  "Mot de passe par défaut : default12345. L'utilisateur devra le changer à la première connexion."
-                )}
-              </p>
               <div className="flex gap-2 pt-1">
                 <Button
                   type="submit"

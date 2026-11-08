@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { password, firstName, lastName, role, schoolId, title, phone } = validation.data
+    const { firstName, lastName, role, schoolId, title, phone } = validation.data
     const rawEmail = (validation.data.email || '').trim().toLowerCase()
 
     if (session.user.role !== 'SUPER_ADMIN' && !['TEACHER', 'PARENT', 'FINANCE', 'FINANCE_MANAGER', 'DEPUTY_ADMIN'].includes(role)) {
@@ -111,16 +111,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const trimmedPassword = (password || '').trim()
-    const usedDefaultPassword = trimmedPassword.length === 0
-    const finalPassword = usedDefaultPassword ? DEFAULT_USER_PASSWORD : trimmedPassword
-
-    if (!usedDefaultPassword && finalPassword.length < 6) {
-      return NextResponse.json(
-        { error: 'Password must be at least 6 characters' },
-        { status: 400 }
-      )
-    }
+    // Admin-created accounts always get the fixed temporary password (client cannot override)
+    const finalPassword = DEFAULT_USER_PASSWORD
+    const usedDefaultPassword = true
 
     // Use session school ID if not super admin
     const finalSchoolId = session.user.role === 'SUPER_ADMIN' ? schoolId : session.user.schoolId
@@ -195,7 +188,7 @@ export async function POST(request: NextRequest) {
       {
         user,
         loginUsername: username || user.email,
-        temporaryPassword: usedDefaultPassword ? DEFAULT_USER_PASSWORD : trimmedPassword,
+        temporaryPassword: DEFAULT_USER_PASSWORD,
         usedDefaultPassword,
         mustResetPassword: true,
         usedSyntheticEmail,
