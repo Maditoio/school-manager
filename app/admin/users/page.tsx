@@ -169,11 +169,7 @@ export default function AdminUsersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const trimmedPassword = formData.password.trim()
-    if (!trimmedPassword) {
-      showToast(t('passwordRequired', 'Le mot de passe est requis'), 'warning')
-      return
-    }
-    if (trimmedPassword.length < 6) {
+    if (trimmedPassword && trimmedPassword.length < 6) {
       showToast(t('passwordMin6', 'Le mot de passe doit contenir au moins 6 caractères'), 'warning')
       return
     }
@@ -183,7 +179,11 @@ export default function AdminUsersPage() {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, password: trimmedPassword }),
+        body: JSON.stringify({
+          ...formData,
+          // Empty → API applies default12345 + mustResetPassword
+          password: trimmedPassword || '',
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -196,7 +196,14 @@ export default function AdminUsersPage() {
         showToast(msg, 'error')
         return
       }
-      showToast(t('userCreated', 'Utilisateur créé avec succès'), 'success')
+      const tempPassword = typeof data.temporaryPassword === 'string' ? data.temporaryPassword : 'default12345'
+      showToast(
+        t(
+          'userCreatedWithDefaultPassword',
+          'Utilisateur créé. Mot de passe temporaire : {password}. À changer à la première connexion.'
+        ).replace('{password}', tempPassword),
+        'success'
+      )
       setShowModal(false)
       resetForm()
       await fetchUsers()
@@ -411,12 +418,14 @@ export default function AdminUsersPage() {
                 required
               />
               <Input
-                label={t('password', 'Mot de passe')}
+                label={t('passwordOptional', 'Mot de passe (optionnel)')}
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData((p) => ({ ...p, password: e.target.value }))}
-                placeholder={t('passwordMinPlaceholder', 'Minimum 6 caractères')}
-                required
+                placeholder={t(
+                  'passwordDefaultHint',
+                  'Laissez vide pour utiliser : default12345'
+                )}
               />
               <Select
                 label={t('columnRole', 'Rôle')}
@@ -432,7 +441,7 @@ export default function AdminUsersPage() {
               <p className="text-xs ui-text-secondary">
                 {t(
                   'mustResetNote',
-                  "L'utilisateur devra changer son mot de passe à la première connexion."
+                  "Mot de passe par défaut : default12345. L'utilisateur devra le changer à la première connexion."
                 )}
               </p>
               <div className="flex gap-2 pt-1">

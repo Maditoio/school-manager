@@ -98,12 +98,18 @@ export default function DashboardPage({ user }) {
               value: Number.isFinite(Number(stats.studentsCount))
                 ? Number(stats.studentsCount)
                 : prev.schoolPulse.totalStudents.value,
+              sparkline: Array.isArray(stats.pulseTrends?.totalStudents)
+                ? stats.pulseTrends.totalStudents
+                : prev.schoolPulse.totalStudents.sparkline,
             },
             newThisTerm: {
               ...prev.schoolPulse.newThisTerm,
               value: Number.isFinite(Number(stats.newThisTermCount))
                 ? Number(stats.newThisTermCount)
                 : prev.schoolPulse.newThisTerm.value,
+              sparkline: Array.isArray(stats.pulseTrends?.newThisTerm)
+                ? stats.pulseTrends.newThisTerm
+                : prev.schoolPulse.newThisTerm.sparkline,
             },
             totalTeachers: {
               ...prev.schoolPulse.totalTeachers,
@@ -113,6 +119,9 @@ export default function DashboardPage({ user }) {
               trendLabel: Number.isFinite(Number(stats.newTeachersThisTermCount))
                 ? `${Number(stats.newTeachersThisTermCount)} new this term`
                 : prev.schoolPulse.totalTeachers.trendLabel,
+              sparkline: Array.isArray(stats.pulseTrends?.totalTeachers)
+                ? stats.pulseTrends.totalTeachers
+                : prev.schoolPulse.totalTeachers.sparkline,
             },
             teachersAbsent: {
               ...prev.schoolPulse.teachersAbsent,
@@ -125,6 +134,9 @@ export default function DashboardPage({ user }) {
                 if (!Number.isFinite(absent) || !Number.isFinite(total) || total <= 0) return prev.schoolPulse.teachersAbsent.trendLabel
                 return `${((absent / total) * 100).toFixed(1)}% absent today`
               })(),
+              sparkline: Array.isArray(stats.pulseTrends?.teachersAbsent)
+                ? stats.pulseTrends.teachersAbsent
+                : prev.schoolPulse.teachersAbsent.sparkline,
             },
             absentToday: {
               ...prev.schoolPulse.absentToday,
@@ -138,12 +150,47 @@ export default function DashboardPage({ user }) {
                 const pct = ((absent / total) * 100).toFixed(1)
                 return absent === 0 ? 'No absences recorded today' : `${pct}% of students`
               })(),
+              sparkline: Array.isArray(stats.pulseTrends?.absentToday)
+                ? stats.pulseTrends.absentToday
+                : prev.schoolPulse.absentToday.sparkline,
             },
             feeDefaulters: {
               ...prev.schoolPulse.feeDefaulters,
               value: Number.isFinite(Number(stats.feeDefaultersCount))
                 ? Number(stats.feeDefaultersCount)
                 : prev.schoolPulse.feeDefaulters.value,
+              trendLabel: 'Weekly unpaid trend',
+              sparkline: Array.isArray(stats.pulseTrends?.feeDefaulters)
+                ? stats.pulseTrends.feeDefaulters
+                : prev.schoolPulse.feeDefaulters.sparkline,
+            },
+            belowPassMark: {
+              ...prev.schoolPulse.belowPassMark,
+              value: Number.isFinite(Number(stats.belowPassMarkCount))
+                ? Number(stats.belowPassMarkCount)
+                : prev.schoolPulse.belowPassMark.value,
+              trendLabel: Number.isFinite(Number(stats.belowPassMarkCount))
+                ? Number(stats.belowPassMarkCount) > 0
+                  ? 'Focus classes identified'
+                  : 'No students below pass mark'
+                : prev.schoolPulse.belowPassMark.trendLabel,
+              sparkline: Array.isArray(stats.pulseTrends?.belowPassMark)
+                ? stats.pulseTrends.belowPassMark
+                : prev.schoolPulse.belowPassMark.sparkline,
+            },
+            unassignedSubjects: {
+              ...prev.schoolPulse.unassignedSubjects,
+              value: Number.isFinite(Number(stats.unassignedSubjectsCount))
+                ? Number(stats.unassignedSubjectsCount)
+                : prev.schoolPulse.unassignedSubjects.value,
+              trendLabel: Number.isFinite(Number(stats.unassignedSubjectsCount))
+                ? Number(stats.unassignedSubjectsCount) > 0
+                  ? 'Assignment needed'
+                  : 'All subjects assigned'
+                : prev.schoolPulse.unassignedSubjects.trendLabel,
+              sparkline: Array.isArray(stats.pulseTrends?.unassignedSubjects)
+                ? stats.pulseTrends.unassignedSubjects
+                : prev.schoolPulse.unassignedSubjects.sparkline,
             },
           },
           financial: stats.financial
@@ -352,7 +399,7 @@ export default function DashboardPage({ user }) {
             <div className="transition-opacity duration-300" style={{ opacity: loaded.pulse ? 1 : 0.85 }}>
               <SchoolPulseSection
                 data={dashboardState.schoolPulse}
-                loading={!loaded.pulse}
+                loading={!loaded.pulse || !statsLoaded}
                 cardLinks={{
                   'Teachers Absent': '/admin/teachers-absent',
                 }}

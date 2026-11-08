@@ -5,9 +5,11 @@ import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { STUDENT_NAV_ITEMS } from '@/lib/admin-nav'
+import { useStudentUi } from '@/lib/use-student-ui'
 
 export default function StudentLibraryPage() {
   const { data: session, status } = useSession()
+  const { tStudent } = useStudentUi()
 
   useEffect(() => {
     if (status === 'unauthenticated') redirect('/login')
@@ -16,40 +18,45 @@ export default function StudentLibraryPage() {
 
   if (status === 'loading' || !session) return null
 
+  const featureChips = [
+    { emoji: '📖', label: tStudent('libraryBooks', 'Books') },
+    { emoji: '🔬', label: tStudent('libraryArticles', 'Scientific articles') },
+    { emoji: '📄', label: tStudent('libraryResearch', 'Research papers') },
+    { emoji: '🎓', label: tStudent('libraryResources', 'Teaching resources') },
+  ]
+
   return (
     <DashboardLayout
       user={{
-        name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Étudiant',
-        role: 'Étudiant',
+        name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Student',
+        role: 'Student',
         email: session.user.email,
       }}
       navItems={STUDENT_NAV_ITEMS}
     >
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
         <div className="text-6xl mb-6">📚</div>
-        <h1 className="text-2xl font-bold ui-text-primary mb-2">Bibliothèque</h1>
+        <h1 className="text-2xl font-bold ui-text-primary mb-2">
+          {tStudent('libraryTitle', 'Library')}
+        </h1>
         <p className="text-sm ui-text-secondary mb-4 max-w-md">
-          La bibliothèque numérique sera bientôt accessible. Elle vous permettra de consulter
-          des livres, des articles scientifiques et des travaux de recherche directement
-          depuis votre espace étudiant.
+          {tStudent(
+            'librarySubtitle',
+            'The digital library will be available soon. You will be able to browse books, scientific articles, and research papers from your student space.'
+          )}
         </p>
         <div className="flex flex-wrap justify-center gap-3 mb-6">
-          {[
-            '📖 Livres',
-            '🔬 Articles scientifiques',
-            '📄 Travaux de recherche',
-            '🎓 Ressources pédagogiques',
-          ].map(item => (
+          {featureChips.map(item => (
             <span
-              key={item}
+              key={item.label}
               className="inline-flex items-center rounded-lg border ui-border px-3 py-1.5 text-xs font-medium ui-text-secondary"
             >
-              {item}
+              {item.emoji} {item.label}
             </span>
           ))}
         </div>
         <span className="inline-flex items-center rounded-full border ui-border px-4 py-1.5 text-sm font-medium ui-text-secondary">
-          Bientôt disponible
+          {tStudent('comingSoon', 'Coming soon')}
         </span>
       </div>
     </DashboardLayout>

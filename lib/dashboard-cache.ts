@@ -1,5 +1,16 @@
 const DASHBOARD_CACHE_TTL_MS = 60 * 1000
 
+export type SchoolAdminPulseTrends = {
+  totalStudents: number[]
+  newThisTerm: number[]
+  absentToday: number[]
+  feeDefaulters: number[]
+  belowPassMark: number[]
+  totalTeachers: number[]
+  teachersAbsent: number[]
+  unassignedSubjects: number[]
+}
+
 export type SchoolAdminDashboardStats = {
   studentsCount: number
   teachersCount: number
@@ -7,10 +18,14 @@ export type SchoolAdminDashboardStats = {
   newThisTermCount: number
   newTeachersThisTermCount: number
   feeDefaultersCount: number
+  belowPassMarkCount: number
+  unassignedSubjectsCount: number
   absentTodayCount: number
   classesCount: number
   attendanceRate: number
   todayAttendanceCount: number
+  /** Real sparkline series for School Pulse cards (school-scoped). */
+  pulseTrends: SchoolAdminPulseTrends
   financial?: {
     periodLabel: string
     totalCollected: { value: number; sub: string }

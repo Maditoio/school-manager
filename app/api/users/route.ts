@@ -6,7 +6,8 @@ import { hasRole } from "@/lib/auth-utils"
 import { hash } from "bcryptjs"
 import { resolveTeacherLoginIdentity } from "@/lib/teacher-login"
 
-const DEFAULT_TEACHER_PASSWORD = 'default12345'
+/** Temporary password for all admin-created accounts; must change on first login. */
+const DEFAULT_USER_PASSWORD = 'default12345'
 
 // GET /api/users - Get users
 export async function GET(request: NextRequest) {
@@ -111,12 +112,12 @@ export async function POST(request: NextRequest) {
     }
 
     const trimmedPassword = (password || '').trim()
-    const useDefaultTeacherPassword = role === 'TEACHER' && trimmedPassword.length === 0
-    const finalPassword = useDefaultTeacherPassword ? DEFAULT_TEACHER_PASSWORD : trimmedPassword
+    const usedDefaultPassword = trimmedPassword.length === 0
+    const finalPassword = usedDefaultPassword ? DEFAULT_USER_PASSWORD : trimmedPassword
 
-    if (!finalPassword) {
+    if (!usedDefaultPassword && finalPassword.length < 6) {
       return NextResponse.json(
-        { error: 'Password is required' },
+        { error: 'Password must be at least 6 characters' },
         { status: 400 }
       )
     }
@@ -194,7 +195,9 @@ export async function POST(request: NextRequest) {
       {
         user,
         loginUsername: username || user.email,
-        temporaryPassword: useDefaultTeacherPassword ? DEFAULT_TEACHER_PASSWORD : undefined,
+        temporaryPassword: usedDefaultPassword ? DEFAULT_USER_PASSWORD : trimmedPassword,
+        usedDefaultPassword,
+        mustResetPassword: true,
         usedSyntheticEmail,
       },
       { status: 201 }

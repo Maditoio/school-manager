@@ -12,69 +12,62 @@ export const dashboardData = {
   },
 
   schoolPulse: {
-    // Total enrolled students in school (all active grades)
+    // Fallback placeholders — replaced by /api/dashboard/stats (values + pulseTrends)
     totalStudents: {
       label: 'Total Students',
-      value: 1245,
+      value: 0,
       accent: '#6366f1',
       trendLabel: 'Enrollment stable',
-      sparkline: [1120, 1145, 1178, 1192, 1210, 1228, 1245],
+      sparkline: [0],
     },
-    // New enrollments this term
     newThisTerm: {
       label: 'New This Term',
-      value: 84,
+      value: 0,
       accent: '#34d399',
       trendLabel: 'Live enrollment updates',
-      sparkline: [9, 15, 18, 10, 12, 8, 12],
+      sparkline: [0],
     },
-    // Students marked absent today
     absentToday: {
       label: 'Absent Today',
-      value: 37,
+      value: 0,
       accent: '#ef4444',
-      trendLabel: '3.0% of students',
-      sparkline: [41, 39, 43, 36, 32, 35, 37],
+      trendLabel: 'No absences recorded today',
+      sparkline: [0],
     },
-    // Accounts with outstanding fees
     feeDefaulters: {
       label: 'Fee Defaulters',
-      value: 112,
+      value: 0,
       accent: '#fbbf24',
-      trendLabel: 'Live fee status updates',
-      sparkline: [129, 126, 124, 121, 118, 116, 112],
+      trendLabel: 'Weekly unpaid trend',
+      sparkline: [0],
     },
-    // Students performing below pass threshold
     belowPassMark: {
       label: 'Below Pass Mark',
-      value: 56,
+      value: 0,
       accent: '#ef4444',
-      trendLabel: 'Focus classes identified',
-      sparkline: [68, 63, 61, 60, 58, 57, 56],
+      trendLabel: 'No students below pass mark',
+      sparkline: [0],
     },
-    // Total active teachers
     totalTeachers: {
       label: 'Total Teachers',
-      value: 42,
+      value: 0,
       accent: '#6366f1',
-      trendLabel: '2 new this term',
-      sparkline: [38, 39, 39, 40, 40, 41, 42],
+      trendLabel: '0 new this term',
+      sparkline: [0],
     },
-    // Teachers absent today
     teachersAbsent: {
       label: 'Teachers Absent',
-      value: 3,
+      value: 0,
       accent: '#fbbf24',
-      trendLabel: '7.1% absent today',
-      sparkline: [5, 4, 6, 3, 2, 3, 3],
+      trendLabel: '0.0% absent today',
+      sparkline: [0],
     },
-    // Subjects without assigned teacher
     unassignedSubjects: {
       label: 'Unassigned Subjects',
-      value: 2,
+      value: 0,
       accent: '#ef4444',
-      trendLabel: 'Assignment needed',
-      sparkline: [5, 4, 4, 3, 3, 2, 2],
+      trendLabel: 'All subjects assigned',
+      sparkline: [0],
     },
   },
 

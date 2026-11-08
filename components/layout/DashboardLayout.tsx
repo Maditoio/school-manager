@@ -1,6 +1,7 @@
 'use client'
 
-import { BottomSidebarNav, Sidebar } from '@/components/layout/Navigation'
+import { Sidebar } from '@/components/layout/Navigation'
+import { ParentMobileNav } from '@/components/layout/ParentMobileNav'
 import Toolbar from '@/components/layout/Toolbar'
 import { signOut } from 'next-auth/react'
 import { usePathname, useRouter } from 'next/navigation'
@@ -36,6 +37,7 @@ const LICENSE_RESTRICTED_NAV_PATHS = [
   '/parent/announcements',
   '/parent/attendance',
   '/parent/assessments',
+  '/parent/upcoming',
   '/parent/results',
 ]
 
@@ -139,6 +141,7 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
 
       await update({ preferredLanguage: nextLocale })
       showToast(translateText('Language preference saved', nextLocale), 'success')
+      router.refresh()
     } catch (error) {
       console.error('Failed to update language preference:', error)
       showToast(translateText('Failed to save language preference', previousLocale), 'error')
@@ -280,13 +283,18 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
           </div>
         ) : null}
         <main
-          className={`flex-1 overflow-auto p-4 ${isParentView ? 'pt-4 pb-24 md:pt-6 md:pb-24' : 'pt-20 pb-20 md:p-6 md:pt-22 md:pb-6'}`}
+          className={`flex-1 overflow-auto p-4 ${isParentView ? 'pt-16 pb-4 md:pt-20 md:pb-6' : 'pt-20 pb-20 md:p-6 md:pt-22 md:pb-6'}`}
           style={{ background: isAdminDashboardRoute ? '#0b0d14' : 'transparent' }}
         >
           {translatedChildren}
         </main>
         {isParentView ? (
-          <BottomSidebarNav items={translatedNavItems} onLogout={handleLogout} />
+          <ParentMobileNav
+            items={translatedNavItems}
+            onLogout={handleLogout}
+            language={locale}
+            onLanguageChange={handleLanguageChange}
+          />
         ) : null}
       </div>
     </div>

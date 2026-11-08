@@ -20,7 +20,13 @@ const iconMap = {
 
 function PulseCard({ item, onClick, locale }) {
   const Icon = iconMap[item.label] || Users
-  const sparklineData = useMemo(() => item.sparkline.map((value, i) => ({ x: i, y: value })), [item.sparkline])
+  const sparklineData = useMemo(() => {
+    const series =
+      Array.isArray(item.sparkline) && item.sparkline.length > 0
+        ? item.sparkline
+        : [Number(item.value) || 0]
+    return series.map((value, i) => ({ x: i, y: Number(value) || 0 }))
+  }, [item.sparkline, item.value])
   const absentThresholdExceeded = item.label === 'Absent Today' && item.value > 62 // >5% of 1245
   const unassignedAttention = item.label === 'Unassigned Subjects' && item.value > 0
 

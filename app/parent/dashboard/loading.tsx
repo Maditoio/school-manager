@@ -1,11 +1,14 @@
 export default function ParentDashboardLoading() {
   return (
-    <div className="mx-auto w-full max-w-md space-y-5 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)]">
-      <div className="h-28 rounded-2xl bg-white shadow-sm animate-pulse" />
-      <div className="h-44 rounded-2xl bg-white shadow-sm animate-pulse" />
-      <div className="h-48 rounded-2xl bg-white shadow-sm animate-pulse" />
-      <div className="h-44 rounded-2xl bg-white shadow-sm animate-pulse" />
-      <div className="h-20 rounded-2xl bg-white shadow-sm animate-pulse" />
+    <div className="space-y-4">
+      <div className="h-12 max-w-sm animate-pulse rounded-[6px] bg-(--surface-soft)" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="h-24 animate-pulse rounded-[10px] border border-(--border-subtle) bg-(--surface)" />
+        <div className="h-24 animate-pulse rounded-[10px] border border-(--border-subtle) bg-(--surface)" />
+        <div className="h-24 animate-pulse rounded-[10px] border border-(--border-subtle) bg-(--surface)" />
+      </div>
+      <div className="h-48 animate-pulse rounded-[10px] border border-(--border-subtle) bg-(--surface)" />
+      <div className="h-40 animate-pulse rounded-[10px] border border-(--border-subtle) bg-(--surface)" />
     </div>
   )
 }

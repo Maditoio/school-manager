@@ -97,3 +97,13 @@ export const STUDENT_NAV_ITEMS: NavItem[] = [
   { label: 'Student Hub',     href: '/student/hub',            icon: '🚀' },
   { label: 'Library',         href: '/student/library',        icon: '📚' },
 ]
+
+/** Parent navigation — English source labels; DashboardLayout translates via locale */
+export const PARENT_NAV_ITEMS: NavItem[] = [
+  { label: 'Home', href: '/parent/dashboard' },
+  { label: 'Results', href: '/parent/results' },
+  { label: 'Attendance', href: '/parent/attendance' },
+  { label: 'Upcoming', href: '/parent/upcoming' },
+  { label: 'Announcements', href: '/parent/announcements' },
+  { label: 'Messages', href: '/parent/messages' },
+]

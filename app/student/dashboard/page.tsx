@@ -5,8 +5,7 @@ import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { STUDENT_NAV_ITEMS } from '@/lib/admin-nav'
-import { translateText } from '@/lib/client-i18n'
-import { useLocale } from '@/lib/locale-context'
+import { useStudentUi } from '@/lib/use-student-ui'
 
 interface StudentAssessmentResult {
   id: string
@@ -106,12 +105,6 @@ const statusDotStyles: Record<string, string> = {
   LATE: 'bg-amber-500',
 }
 
-const statusTextLabels: Record<string, string> = {
-  PRESENT: 'Present',
-  ABSENT: 'Absent',
-  LATE: 'Late',
-}
-
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
@@ -123,7 +116,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 
 export default function StudentDashboardPage() {
   const { data: session, status } = useSession()
-  const { locale } = useLocale()
+  const { locale, tStudent } = useStudentUi()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [data, setData] = useState<MeResponse | null>(null)
@@ -143,18 +136,18 @@ export default function StudentDashboardPage() {
         const res = await fetch('/api/student/me')
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
-          setError(body.error || 'Échec du chargement du profil')
+          setError(body.error || tStudent('profileLoadFailed', 'Failed to load profile'))
           return
         }
         setData(await res.json())
       } catch {
-        setError('Échec du chargement du profil')
+        setError(tStudent('profileLoadFailed', 'Failed to load profile'))
       } finally {
         setLoading(false)
       }
     }
     load()
-  }, [session])
+  }, [session, tStudent])
 
   if (status === 'loading' || !session) return null
 
@@ -169,23 +162,21 @@ export default function StudentDashboardPage() {
   const avgScore = gradedResults.length > 0
     ? Math.round(gradedResults.reduce((sum, r) => sum + (r.score! / r.assessment.totalMarks) * 100, 0) / gradedResults.length)
     : null
-  const t = (text: string) => translateText(text, locale)
-  const isFr = locale === 'fr'
-  const isSw = locale === 'sw'
   const restrictedFeaturesBlocked = Boolean(session.user.paymentAccessBlocked)
   const profile = data?.studentCourseProfile
   const topWeakSubject = profile?.weakSubjects?.[0]
   const topStrongSubject = profile?.strongSubjects?.[0]
+  const dateLocale = locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-TZ' : 'en-GB'
 
   const typeLabels: Record<string, string> = {
-    QUIZ: isFr ? 'Interro' : isSw ? 'Jaribio Fupi' : 'Quiz',
-    TEST: isFr ? 'Test' : isSw ? 'Mtihani' : 'Test',
-    EXAM: isFr ? 'Examen' : isSw ? 'Mtihani Mkuu' : 'Exam',
-    ASSIGNMENT: isFr ? 'Devoir' : isSw ? 'Kazi' : 'Assignment',
+    QUIZ: tStudent('quiz', 'Quiz'),
+    TEST: tStudent('test', 'Test'),
+    EXAM: tStudent('exam', 'Exam'),
+    ASSIGNMENT: tStudent('assignment', 'Assignment'),
   }
 
   const filterButtonLabels: Record<string, string> = {
-    ALL: isFr ? 'Tout' : isSw ? 'Zote' : 'All',
+    ALL: tStudent('all', 'All'),
     EXAM: typeLabels.EXAM,
     TEST: typeLabels.TEST,
     QUIZ: typeLabels.QUIZ,
@@ -193,48 +184,53 @@ export default function StudentDashboardPage() {
   }
 
   const genderLabels: Record<string, string> = {
-    MALE: isFr ? 'Masculin' : isSw ? 'Mwanaume' : 'Male',
-    FEMALE: isFr ? 'Feminin' : isSw ? 'Mwanamke' : 'Female',
-    OTHER: isFr ? 'Autre' : isSw ? 'Nyingine' : 'Other',
+    MALE: tStudent('male', 'Male'),
+    FEMALE: tStudent('female', 'Female'),
+    OTHER: tStudent('other', 'Other'),
   }
 
   const statusBadgeLabels: Record<string, string> = {
-    ACTIVE: isFr ? 'ACTIF' : isSw ? 'HAI' : 'ACTIVE',
-    INACTIVE: isFr ? 'INACTIF' : isSw ? 'ISIYO HAI' : 'INACTIVE',
-    SUSPENDED: isFr ? 'SUSPENDU' : isSw ? 'IMESITISHWA' : 'SUSPENDED',
+    ACTIVE: tStudent('statusActive', 'ACTIVE'),
+    INACTIVE: tStudent('statusInactive', 'INACTIVE'),
+    SUSPENDED: tStudent('statusSuspended', 'SUSPENDED'),
+  }
+
+  const statusTextLabels: Record<string, string> = {
+    PRESENT: tStudent('present', 'Present'),
+    ABSENT: tStudent('absent', 'Absent'),
+    LATE: tStudent('late', 'Late'),
   }
 
   const averageSummaryText =
     avgScore === null
       ? ''
-      : isFr
-      ? `Moyenne: ${avgScore}% sur ${gradedResults.length} evaluation${gradedResults.length > 1 ? 's' : ''} notee${gradedResults.length > 1 ? 's' : ''}`
-      : isSw
-      ? `Wastani: ${avgScore}% katika tathmini ${gradedResults.length}`
-      : `Average: ${avgScore}% across ${gradedResults.length} graded assessment${gradedResults.length > 1 ? 's' : ''}`
+      : tStudent('averageAcross', 'Average: {avg}% across {count} graded assessment(s)', {
+          avg: avgScore,
+          count: gradedResults.length,
+        })
 
   const formatDay = (value: string) =>
-    new Date(value).toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-KE' : 'en-US', { weekday: 'short' })
+    new Date(value).toLocaleDateString(dateLocale, { weekday: 'short' })
 
   const formatDate = (value: string) =>
-    new Date(value).toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-KE' : 'en-US', { month: 'short', day: 'numeric' })
+    new Date(value).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' })
 
   return (
     <DashboardLayout
       user={{
-        name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Étudiant',
-        role: 'Étudiant',
+        name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Student',
+        role: 'Student',
         email: session.user.email,
       }}
       navItems={STUDENT_NAV_ITEMS}
     >
       <div className="space-y-4">
-        <h1 className="text-lg font-semibold ui-text-primary">{t('My Profile')}</h1>
+        <h1 className="text-lg font-semibold ui-text-primary">{tStudent('myProfile', 'My Profile')}</h1>
 
         {loading ? (
           <div className="ui-surface p-6 flex items-center gap-3">
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-(--border-subtle) border-t-(--accent)" />
-            <p className="text-sm ui-text-secondary">{t('Loading profile...')}</p>
+            <p className="text-sm ui-text-secondary">{tStudent('loadingProfile', 'Loading profile...')}</p>
           </div>
         ) : error ? (
           <div className="ui-surface p-5">
@@ -273,36 +269,42 @@ export default function StudentDashboardPage() {
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
-                  <Field label={t('Admission Number')} value={s.admissionNumber} />
-                  <Field label={t('Class')} value={s.class?.name} />
-                  {/* <Field label="Niveau" value={s.class?.grade} /> */}
-                  <Field label={t('Year')} value={String(s.academicYear)} />
-                  {s.dateOfBirth && <Field label={t('Date of Birth')} value={new Date(s.dateOfBirth).toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-KE' : 'en-US')} />}
-                  {s.gender && <Field label={t('Gender')} value={genderLabels[s.gender] ?? s.gender} />}
+                  <Field label={tStudent('admissionNumber', 'Admission Number')} value={s.admissionNumber} />
+                  <Field label={tStudent('class', 'Class')} value={s.class?.name} />
+                  <Field label={tStudent('year', 'Year')} value={String(s.academicYear)} />
+                  {s.dateOfBirth && <Field label={tStudent('dateOfBirth', 'Date of Birth')} value={new Date(s.dateOfBirth).toLocaleDateString(dateLocale)} />}
+                  {s.gender && <Field label={tStudent('gender', 'Gender')} value={genderLabels[s.gender] ?? s.gender} />}
                 </div>
               </div>
 
               {profile && (
                 <div className="ui-surface p-5">
                   <p className="text-xs font-semibold uppercase tracking-wider ui-text-secondary mb-3">
-                    {t('Learning Profile')}
+                    {tStudent('learningProfile', 'Learning Profile')}
                   </p>
                   <div className="grid gap-3 sm:grid-cols-3">
                     <div className="rounded-2xl border border-(--border-subtle) p-4">
-                      <p className="text-[11px] ui-text-secondary">{t('Term Average')}</p>
+                      <p className="text-[11px] ui-text-secondary">{tStudent('termAverage', 'Term Average')}</p>
                       <p className="mt-2 text-2xl font-semibold ui-text-primary">{profile.termAverage}%</p>
                       <p className="text-[11px] ui-text-secondary mt-2">{profile.termName}</p>
                     </div>
                     <div className="rounded-2xl border border-(--border-subtle) p-4">
-                      <p className="text-[11px] ui-text-secondary">{t('Pass Rate')}</p>
+                      <p className="text-[11px] ui-text-secondary">{tStudent('passRate', 'Pass Rate')}</p>
                       <p className="mt-2 text-2xl font-semibold ui-text-primary">{profile.overallPassRate}%</p>
-                      <p className="text-[11px] ui-text-secondary mt-2">{t('Based on current subjects')}</p>
+                      <p className="text-[11px] ui-text-secondary mt-2">{tStudent('basedOnCurrentSubjects', 'Based on current subjects')}</p>
                     </div>
                     <div className="rounded-2xl border border-(--border-subtle) p-4">
-                      <p className="text-[11px] ui-text-secondary">{t('Focus')}</p>
+                      <p className="text-[11px] ui-text-secondary">{tStudent('focus', 'Focus')}</p>
                       <p className="mt-2 text-sm ui-text-primary">
-                        {topWeakSubject ? t('Support in') + ` ${topWeakSubject.subjectName}` : t('No weak subject')}</p>
-                      <p className="text-[11px] ui-text-secondary mt-2">{topStrongSubject ? t('Strong in') + ` ${topStrongSubject.subjectName}` : t('No strong subject yet')}</p>
+                        {topWeakSubject
+                          ? `${tStudent('supportIn', 'Support in')} ${topWeakSubject.subjectName}`
+                          : tStudent('noWeakSubject', 'No weak subject')}
+                      </p>
+                      <p className="text-[11px] ui-text-secondary mt-2">
+                        {topStrongSubject
+                          ? `${tStudent('strongIn', 'Strong in')} ${topStrongSubject.subjectName}`
+                          : tStudent('noStrongSubjectYet', 'No strong subject yet')}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -311,11 +313,15 @@ export default function StudentDashboardPage() {
               {/* Attendance */}
               <div className="ui-surface p-5">
                 <p className="text-xs font-semibold uppercase tracking-wider ui-text-secondary mb-3">
-                  {t('Attendance')}
+                  {tStudent('attendance', 'Attendance')}
                 </p>
                 {restrictedFeaturesBlocked ? (
                   <div className="rounded-xl border px-4 py-5 text-sm text-amber-700" style={{ borderColor: '#fcd34d', background: '#fffbeb' }}>
-                    {session.user.paymentAccessReason || 'Attendance is unavailable until the school records license coverage for this student.'}
+                    {session.user.paymentAccessReason ||
+                      tStudent(
+                        'attendanceLocked',
+                        'Attendance is unavailable until the school records license coverage for this student.'
+                      )}
                   </div>
                 ) : (
                   <>
@@ -331,28 +337,28 @@ export default function StudentDashboardPage() {
                             <span className="mt-2 text-[10px] ui-text-secondary">{formatDate(record.date)}</span>
                             <span
                               className={`mt-2 h-3 w-3 rounded-full ${statusDotStyles[record.status] || 'bg-slate-500'}`}
-                              title={t(statusTextLabels[record.status] || record.status)}
+                              title={statusTextLabels[record.status] || record.status}
                             />
                           </div>
                         ))
                       ) : (
                         <div className="w-full rounded-xl border px-4 py-5 text-center text-sm ui-text-secondary" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}>
-                          {t('No attendance records yet')}
+                          {tStudent('noAttendanceRecordsYet', 'No attendance records yet')}
                         </div>
                       )}
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <span className="rounded-lg border border-(--border-subtle) bg-green-50 px-3 py-1.5 text-center">
                         <span className="block text-base font-bold text-green-700">{s.attendanceSummary.present}</span>
-                        <span className="text-[10px] text-green-600">{t('Present')}</span>
+                        <span className="text-[10px] text-green-600">{tStudent('present', 'Present')}</span>
                       </span>
                       <span className="rounded-lg border border-(--border-subtle) bg-red-50 px-3 py-1.5 text-center">
                         <span className="block text-base font-bold text-red-700">{s.attendanceSummary.absent}</span>
-                        <span className="text-[10px] text-red-600">{t('Absent')}</span>
+                        <span className="text-[10px] text-red-600">{tStudent('absent', 'Absent')}</span>
                       </span>
                       <span className="rounded-lg border border-(--border-subtle) px-3 py-1.5 text-center" style={{ background: 'var(--surface-soft)' }}>
                         <span className="block text-base font-bold" style={{ color: 'var(--accent)' }}>{s.attendanceSummary.rate}%</span>
-                        <span className="text-[10px] ui-text-secondary">{t('Rate')}</span>
+                        <span className="text-[10px] ui-text-secondary">{tStudent('rate', 'Rate')}</span>
                       </span>
                     </div>
                   </>
@@ -363,11 +369,11 @@ export default function StudentDashboardPage() {
               {s.parent && (
                 <div className="ui-surface p-5">
                   <p className="text-xs font-semibold uppercase tracking-wider ui-text-secondary mb-3">
-                    {t('Parent / Guardian')}
+                    {tStudent('parentGuardian', 'Parent / Guardian')}
                   </p>
                   <div className="space-y-2">
-                    <Field label={t('Name')} value={`${s.parent.firstName} ${s.parent.lastName}`} />
-                    <Field label={t('Email')} value={s.parent.email} />
+                    <Field label={tStudent('name', 'Name')} value={`${s.parent.firstName} ${s.parent.lastName}`} />
+                    <Field label={tStudent('email', 'Email')} value={s.parent.email} />
                   </div>
                 </div>
               )}
@@ -376,7 +382,7 @@ export default function StudentDashboardPage() {
               {s.class?.subjectAssignments && s.class.subjectAssignments.length > 0 && (
                 <div className="ui-surface p-5">
                   <p className="text-xs font-semibold uppercase tracking-wider ui-text-secondary mb-3">
-                    {t('Subjects')}
+                    {tStudent('subjects', 'Subjects')}
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {s.class.subjectAssignments.map(cs => (
@@ -397,7 +403,7 @@ export default function StudentDashboardPage() {
             <div className="ui-surface p-5 flex flex-col gap-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm font-semibold ui-text-primary">{t('Assessment Results')}</p>
+                  <p className="text-sm font-semibold ui-text-primary">{tStudent('assessmentResults', 'Assessment Results')}</p>
                   {!restrictedFeaturesBlocked && avgScore !== null && (
                     <p className="text-xs ui-text-secondary mt-0.5">
                       <span className="font-semibold" style={{ color: 'var(--accent)' }}>{averageSummaryText}</span>
@@ -427,17 +433,21 @@ export default function StudentDashboardPage() {
 
               {restrictedFeaturesBlocked ? (
                 <div className="rounded-xl border px-4 py-5 text-sm text-amber-700" style={{ borderColor: '#fcd34d', background: '#fffbeb' }}>
-                  {session.user.paymentAccessReason || 'Assessment results are unavailable until the school records license coverage for this student.'}
+                  {session.user.paymentAccessReason ||
+                    tStudent(
+                      'resultsLocked',
+                      'Assessment results are unavailable until the school records license coverage for this student.'
+                    )}
                 </div>
               ) : results.length === 0 ? (
-                <p className="py-8 text-center text-sm ui-text-secondary">{t('No assessments yet.')}</p>
+                <p className="py-8 text-center text-sm ui-text-secondary">
+                  {tStudent('noAssessmentsYet', 'No assessments yet.')}
+                </p>
               ) : filteredResults.length === 0 ? (
                 <p className="py-8 text-center text-sm ui-text-secondary">
-                  {isFr
-                    ? `Aucune evaluation de type ${(filterButtonLabels[typeFilter] ?? typeFilter).toLowerCase()}.`
-                    : isSw
-                    ? `Hakuna tathmini ya aina ya ${(filterButtonLabels[typeFilter] ?? typeFilter).toLowerCase()}.`
-                    : `No ${filterButtonLabels[typeFilter] ?? typeFilter} assessments yet.`}
+                  {tStudent('noFilterAssessments', 'No {type} assessments yet.', {
+                    type: filterButtonLabels[typeFilter] ?? typeFilter,
+                  })}
                 </p>
               ) : (
                 <>
@@ -473,7 +483,7 @@ export default function StudentDashboardPage() {
                                 <span className="ml-1 text-[11px] font-normal ui-text-secondary">({pct}%)</span>
                               </>
                             ) : (
-                              <span className="text-xs font-medium ui-text-secondary">{t('Pending')}</span>
+                              <span className="text-xs font-medium ui-text-secondary">{tStudent('pending', 'Pending')}</span>
                             )}
                           </div>
                         </div>
@@ -487,16 +497,16 @@ export default function StudentDashboardPage() {
                       <thead>
                         <tr className="border-b border-(--border-subtle)" style={{ background: 'var(--surface-soft)' }}>
                           <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">
-                            {t('Assessment')}
+                            {tStudent('assessment', 'Assessment')}
                           </th>
                           <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">
-                            {t('Subject')}
+                            {tStudent('subject', 'Subject')}
                           </th>
                           <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">
-                            {t('Type')}
+                            {tStudent('type', 'Type')}
                           </th>
                           <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">
-                            {t('Score')}
+                            {tStudent('score', 'Score')}
                           </th>
                         </tr>
                       </thead>
@@ -535,7 +545,7 @@ export default function StudentDashboardPage() {
                                   </span>
                                 ) : (
                                   <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500">
-                                    {t('Pending')}
+                                    {tStudent('pending', 'Pending')}
                                   </span>
                                 )}
                               </td>

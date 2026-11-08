@@ -64,12 +64,16 @@ export default function StudentFeesPaymentPage() {
       try {
         const res = await fetch('/api/student/fees/invoices')
         if (!res.ok) {
-          throw new Error('Failed to load invoices')
+          throw new Error(tStudent('failedLoadInvoices', 'Failed to load invoices'))
         }
         const data = await res.json()
         setInvoices(Array.isArray(data.invoices) ? data.invoices : [])
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load invoices')
+        setError(
+          err instanceof Error
+            ? err.message
+            : tStudent('failedLoadInvoices', 'Failed to load invoices')
+        )
       } finally {
         setLoading(false)
       }
@@ -78,7 +82,7 @@ export default function StudentFeesPaymentPage() {
     if (session?.user) {
       fetchInvoices()
     }
-  }, [session])
+  }, [session, tStudent])
 
   const handlePayNow = async (invoiceId: string) => {
     setPayingInvoice(invoiceId)
@@ -88,7 +92,11 @@ export default function StudentFeesPaymentPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        alert(`Payment Error: ${data.error || 'Failed to initiate payment'}`)
+        alert(
+          tStudent('paymentError', 'Payment Error: {error}', {
+            error: data.error || tStudent('failedInitiatePayment', 'Failed to initiate payment. Please try again.'),
+          })
+        )
         setPayingInvoice(null)
         return
       }
@@ -96,7 +104,7 @@ export default function StudentFeesPaymentPage() {
         window.location.href = data.url
       }
     } catch {
-      alert('Failed to initiate payment. Please try again.')
+      alert(tStudent('failedInitiatePayment', 'Failed to initiate payment. Please try again.'))
       setPayingInvoice(null)
     }
   }
@@ -122,7 +130,7 @@ export default function StudentFeesPaymentPage() {
   return (
     <DashboardLayout
       user={{
-        name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || 'Student',
+        name: `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || tStudent('studentRole', 'Student'),
         role: 'Student',
         email: session.user.email,
       }}

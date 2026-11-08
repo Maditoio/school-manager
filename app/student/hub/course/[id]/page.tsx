@@ -7,6 +7,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/Button'
 import { MaterialIcon } from '@/components/ui/MaterialIcon'
 import { STUDENT_NAV_ITEMS } from '@/lib/admin-nav'
+import { useStudentUi } from '@/lib/use-student-ui'
 
 function formatUSD(amount: number): string {
   return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -55,6 +56,7 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
   const { data: session, status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { tStudent } = useStudentUi()
 
   const [course, setCourse] = useState<CourseDetail | null>(null)
   const [enrollment, setEnrollment] = useState<{ paid: boolean } | null>(null)
@@ -272,19 +274,27 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
         {/* Back */}
         <div className="flex items-center gap-3 mb-4">
           <Button variant="ghost" size="sm" onClick={() => router.push('/student/hub')}>
-            <span className="inline-flex items-center gap-1.5"><MaterialIcon name="arrow_back" className="text-[18px]" /> Hub</span>
+            <span className="inline-flex items-center gap-1.5">
+              <MaterialIcon name="arrow_back" className="text-[18px]" /> {tStudent('hubShort', 'Hub')}
+            </span>
           </Button>
           <Button variant="ghost" size="sm" onClick={() => router.push('/student/hub/my-courses')}>
-            <span className="inline-flex items-center gap-1.5"><MaterialIcon name="library_books" className="text-[18px]" /> My Courses</span>
+            <span className="inline-flex items-center gap-1.5">
+              <MaterialIcon name="library_books" className="text-[18px]" /> {tStudent('myCourses', 'My Courses')}
+            </span>
           </Button>
         </div>
 
         {loading ? (
-          <div className="text-center py-16 ui-text-secondary text-sm">Loading course…</div>
+          <div className="text-center py-16 ui-text-secondary text-sm">
+            {tStudent('loadingCourse', 'Loading course…')}
+          </div>
         ) : !featureEnabled ? (
           <div className="text-center py-16 ui-text-secondary">
             <div className="mb-3"><MaterialIcon name="block" className="text-6xl" /></div>
-            <p className="font-medium ui-text-primary">Course feature unavailable</p>
+            <p className="font-medium ui-text-primary">
+              {tStudent('courseFeatureUnavailable', 'Course feature unavailable')}
+            </p>
             <p className="text-sm mt-1">{featureMessage}</p>
           </div>
         ) : !course ? null : (
@@ -308,15 +318,19 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                     {!enrollment ? (
                       <>
                         <MaterialIcon name="lock" className="text-6xl" />
-                        <p className="text-sm">Enroll to access this course</p>
+                        <p className="text-sm">{tStudent('enrollToAccess', 'Enroll to access this course')}</p>
                         <Button onClick={handleEnroll} isLoading={enrolling}>
-                          {course.price === 0 ? 'Enroll Free' : 'Subscribe'}
+                          {course.price === 0
+                            ? tStudent('enrollFree', 'Enroll Free')
+                            : tStudent('subscribe', 'Subscribe')}
                         </Button>
                       </>
                     ) : !hasFullAccess && !activeLesson?.isFreePreview ? (
                       <>
                         <MaterialIcon name="credit_card" className="text-6xl" />
-                        <p className="text-sm">Full access required for this lesson</p>
+                        <p className="text-sm">
+                          {tStudent('fullAccessRequired', 'Full access required for this lesson')}
+                        </p>
                         <p className="text-xs opacity-70">Contact your teacher or admin to unlock</p>
                       </>
                     ) : (

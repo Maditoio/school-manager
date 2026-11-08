@@ -7,6 +7,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/Button'
 import { MaterialIcon } from '@/components/ui/MaterialIcon'
 import { STUDENT_NAV_ITEMS } from '@/lib/admin-nav'
+import { useStudentUi } from '@/lib/use-student-ui'
 
 interface BrowseCourse {
   id: string
@@ -42,13 +43,16 @@ function formatUSD(amount: number): string {
 export default function StudentHubPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const { tStudent } = useStudentUi()
 
   const [courses, setCourses] = useState<BrowseCourse[]>([])
   const [loading, setLoading] = useState(true)
   const [enrolling, setEnrolling] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [featureEnabled, setFeatureEnabled] = useState(true)
-  const [featureMessage, setFeatureMessage] = useState('Video courses are currently unavailable for your school.')
+  const [featureMessage, setFeatureMessage] = useState(
+    'Video courses are currently unavailable for your school.'
+  )
 
   useEffect(() => {
     if (status === 'unauthenticated') redirect('/login')
@@ -121,57 +125,62 @@ export default function StudentHubPage() {
       navItems={STUDENT_NAV_ITEMS}
     >
       <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold ui-text-primary">Student Hub</h1>
-            <p className="text-sm ui-text-secondary mt-0.5">Browse and learn from courses created by your teachers</p>
+            <h1 className="text-xl font-bold ui-text-primary">{tStudent('hubTitle', 'Student Hub')}</h1>
+            <p className="text-sm ui-text-secondary mt-0.5">
+              {tStudent('hubSubtitle', 'Browse and learn from courses created by your teachers')}
+            </p>
           </div>
           <Button variant="secondary" size="sm" onClick={() => router.push('/student/hub/my-courses')}>
             <span className="inline-flex items-center gap-1.5">
               <MaterialIcon name="library_books" className="text-[18px]" />
-              My Courses
+              {tStudent('myCourses', 'My Courses')}
             </span>
           </Button>
         </div>
 
-        {/* Search */}
         {featureEnabled && (
           <input
             type="text"
             className="ui-input"
-            placeholder="Search courses…"
+            placeholder={tStudent('searchCourses', 'Search courses…')}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         )}
 
-        {/* Course Grid */}
         {loading ? (
-          <div className="text-center py-12 ui-text-secondary text-sm">Loading courses…</div>
+          <div className="text-center py-12 ui-text-secondary text-sm">
+            {tStudent('loadingCourses', 'Loading courses…')}
+          </div>
         ) : !featureEnabled ? (
           <div className="text-center py-16 ui-text-secondary">
             <div className="mb-3"><MaterialIcon name="block" className="text-6xl" /></div>
-            <p className="font-medium ui-text-primary">Course feature unavailable</p>
+            <p className="font-medium ui-text-primary">
+              {tStudent('courseFeatureUnavailable', 'Course feature unavailable')}
+            </p>
             <p className="text-sm mt-1">{featureMessage}</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 ui-text-secondary">
             <div className="mb-3"><MaterialIcon name="play_circle" className="text-6xl" /></div>
-            <p className="font-medium ui-text-primary">No new courses available</p>
-            <p className="text-sm mt-1">Enrolled courses move to My Courses automatically</p>
+            <p className="font-medium ui-text-primary">{tStudent('noNewCourses', 'No new courses available')}</p>
+            <p className="text-sm mt-1">
+              {tStudent('enrolledMoveNote', 'Enrolled courses move to My Courses automatically')}
+            </p>
           </div>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map(course => {
               const avg = avgRating(course.ratings)
               const teacherName =
-                [course.teacher.firstName, course.teacher.lastName].filter(Boolean).join(' ') || 'Instructor'
+                [course.teacher.firstName, course.teacher.lastName].filter(Boolean).join(' ') ||
+                tStudent('instructor', 'Instructor')
               const freeLessons = course.lessons.filter(l => l.isFreePreview).length
 
               return (
                 <div key={course.id} className="ui-surface flex flex-col overflow-hidden rounded-xl border ui-border">
-                  {/* Thumbnail */}
                   <div className="h-40 bg-linear-to-br from-(--accent-soft) to-(--surface-soft) relative shrink-0">
                     {course.thumbnailUrl ? (
                       <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
@@ -182,18 +191,17 @@ export default function StudentHubPage() {
                     )}
                     {course.price === 0 && (
                       <span className="absolute top-2 right-2 text-xs font-bold bg-emerald-500 text-white px-2 py-0.5 rounded-full">
-                        Free
+                        {tStudent('free', 'Free')}
                       </span>
                     )}
                     {course.allSchools && (
                       <span className="absolute top-2 left-2 text-xs font-bold bg-blue-600 text-white px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                         <MaterialIcon name="public" className="text-[14px]" />
-                        All Schools
+                        {tStudent('allSchools', 'All Schools')}
                       </span>
                     )}
                   </div>
 
-                  {/* Content */}
                   <div className="p-4 flex flex-col flex-1 gap-2">
                     <div>
                       <h3 className="font-semibold ui-text-primary leading-tight line-clamp-2">{course.title}</h3>
@@ -206,10 +214,24 @@ export default function StudentHubPage() {
                       <p className="text-xs ui-text-secondary line-clamp-2 flex-1">{course.description}</p>
                     )}
                     <div className="flex flex-wrap gap-2 text-xs ui-text-secondary">
-                      <span className="inline-flex items-center gap-1"><MaterialIcon name="video_library" className="text-[14px]" /> {course.lessons.length} lessons</span>
-                      {course.totalDuration > 0 && <span className="inline-flex items-center gap-1"><MaterialIcon name="schedule" className="text-[14px]" /> {formatDuration(course.totalDuration)}</span>}
-                      {freeLessons > 0 && <span className="inline-flex items-center gap-1"><MaterialIcon name="lock_open" className="text-[14px]" /> {freeLessons} free</span>}
-                      <span className="inline-flex items-center gap-1"><MaterialIcon name="group" className="text-[14px]" /> {course._count.enrollments}</span>
+                      <span className="inline-flex items-center gap-1">
+                        <MaterialIcon name="video_library" className="text-[14px]" />{' '}
+                        {tStudent('lessonsCount', '{count} lessons', { count: course.lessons.length })}
+                      </span>
+                      {course.totalDuration > 0 && (
+                        <span className="inline-flex items-center gap-1">
+                          <MaterialIcon name="schedule" className="text-[14px]" /> {formatDuration(course.totalDuration)}
+                        </span>
+                      )}
+                      {freeLessons > 0 && (
+                        <span className="inline-flex items-center gap-1">
+                          <MaterialIcon name="lock_open" className="text-[14px]" />{' '}
+                          {tStudent('freeCount', '{count} free', { count: freeLessons })}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1">
+                        <MaterialIcon name="group" className="text-[14px]" /> {course._count.enrollments}
+                      </span>
                     </div>
                     {avg && (
                       <span className="text-xs inline-flex items-center gap-1">
@@ -228,18 +250,20 @@ export default function StudentHubPage() {
                     )}
                     <div className="flex items-center justify-between pt-1 mt-auto">
                       <span className="font-bold ui-text-primary">
-                        {course.price === 0 ? 'Free' : formatUSD(course.price)}
+                        {course.price === 0 ? tStudent('free', 'Free') : formatUSD(course.price)}
                       </span>
                       <div className="flex gap-2">
                         <Button size="sm" variant="ghost" onClick={() => router.push(`/student/hub/course/${course.id}`)}>
-                          Preview
+                          {tStudent('preview', 'Preview')}
                         </Button>
                         <Button
                           size="sm"
                           onClick={() => handleEnroll(course.id, course.price)}
                           isLoading={enrolling === course.id}
                         >
-                          {course.price === 0 ? 'Enroll Free' : 'Subscribe'}
+                          {course.price === 0
+                            ? tStudent('enrollFree', 'Enroll Free')
+                            : tStudent('subscribe', 'Subscribe')}
                         </Button>
                       </div>
                     </div>
