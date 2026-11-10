@@ -7,6 +7,9 @@ import { isMissingVideoCoursesEnabledColumn } from '@/lib/video-courses-feature'
 import { UserRole } from '@prisma/client'
 import { hash } from "bcryptjs"
 
+/** Temporary password for school admin accounts; must change on first login. */
+const DEFAULT_USER_PASSWORD = 'default12345'
+
 // GET /api/schools - List all schools (Super Admin only)
 export async function GET() {
   try {
@@ -114,7 +117,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, plan, adminPassword, adminFirstName, adminLastName } = validation.data
+    const { name, plan, adminFirstName, adminLastName } = validation.data
     const normalizedAdminEmail = validation.data.adminEmail.trim().toLowerCase()
     const billingYear = validation.data.billingYear ?? new Date().getFullYear()
     const enabledModules = Array.isArray(validation.data.enabledModules)
@@ -138,8 +141,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Hash password
-    const hashedPassword = await hash(adminPassword, 12)
+    // Always use the fixed temporary password (ignore any client-supplied adminPassword)
+    const hashedPassword = await hash(DEFAULT_USER_PASSWORD, 12)
 
     const currentAcademicYear = new Date().getFullYear()
 
@@ -174,6 +177,7 @@ export async function POST(request: NextRequest) {
           firstName: adminFirstName,
           lastName: adminLastName,
           role: UserRole.SCHOOL_ADMIN,
+          mustResetPassword: true,
         },
       },
       classes: {

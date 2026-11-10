@@ -13,6 +13,8 @@ import frMessages from '@/messages/fr.json'
 import swMessages from '@/messages/sw.json'
 import { useLocale } from '@/lib/locale-context'
 
+const DEFAULT_USER_PASSWORD = 'default12345'
+
 interface School {
   id: string
   name: string
@@ -81,7 +83,7 @@ export default function SchoolsPage() {
     code: '',
     plan: 'BASIC',
     adminEmail: '',
-    adminPassword: '',
+    adminPassword: DEFAULT_USER_PASSWORD,
     adminFirstName: '',
     adminLastName: '',
     onboardingFee: '0',
@@ -129,7 +131,7 @@ export default function SchoolsPage() {
       code: '',
       plan: 'BASIC',
       adminEmail: '',
-      adminPassword: '',
+      adminPassword: DEFAULT_USER_PASSWORD,
       adminFirstName: '',
       adminLastName: '',
       onboardingFee: '0',
@@ -221,7 +223,7 @@ export default function SchoolsPage() {
       code: school.code ?? '',
       plan: (school.plan || school.subscriptionPlan || 'BASIC') as 'BASIC' | 'STANDARD' | 'PREMIUM',
       adminEmail: '',
-      adminPassword: '',
+      adminPassword: DEFAULT_USER_PASSWORD,
       adminFirstName: '',
       adminLastName: '',
       onboardingFee: String(school.schoolBilling?.onboardingFee ?? 0),
@@ -533,7 +535,17 @@ export default function SchoolsPage() {
                     <Input label="Admin First Name" value={formData.adminFirstName} onChange={(e) => setFormData({ ...formData, adminFirstName: e.target.value })} required />
                     <Input label="Admin Last Name" value={formData.adminLastName} onChange={(e) => setFormData({ ...formData, adminLastName: e.target.value })} required />
                     <Input label="Admin Email" type="email" value={formData.adminEmail} onChange={(e) => setFormData({ ...formData, adminEmail: e.target.value })} required />
-                    <Input label="Admin Password" type="password" value={formData.adminPassword} onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })} required />
+                    <Input
+                      label="Admin Password"
+                      type="text"
+                      value={DEFAULT_USER_PASSWORD}
+                      readOnly
+                      disabled
+                      autoComplete="off"
+                    />
+                    <p className="text-xs ui-text-secondary">
+                      Default password — the admin must change it on first login.
+                    </p>
                   </div>
                 )}
 

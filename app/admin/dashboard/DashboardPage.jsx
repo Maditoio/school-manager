@@ -81,6 +81,7 @@ export default function DashboardPage({ user }) {
       try {
         const response = await fetch('/api/dashboard/stats?refresh=1', { cache: 'no-store' })
         if (!response.ok) {
+          console.error('Dashboard stats request failed:', response.status)
           setAcademicLoaded(true)
           setStatsLoaded(true)
           return
@@ -88,6 +89,12 @@ export default function DashboardPage({ user }) {
 
         const stats = await response.json()
         if (!active) return
+        if (stats?.error) {
+          console.error('Dashboard stats payload error:', stats.error)
+          setAcademicLoaded(true)
+          setStatsLoaded(true)
+          return
+        }
 
         setDashboardState((prev) => ({
           ...prev,
@@ -387,7 +394,7 @@ export default function DashboardPage({ user }) {
 
   return (
     <DashboardLayout user={user} navItems={navItems}>
-      <div className="min-h-full" style={{ background: '#0b0d14' }}>
+      <div className="admin-dashboard-dark min-h-full" style={{ background: '#0b0d14' }}>
         <div className="mx-auto max-w-[1680px] space-y-8 p-2 md:p-4 lg:p-6">
           <header>
             <h1 className="text-3xl font-bold text-slate-100">{translateText('Good morning', locale)}, {greetingName} 👋</h1>

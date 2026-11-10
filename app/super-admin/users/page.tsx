@@ -13,6 +13,8 @@ import frMessages from '@/messages/fr.json'
 import swMessages from '@/messages/sw.json'
 import { useLocale } from '@/lib/locale-context'
 
+const DEFAULT_USER_PASSWORD = 'default12345'
+
 interface School {
   id: string
   name: string
@@ -162,11 +164,6 @@ export default function SuperAdminUsersPage() {
       return
     }
 
-    if (!editingUser && !formData.password) {
-      showToast('Password is required when creating a user', 'warning')
-      return
-    }
-
     try {
       setSaving(true)
 
@@ -200,7 +197,7 @@ export default function SuperAdminUsersPage() {
             email: formData.email,
             role: formData.role,
             schoolId: formData.schoolId,
-            password: formData.password,
+            // Server forces DEFAULT_USER_PASSWORD; password field is display-only on create
           }),
         })
 
@@ -521,14 +518,29 @@ export default function SuperAdminUsersPage() {
                   </Select>
                 </div>
 
-                <Input
-                  label={editingUser ? `${t('teachers.management.password')} (${t('generic.optional')})` : t('teachers.management.password')}
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required={!editingUser}
-                  placeholder={editingUser ? t('teachers.management.placeholderPassword') : t('school.schools.passwordMinimum6')}
-                />
+                {editingUser ? (
+                  <Input
+                    label={`${t('teachers.management.password')} (${t('generic.optional')})`}
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder={t('teachers.management.placeholderPassword')}
+                  />
+                ) : (
+                  <>
+                    <Input
+                      label={t('teachers.management.password')}
+                      type="text"
+                      value={DEFAULT_USER_PASSWORD}
+                      readOnly
+                      disabled
+                      autoComplete="off"
+                    />
+                    <p className="text-xs ui-text-secondary">
+                      Default password — the user must change it on first login.
+                    </p>
+                  </>
+                )}
 
                 <div className="flex gap-2 justify-end pt-2">
                   <Button

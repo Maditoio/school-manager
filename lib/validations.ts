@@ -50,7 +50,8 @@ export const createSchoolSchema = z.object({
     .or(z.literal('')),
   plan: z.enum(['BASIC', 'STANDARD', 'PREMIUM']).default('BASIC'),
   adminEmail: z.string().email('Invalid email address'),
-  adminPassword: z.string().min(6, 'Password must be at least 6 characters'),
+  // Ignored server-side — school admin always gets DEFAULT_USER_PASSWORD
+  adminPassword: z.string().optional().or(z.literal('')),
   adminFirstName: z.string().min(1, 'First name is required'),
   adminLastName: z.string().min(1, 'Last name is required'),
   onboardingFee: z.coerce.number().min(0).optional(),

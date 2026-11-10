@@ -9,6 +9,7 @@ export async function middleware(request: NextRequest) {
   // Exact '/' only — startsWith('/') would match every path and skip auth/reset checks.
   const publicRoutes = [
     '/login',
+    '/forgot-password',
     '/reset-password',
     '/manifest.json',
     '/sw.js',

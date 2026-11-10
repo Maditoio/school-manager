@@ -1187,235 +1187,249 @@ export async function GET(request: NextRequest) {
       }
 
       // --- School Pulse trends -------------------------------------------------
-      // Attendance / teacher absence: last 7 weekdays (Mon–Fri school-day proxy).
-      // Enrollments / fees / academics: weeks inside the current term.
-      const todayForPulse = toUtcDayStart(new Date())
-      const weekdayWindow = lastNWeekdays(todayForPulse, 7)
-      const weekdayRangeStart = weekdayWindow[0]
-      const weekdayRangeEndExclusive = new Date(weekdayWindow[weekdayWindow.length - 1])
-      weekdayRangeEndExclusive.setUTCDate(weekdayRangeEndExclusive.getUTCDate() + 1)
+      // Never let sparkline queries wipe out live KPI counts: fall back to flat series.
+      try {
+        const [subjectCountEarly, assignedSubjectGroupsEarly] = await Promise.all([
+          prisma.subject.count({ where: { schoolId } }),
+          prisma.classSubjectTeacher.groupBy({
+            by: ['subjectId'],
+            where: { schoolId },
+          }),
+        ])
+        unassignedSubjectsCount = Math.max(0, subjectCountEarly - assignedSubjectGroupsEarly.length)
+      } catch (earlyUnassignedError) {
+        console.error('Failed to compute unassigned subjects for School Pulse:', earlyUnassignedError)
+      }
 
+      const todayForPulse = toUtcDayStart(new Date())
       const termWeeksForPulse = currentTerm
         ? currentTermWeekCount(currentTerm.startDate, currentTerm.endDate, todayForPulse)
         : 7
+      const fallbackLen = Math.max(1, termWeeksForPulse)
 
-      const [
-        absentRowsGrouped,
-        teacherOffDaysInWindow,
-        studentCreatedRows,
-        teacherCreatedRows,
-        subjectCountForPulse,
-        assignedSubjectGroups,
-        pulsePassSettings,
-        currentTermAcademicRows,
-        feePaymentsForPulse,
-      ] = await Promise.all([
-        prisma.attendance.groupBy({
-          by: ['date'],
-          where: {
-            schoolId,
-            status: 'ABSENT',
-            date: {
-              gte: weekdayRangeStart,
-              lt: weekdayRangeEndExclusive,
-            },
-          },
-          _count: { _all: true },
-        }),
-        prisma.teacher_off_days.findMany({
-          where: {
-            school_id: schoolId,
-            start_date: { lte: weekdayRangeEndExclusive },
-            end_date: { gte: weekdayRangeStart },
-          },
-          select: {
-            teacher_id: true,
-            start_date: true,
-            end_date: true,
-          },
-        }),
-        currentTerm
-          ? prisma.student.findMany({
-              where: {
-                schoolId,
-                createdAt: {
-                  // Include pre-term enrollments so cumulative headcount is meaningful
-                  lte: new Date(
-                    Date.UTC(
-                      todayForPulse.getUTCFullYear(),
-                      todayForPulse.getUTCMonth(),
-                      todayForPulse.getUTCDate(),
-                      23,
-                      59,
-                      59,
-                      999
-                    )
-                  ),
-                },
-              },
-              select: { createdAt: true },
-            })
-          : prisma.student.findMany({
-              where: { schoolId },
-              select: { createdAt: true },
-            }),
-        currentTerm
-          ? prisma.user.findMany({
-              where: {
-                schoolId,
-                role: 'TEACHER',
-                createdAt: {
-                  lte: new Date(
-                    Date.UTC(
-                      todayForPulse.getUTCFullYear(),
-                      todayForPulse.getUTCMonth(),
-                      todayForPulse.getUTCDate(),
-                      23,
-                      59,
-                      59,
-                      999
-                    )
-                  ),
-                },
-              },
-              select: { createdAt: true },
-            })
-          : prisma.user.findMany({
-              where: { schoolId, role: 'TEACHER' },
-              select: { createdAt: true },
-            }),
-        prisma.subject.count({ where: { schoolId } }),
-        prisma.classSubjectTeacher.groupBy({
-          by: ['subjectId'],
-          where: { schoolId },
-        }),
-        prisma.schoolSettings.findUnique({
-          where: { schoolId },
-          select: { minimumPassRatePerSubject: true },
-        }),
-        currentTerm
-          ? getAcademicRowsForTerm({
-              schoolId,
-              termId: currentTerm.id,
-              termName: currentTerm.name,
-              academicYear: currentTerm.academicYear.year,
-            })
-          : Promise.resolve([] as AcademicRow[]),
-        currentTerm && pulseScheduleIds.length > 0 && pulseFeeStudents.length > 0
-          ? prisma.feePayment.findMany({
-              where: {
-                schoolId,
-                scheduleId: { in: pulseScheduleIds },
-                studentId: { in: pulseFeeStudents.map((s) => s.id) },
-              },
-              select: {
-                studentId: true,
-                amountPaid: true,
-                paymentDate: true,
-              },
-            })
-          : Promise.resolve([] as Array<{ studentId: string; amountPaid: number; paymentDate: Date }>),
-      ])
-
-      unassignedSubjectsCount = Math.max(0, subjectCountForPulse - assignedSubjectGroups.length)
-
-      const passMarkPercentForPulse = pulsePassSettings?.minimumPassRatePerSubject ?? 50
-      belowPassMarkCount = countBelowPassStudents(currentTermAcademicRows, passMarkPercentForPulse)
-
-      const absentByDay = new Map<string, number>()
-      for (const row of absentRowsGrouped) {
-        absentByDay.set(toUtcDayStart(new Date(row.date)).toISOString().slice(0, 10), row._count._all)
+      let pulseTrends: PulseTrends = {
+        totalStudents: flatSeries(studentsCount, fallbackLen),
+        newThisTerm: flatSeries(newThisTermCount, fallbackLen),
+        absentToday: flatSeries(absentTodayCount, 7),
+        feeDefaulters: flatSeries(feeDefaultersCount, fallbackLen),
+        belowPassMark: flatSeries(belowPassMarkCount, fallbackLen),
+        totalTeachers: flatSeries(teachersCount, fallbackLen),
+        teachersAbsent: flatSeries(teachersAbsentCount, 7),
+        unassignedSubjects: flatSeries(unassignedSubjectsCount, fallbackLen),
       }
 
-      const absentTodaySeries = bucketCountsByDay(weekdayWindow, absentByDay)
-      const teachersAbsentSeries = teacherAbsentCountsByDay(weekdayWindow, teacherOffDaysInWindow)
+      try {
+        // Attendance / teacher absence: last 7 weekdays (Mon–Fri school-day proxy).
+        // Enrollments / fees / academics: weeks inside the current term.
+        const weekdayWindow = lastNWeekdays(todayForPulse, 7)
+        const weekdayRangeStart = weekdayWindow[0]
+        const weekdayRangeEndExclusive = new Date(weekdayWindow[weekdayWindow.length - 1])
+        weekdayRangeEndExclusive.setUTCDate(weekdayRangeEndExclusive.getUTCDate() + 1)
 
-      let totalStudentsSeries: number[]
-      let newThisTermSeries: number[]
-      let totalTeachersSeries: number[]
-      let feeDefaultersSeries: number[]
-      let belowPassSeries: number[]
-
-      if (currentTerm) {
-        const studentCreatedAts = studentCreatedRows.map((row) => row.createdAt)
-        const teacherCreatedAts = teacherCreatedRows.map((row) => row.createdAt)
-        const termStart = currentTerm.startDate
-
-        // Cumulative headcount at each term-week end (all students created by then)
-        totalStudentsSeries = cumulativeCreatedByWeek(
-          studentCreatedAts,
-          termStart,
-          termWeeksForPulse
-        )
-        // Ensure last point matches live total when possible
-        if (totalStudentsSeries.length > 0) {
-          totalStudentsSeries[totalStudentsSeries.length - 1] = studentsCount
-        }
-
-        newThisTermSeries = createdPerWeek(
-          studentCreatedAts.filter((createdAt) => {
-            const t = new Date(createdAt).getTime()
-            const termStartMs = new Date(currentTerm.startDate).getTime()
-            const termEndExclusiveMs =
-              toUtcDayStart(new Date(currentTerm.endDate)).getTime() + 24 * 60 * 60 * 1000
-            return t >= termStartMs && t < termEndExclusiveMs
-          }),
-          termStart,
-          termWeeksForPulse
-        )
-
-        totalTeachersSeries = cumulativeCreatedByWeek(
-          teacherCreatedAts,
-          termStart,
-          termWeeksForPulse
-        )
-        if (totalTeachersSeries.length > 0) {
-          totalTeachersSeries[totalTeachersSeries.length - 1] = teachersCount
-        }
-
-        feeDefaultersSeries = unpaidStudentsPerWeek({
-          students: pulseFeeStudents,
-          classScheduleAmount: pulseClassScheduleAmount,
-          schoolWideAmount: pulseSchoolWideAmount,
-          payments: feePaymentsForPulse,
-          termStart,
-          weeks: termWeeksForPulse,
-        })
-        if (feeDefaultersSeries.length > 0) {
-          feeDefaultersSeries[feeDefaultersSeries.length - 1] = feeDefaultersCount
-        }
-
-        // Weekly: distinct students with a below-pass score that week (not forced to match
-        // the card value, which uses term-average below pass).
-        belowPassSeries = belowPassStudentsPerWeek(
+        const [
+          absentRowsGrouped,
+          teacherOffDaysInWindow,
+          studentCreatedRows,
+          teacherCreatedRows,
+          subjectCountForPulse,
+          assignedSubjectGroups,
+          pulsePassSettings,
           currentTermAcademicRows,
-          termStart,
-          termWeeksForPulse,
-          passMarkPercentForPulse
+          feePaymentsForPulse,
+        ] = await Promise.all([
+          prisma.attendance.groupBy({
+            by: ['date'],
+            where: {
+              schoolId,
+              status: 'ABSENT',
+              date: {
+                gte: weekdayRangeStart,
+                lt: weekdayRangeEndExclusive,
+              },
+            },
+            _count: { _all: true },
+          }),
+          prisma.teacher_off_days.findMany({
+            where: {
+              school_id: schoolId,
+              start_date: { lte: weekdayRangeEndExclusive },
+              end_date: { gte: weekdayRangeStart },
+            },
+            select: {
+              teacher_id: true,
+              start_date: true,
+              end_date: true,
+            },
+          }),
+          prisma.student.findMany({
+            where: { schoolId },
+            select: { createdAt: true },
+          }),
+          prisma.user.findMany({
+            where: { schoolId, role: 'TEACHER' },
+            select: { createdAt: true },
+          }),
+          prisma.subject.count({ where: { schoolId } }),
+          prisma.classSubjectTeacher.groupBy({
+            by: ['subjectId'],
+            where: { schoolId },
+          }),
+          prisma.schoolSettings.findUnique({
+            where: { schoolId },
+            select: { minimumPassRatePerSubject: true },
+          }),
+          currentTerm
+            ? getAcademicRowsForTerm({
+                schoolId,
+                termId: currentTerm.id,
+                termName: currentTerm.name,
+                academicYear: currentTerm.academicYear.year,
+              })
+            : Promise.resolve([] as AcademicRow[]),
+          currentTerm && pulseScheduleIds.length > 0 && pulseFeeStudents.length > 0
+            ? prisma.feePayment.findMany({
+                where: {
+                  schoolId,
+                  scheduleId: { in: pulseScheduleIds },
+                  studentId: { in: pulseFeeStudents.map((s) => s.id) },
+                },
+                select: {
+                  studentId: true,
+                  amountPaid: true,
+                  paymentDate: true,
+                },
+              })
+            : Promise.resolve(
+                [] as Array<{ studentId: string; amountPaid: number; paymentDate: Date }>
+              ),
+        ])
+
+        unassignedSubjectsCount = Math.max(0, subjectCountForPulse - assignedSubjectGroups.length)
+
+        const passMarkPercentForPulse = pulsePassSettings?.minimumPassRatePerSubject ?? 50
+        belowPassMarkCount = countBelowPassStudents(currentTermAcademicRows, passMarkPercentForPulse)
+
+        const absentByDay = new Map<string, number>()
+        for (const row of absentRowsGrouped) {
+          absentByDay.set(
+            toUtcDayStart(new Date(row.date)).toISOString().slice(0, 10),
+            row._count._all
+          )
+        }
+
+        const absentTodaySeries = bucketCountsByDay(weekdayWindow, absentByDay)
+        const teachersAbsentSeries = teacherAbsentCountsByDay(
+          weekdayWindow,
+          teacherOffDaysInWindow
         )
-      } else {
-        totalStudentsSeries = flatSeries(studentsCount, 7)
-        newThisTermSeries = flatSeries(newThisTermCount, 7)
-        totalTeachersSeries = flatSeries(teachersCount, 7)
-        feeDefaultersSeries = flatSeries(feeDefaultersCount, 7)
-        belowPassSeries = flatSeries(belowPassMarkCount, 7)
-      }
 
-      // No assignment history — keep sparkline flat at the live value (don't invent a curve).
-      const unassignedSubjectsSeries = flatSeries(
-        unassignedSubjectsCount,
-        currentTerm ? termWeeksForPulse : 7
-      )
+        let totalStudentsSeries: number[]
+        let newThisTermSeries: number[]
+        let totalTeachersSeries: number[]
+        let feeDefaultersSeries: number[]
+        let belowPassSeries: number[]
 
-      const pulseTrends: PulseTrends = {
-        totalStudents: totalStudentsSeries,
-        newThisTerm: newThisTermSeries,
-        absentToday: absentTodaySeries,
-        feeDefaulters: feeDefaultersSeries,
-        belowPassMark: belowPassSeries,
-        totalTeachers: totalTeachersSeries,
-        teachersAbsent: teachersAbsentSeries,
-        unassignedSubjects: unassignedSubjectsSeries,
+        if (currentTerm) {
+          const studentCreatedAts = studentCreatedRows.map((row) => row.createdAt)
+          const teacherCreatedAts = teacherCreatedRows.map((row) => row.createdAt)
+          const termStart = currentTerm.startDate
+
+          totalStudentsSeries = cumulativeCreatedByWeek(
+            studentCreatedAts,
+            termStart,
+            termWeeksForPulse
+          )
+          if (totalStudentsSeries.length > 0) {
+            totalStudentsSeries[totalStudentsSeries.length - 1] = studentsCount
+          }
+
+          const termStartMs = new Date(currentTerm.startDate).getTime()
+          const termEndExclusiveMs =
+            toUtcDayStart(new Date(currentTerm.endDate)).getTime() + 24 * 60 * 60 * 1000
+          newThisTermSeries = createdPerWeek(
+            studentCreatedAts.filter((createdAt) => {
+              const t = new Date(createdAt).getTime()
+              return t >= termStartMs && t < termEndExclusiveMs
+            }),
+            termStart,
+            termWeeksForPulse
+          )
+
+          totalTeachersSeries = cumulativeCreatedByWeek(
+            teacherCreatedAts,
+            termStart,
+            termWeeksForPulse
+          )
+          if (totalTeachersSeries.length > 0) {
+            totalTeachersSeries[totalTeachersSeries.length - 1] = teachersCount
+          }
+
+          feeDefaultersSeries = unpaidStudentsPerWeek({
+            students: pulseFeeStudents,
+            classScheduleAmount: pulseClassScheduleAmount,
+            schoolWideAmount: pulseSchoolWideAmount,
+            payments: feePaymentsForPulse,
+            termStart,
+            weeks: termWeeksForPulse,
+          })
+          if (feeDefaultersSeries.length > 0) {
+            feeDefaultersSeries[feeDefaultersSeries.length - 1] = feeDefaultersCount
+          }
+
+          belowPassSeries = belowPassStudentsPerWeek(
+            currentTermAcademicRows,
+            termStart,
+            termWeeksForPulse,
+            passMarkPercentForPulse
+          )
+        } else {
+          totalStudentsSeries = flatSeries(studentsCount, 7)
+          newThisTermSeries = flatSeries(newThisTermCount, 7)
+          totalTeachersSeries = flatSeries(teachersCount, 7)
+          feeDefaultersSeries = flatSeries(feeDefaultersCount, 7)
+          belowPassSeries = flatSeries(belowPassMarkCount, 7)
+        }
+
+        const unassignedSubjectsSeries = flatSeries(
+          unassignedSubjectsCount,
+          currentTerm ? termWeeksForPulse : 7
+        )
+
+        pulseTrends = {
+          totalStudents: totalStudentsSeries,
+          newThisTerm: newThisTermSeries,
+          absentToday: absentTodaySeries,
+          feeDefaulters: feeDefaultersSeries,
+          belowPassMark: belowPassSeries,
+          totalTeachers: totalTeachersSeries,
+          teachersAbsent: teachersAbsentSeries,
+          unassignedSubjects: unassignedSubjectsSeries,
+        }
+      } catch (pulseError) {
+        console.error('School Pulse trends failed; returning live counts with flat sparklines:', pulseError)
+        // Keep live KPI counts; try a cheap unassigned-subjects refresh
+        try {
+          const [subjectCountForPulse, assignedSubjectGroups] = await Promise.all([
+            prisma.subject.count({ where: { schoolId } }),
+            prisma.classSubjectTeacher.groupBy({
+              by: ['subjectId'],
+              where: { schoolId },
+            }),
+          ])
+          unassignedSubjectsCount = Math.max(0, subjectCountForPulse - assignedSubjectGroups.length)
+        } catch {
+          // leave unassignedSubjectsCount as-is
+        }
+        pulseTrends = {
+          totalStudents: flatSeries(studentsCount, fallbackLen),
+          newThisTerm: flatSeries(newThisTermCount, fallbackLen),
+          absentToday: flatSeries(absentTodayCount, 7),
+          feeDefaulters: flatSeries(feeDefaultersCount, fallbackLen),
+          belowPassMark: flatSeries(belowPassMarkCount, fallbackLen),
+          totalTeachers: flatSeries(teachersCount, fallbackLen),
+          teachersAbsent: flatSeries(teachersAbsentCount, 7),
+          unassignedSubjects: flatSeries(unassignedSubjectsCount, fallbackLen),
+        }
       }
 
       const payload: SchoolAdminDashboardStats = {

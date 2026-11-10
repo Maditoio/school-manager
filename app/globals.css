@@ -609,6 +609,75 @@ table.no-table-hover a:hover {
   color: var(--text-secondary) !important;
 }
 
+/*
+ * Admin dashboard uses a fixed dark canvas (#0b0d14) even when the app theme is light.
+ * The remaps above would force dark --text-primary onto slate-100/200 and hide names.
+ * Restore true light-on-dark slate colors inside that surface.
+ */
+.admin-dashboard-dark .text-slate-50,
+.admin-dashboard-dark .text-slate-100,
+.admin-dashboard-dark .text-zinc-100,
+.admin-dashboard-dark .text-gray-100,
+.admin-dashboard-dark .text-neutral-100 {
+  color: #f1f5f9 !important;
+}
+
+.admin-dashboard-dark .text-slate-200,
+.admin-dashboard-dark .text-zinc-200,
+.admin-dashboard-dark .text-gray-200,
+.admin-dashboard-dark .text-neutral-200 {
+  color: #e2e8f0 !important;
+}
+
+.admin-dashboard-dark .text-slate-300,
+.admin-dashboard-dark .text-zinc-300,
+.admin-dashboard-dark .text-gray-300 {
+  color: #cbd5e1 !important;
+}
+
+.admin-dashboard-dark .text-slate-400,
+.admin-dashboard-dark .text-zinc-400,
+.admin-dashboard-dark .text-gray-400,
+.admin-dashboard-dark .text-neutral-400,
+.admin-dashboard-dark .text-stone-400 {
+  color: #94a3b8 !important;
+}
+
+.admin-dashboard-dark .text-slate-500,
+.admin-dashboard-dark .text-zinc-500,
+.admin-dashboard-dark .text-gray-500 {
+  color: #64748b !important;
+}
+
+.admin-dashboard-dark .text-indigo-100,
+.admin-dashboard-dark .text-indigo-200,
+.admin-dashboard-dark .text-indigo-300,
+.admin-dashboard-dark .text-indigo-400 {
+  color: #a5b4fc !important;
+}
+
+.admin-dashboard-dark .hover\:text-indigo-300:hover {
+  color: #c7d2fe !important;
+}
+
+.admin-dashboard-dark .bg-slate-700 {
+  background-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+.admin-dashboard-dark .hover\:text-white:hover {
+  color: #ffffff !important;
+}
+
+.admin-dashboard-dark .hover\:text-slate-100:hover,
+.admin-dashboard-dark .hover\:text-slate-200:hover {
+  color: #f1f5f9 !important;
+}
+
+.admin-dashboard-dark a {
+  color: inherit;
+}
+
 .placeholder\:text-gray-500::placeholder,
 .placeholder\:text-zinc-500::placeholder,
 .placeholder\:text-neutral-500::placeholder,

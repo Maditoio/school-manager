@@ -210,7 +210,7 @@ export default function LoginPage() {
 
                 <div>
                   <label htmlFor="schoolCode" className="block text-sm font-medium text-gray-900 mb-2">
-                    School code <span className="font-normal text-gray-500">(optional for platform admin)</span>
+                    School code
                   </label>
                   <input
                     id="schoolCode"
@@ -228,7 +228,7 @@ export default function LoginPage() {
                     <label htmlFor="password" className="block text-sm font-medium text-gray-900">
                       Password
                     </label>
-                    <Link href="/reset-password" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                    <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
                       Forgot?
                     </Link>
                   </div>
