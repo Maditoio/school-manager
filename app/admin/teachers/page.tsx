@@ -341,7 +341,7 @@ export default function TeachersPage() {
         <div className="rounded-2xl border border-slate-700/60 bg-slate-900 p-5 shadow-lg shadow-black/20 md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{tAdmin('schoolPulse', 'School Pulse')}</p>
+              <p className="mb-2 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-slate-500">{tAdmin('schoolPulse', 'School Pulse')}</p>
               <h1 className="text-3xl font-bold ui-text-primary">{tAdmin('teachersManagement', 'Teachers Management')}</h1>
               <p className="mt-2 text-sm text-slate-400">{tAdmin('manageTeachers', 'Manage all teachers in your school')}</p>
             </div>
@@ -478,7 +478,7 @@ export default function TeachersPage() {
                     <td>{teacher.phone || tAdmin('na', 'N/A')}</td>
                     <td>
                       <span
-                        className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${
+                        className={`inline-flex rounded-full px-2 py-1 text-[0.6875rem] font-semibold ${
                           teacher.availability === 'Away'
                             ? 'bg-rose-100 text-rose-700'
                             : 'bg-emerald-100 text-emerald-700'

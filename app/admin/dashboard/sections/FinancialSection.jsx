@@ -71,7 +71,7 @@ export default function FinancialSection({ data, loading }) {
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-[12px] font-medium uppercase tracking-wide text-slate-400">{translateText(card.label, locale)}</p>
+                    <p className="text-[0.75rem] font-medium uppercase tracking-wide text-slate-400">{translateText(card.label, locale)}</p>
                     <p className="mt-2 text-2xl font-extrabold" style={{ color: card.color }}>{formatCurrency(metric.value)}</p>
                     <p className="mt-1 text-xs text-slate-500">{translateDashboardDynamic(metric.sub, locale)}</p>
                   </div>

@@ -134,7 +134,7 @@ export default function StudentHubPage() {
           </div>
           <Button variant="secondary" size="sm" onClick={() => router.push('/student/hub/my-courses')}>
             <span className="inline-flex items-center gap-1.5">
-              <MaterialIcon name="library_books" className="text-[18px]" />
+              <MaterialIcon name="library_books" className="text-[1.125rem]" />
               {tStudent('myCourses', 'My Courses')}
             </span>
           </Button>
@@ -196,7 +196,7 @@ export default function StudentHubPage() {
                     )}
                     {course.allSchools && (
                       <span className="absolute top-2 left-2 text-xs font-bold bg-blue-600 text-white px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                        <MaterialIcon name="public" className="text-[14px]" />
+                        <MaterialIcon name="public" className="text-[0.875rem]" />
                         {tStudent('allSchools', 'All Schools')}
                       </span>
                     )}
@@ -215,22 +215,22 @@ export default function StudentHubPage() {
                     )}
                     <div className="flex flex-wrap gap-2 text-xs ui-text-secondary">
                       <span className="inline-flex items-center gap-1">
-                        <MaterialIcon name="video_library" className="text-[14px]" />{' '}
+                        <MaterialIcon name="video_library" className="text-[0.875rem]" />{' '}
                         {tStudent('lessonsCount', '{count} lessons', { count: course.lessons.length })}
                       </span>
                       {course.totalDuration > 0 && (
                         <span className="inline-flex items-center gap-1">
-                          <MaterialIcon name="schedule" className="text-[14px]" /> {formatDuration(course.totalDuration)}
+                          <MaterialIcon name="schedule" className="text-[0.875rem]" /> {formatDuration(course.totalDuration)}
                         </span>
                       )}
                       {freeLessons > 0 && (
                         <span className="inline-flex items-center gap-1">
-                          <MaterialIcon name="lock_open" className="text-[14px]" />{' '}
+                          <MaterialIcon name="lock_open" className="text-[0.875rem]" />{' '}
                           {tStudent('freeCount', '{count} free', { count: freeLessons })}
                         </span>
                       )}
                       <span className="inline-flex items-center gap-1">
-                        <MaterialIcon name="group" className="text-[14px]" /> {course._count.enrollments}
+                        <MaterialIcon name="group" className="text-[0.875rem]" /> {course._count.enrollments}
                       </span>
                     </div>
                     {avg && (
@@ -241,7 +241,7 @@ export default function StudentHubPage() {
                               key={i}
                               name="star"
                               filled={i < Math.round(parseFloat(avg))}
-                              className="text-[14px]"
+                              className="text-[0.875rem]"
                             />
                           ))}
                         </span>

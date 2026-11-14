@@ -93,16 +93,16 @@ export default function CalendarSection({ data, loading }) {
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: event.color }} />
                   <div className="w-[62px] shrink-0 rounded-lg border px-2 py-1 text-center" style={{ borderColor: 'var(--dash-border)', background: 'var(--dash-surface)' }}>
                     <p className="text-lg font-extrabold text-slate-100 leading-none">{dt.getDate()}</p>
-                    <p className="text-[10px] uppercase text-slate-500">{dt.toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-KE' : 'en-ZA', { month: 'short' })}</p>
+                    <p className="text-[0.625rem] uppercase text-slate-500">{dt.toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-KE' : 'en-ZA', { month: 'short' })}</p>
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-slate-100">{event.title}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <span className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: `${event.color}20`, color: event.color }}>
+                      <span className="inline-flex rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold" style={{ background: `${event.color}20`, color: event.color }}>
                         {translateText(event.category, locale)}
                       </span>
                       {hasRange ? (
-                        <span className="text-[11px] text-slate-500">
+                        <span className="text-[0.6875rem] text-slate-500">
                           {new Date(event.startDateISO).toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-KE' : 'en-ZA', { month: 'short', day: 'numeric' })}
                           {' - '}
                           {new Date(event.endDateISO).toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-KE' : 'en-ZA', { month: 'short', day: 'numeric' })}
@@ -133,7 +133,7 @@ export default function CalendarSection({ data, loading }) {
           </button>
         </div>
 
-        <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-slate-500 mb-2">
+        <div className="grid grid-cols-7 gap-1 text-center text-[0.6875rem] text-slate-500 mb-2">
           {(locale === 'fr' ? ['Di', 'Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa'] : ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']).map((d) => <div key={d}>{d}</div>)}
         </div>
 

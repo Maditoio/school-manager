@@ -17,6 +17,13 @@ import {
   setUiTheme,
   subscribeUiTheme,
 } from '@/lib/ui-theme'
+import {
+  cycleUiFontScale,
+  getUiFontScaleServerSnapshot,
+  getUiFontScaleSnapshot,
+  setUiFontScale,
+  subscribeUiFontScale,
+} from '@/lib/ui-font-scale'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -53,6 +60,11 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
     subscribeUiTheme,
     getUiThemeSnapshot,
     getUiThemeServerSnapshot
+  )
+  const fontScale = useSyncExternalStore(
+    subscribeUiFontScale,
+    getUiFontScaleSnapshot,
+    getUiFontScaleServerSnapshot
   )
   const [desktopSidebarWidth, setDesktopSidebarWidth] = useState(240)
   const [schoolName, setSchoolName] = useState('School Dashboard')
@@ -157,6 +169,10 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
   const handleThemeToggle = () => {
     const nextTheme = theme === 'light' ? 'dark' : 'light'
     handleThemeChange(nextTheme)
+  }
+
+  const handleFontScaleCycle = () => {
+    setUiFontScale(cycleUiFontScale(fontScale))
   }
 
   const translatedNavItems = useMemo(() => {
@@ -269,6 +285,8 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
             schoolName={displaySchoolName}
             theme={theme}
             onThemeToggle={handleThemeToggle}
+            fontScale={fontScale}
+            onFontScaleCycle={handleFontScaleCycle}
             language={locale}
             onLanguageChange={handleLanguageChange}
           />
@@ -286,6 +304,8 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
             onLogout={handleLogout}
             language={locale}
             onLanguageChange={handleLanguageChange}
+            fontScale={fontScale}
+            onFontScaleCycle={handleFontScaleCycle}
           />
         ) : null}
       </div>

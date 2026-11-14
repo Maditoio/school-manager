@@ -275,12 +275,12 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
         <div className="flex items-center gap-3 mb-4">
           <Button variant="ghost" size="sm" onClick={() => router.push('/student/hub')}>
             <span className="inline-flex items-center gap-1.5">
-              <MaterialIcon name="arrow_back" className="text-[18px]" /> {tStudent('hubShort', 'Hub')}
+              <MaterialIcon name="arrow_back" className="text-[1.125rem]" /> {tStudent('hubShort', 'Hub')}
             </span>
           </Button>
           <Button variant="ghost" size="sm" onClick={() => router.push('/student/hub/my-courses')}>
             <span className="inline-flex items-center gap-1.5">
-              <MaterialIcon name="library_books" className="text-[18px]" /> {tStudent('myCourses', 'My Courses')}
+              <MaterialIcon name="library_books" className="text-[1.125rem]" /> {tStudent('myCourses', 'My Courses')}
             </span>
           </Button>
         </div>
@@ -355,11 +355,11 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                     </div>
                     {(hasFullAccess || activeLesson.isFreePreview) && !lessonProgress(activeLesson.id)?.completed && (
                       <Button size="sm" variant="secondary" onClick={() => handleMarkComplete(activeLesson.id)}>
-                        <span className="inline-flex items-center gap-1"><MaterialIcon name="task_alt" className="text-[14px]" /> Mark Complete</span>
+                        <span className="inline-flex items-center gap-1"><MaterialIcon name="task_alt" className="text-[0.875rem]" /> Mark Complete</span>
                       </Button>
                     )}
                     {lessonProgress(activeLesson.id)?.completed && (
-                      <span className="text-xs text-emerald-600 font-medium shrink-0 inline-flex items-center gap-1"><MaterialIcon name="check_circle" className="text-[14px]" /> Completed</span>
+                      <span className="text-xs text-emerald-600 font-medium shrink-0 inline-flex items-center gap-1"><MaterialIcon name="check_circle" className="text-[0.875rem]" /> Completed</span>
                     )}
                   </div>
 
@@ -393,13 +393,13 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                 <div className="flex flex-wrap gap-2">
                   {enrollment && (
                     <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">
-                      <MaterialIcon name="check_circle" className="text-[14px]" />
+                      <MaterialIcon name="check_circle" className="text-[0.875rem]" />
                       Enrolled
                     </span>
                   )}
                   {course.price === 0 && (
                     <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
-                      <MaterialIcon name="currency_exchange" className="text-[14px]" />
+                      <MaterialIcon name="currency_exchange" className="text-[0.875rem]" />
                       Free
                     </span>
                   )}
@@ -418,7 +418,7 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                         onClick={() => setRating(s)}
                         className={`inline-flex ${s <= rating ? 'text-amber-400' : 'text-gray-300'} transition-colors`}
                       >
-                        <MaterialIcon name="star" filled={s <= rating} className="text-[28px]" />
+                        <MaterialIcon name="star" filled={s <= rating} className="text-[1.75rem]" />
                       </button>
                     ))}
                   </div>
@@ -436,7 +436,7 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
               )}
               {ratingSubmitted && (
                 <p className="text-sm text-emerald-600 font-medium inline-flex items-center gap-1">
-                  <MaterialIcon name="star" className="text-[16px]" />
+                  <MaterialIcon name="star" className="text-[1rem]" />
                   Thanks for your rating!
                 </p>
               )}
@@ -457,7 +457,7 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                               key={i}
                               name="star"
                               filled={i < r.rating}
-                              className={`text-[14px] ${i < r.rating ? 'text-amber-400' : 'text-gray-300'}`}
+                              className={`text-[0.875rem] ${i < r.rating ? 'text-amber-400' : 'text-gray-300'}`}
                             />
                           ))}
                         </span>
@@ -505,7 +505,7 @@ export default function StudentCoursePlayerPage({ params }: { params: Promise<{ 
                         <span className="shrink-0 text-sm inline-flex items-center">
                           <MaterialIcon
                             name={isLocked ? 'lock' : lp?.completed ? 'check_circle' : isActive ? 'play_arrow' : 'radio_button_unchecked'}
-                            className="text-[16px]"
+                            className="text-[1rem]"
                           />
                         </span>
                       </button>

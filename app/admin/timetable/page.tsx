@@ -230,13 +230,13 @@ export default function AdminTimetablePage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setView('grid')}
-              className={`ui-button ui-button-secondary h-8 px-3 text-[13px] inline-flex items-center gap-1 ${view === 'grid' ? 'ring-2 ring-(--accent)' : ''}`}
+              className={`ui-button ui-button-secondary h-8 px-3 text-[0.8125rem] inline-flex items-center gap-1 ${view === 'grid' ? 'ring-2 ring-(--accent)' : ''}`}
             >
               <LayoutGrid className="h-4 w-4" /> {tAdmin('grid', 'Grid')}
             </button>
             <button
               onClick={() => setView('list')}
-              className={`ui-button ui-button-secondary h-8 px-3 text-[13px] inline-flex items-center gap-1 ${view === 'list' ? 'ring-2 ring-(--accent)' : ''}`}
+              className={`ui-button ui-button-secondary h-8 px-3 text-[0.8125rem] inline-flex items-center gap-1 ${view === 'list' ? 'ring-2 ring-(--accent)' : ''}`}
             >
               <List className="h-4 w-4" /> {tAdmin('list', 'List')}
             </button>
@@ -298,13 +298,13 @@ export default function AdminTimetablePage() {
               <tbody>
                 {uniqueTimes.map(time => (
                   <tr key={time}>
-                    <td className="ui-border border p-2 ui-text-secondary text-[11px] font-mono align-top">{time}</td>
+                    <td className="ui-border border p-2 ui-text-secondary text-[0.6875rem] font-mono align-top">{time}</td>
                     {displayDays.map(d => {
                       const cell = slots.find(s => s.dayOfWeek === d && s.startTime === time)
                       return (
                         <td key={d} className="ui-border border p-1 align-top">
                           {cell ? (
-                            <div className={`rounded-md p-2 text-[11px] group relative ${subjectColor(cell.subjectId)}`}>
+                            <div className={`rounded-md p-2 text-[0.6875rem] group relative ${subjectColor(cell.subjectId)}`}>
                               <div className="font-semibold">{cell.subject.name}</div>
                               <div className="opacity-75">{cell.teacher.firstName} {cell.teacher.lastName}</div>
                               <div className="opacity-60">{cell.startTime}–{cell.endTime}{cell.room ? ` · ${cell.room}` : ''}</div>
@@ -344,10 +344,10 @@ export default function AdminTimetablePage() {
                 {slots.map(slot => (
                   <tr key={slot.id} className="hover:bg-(--surface-soft)">
                     <td className="px-4 py-3 ui-text-primary">{dayLabel(slot.dayOfWeek)}</td>
-                    <td className="px-4 py-3 ui-text-secondary font-mono text-[12px]">{slot.startTime}–{slot.endTime}</td>
+                    <td className="px-4 py-3 ui-text-secondary font-mono text-[0.75rem]">{slot.startTime}–{slot.endTime}</td>
                     <td className="px-4 py-3 ui-text-primary">{slot.class.name}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-[10px] rounded-full px-2 py-0.5 font-medium ${subjectColor(slot.subjectId)}`}>
+                      <span className={`text-[0.625rem] rounded-full px-2 py-0.5 font-medium ${subjectColor(slot.subjectId)}`}>
                         {slot.subject.name}
                       </span>
                     </td>

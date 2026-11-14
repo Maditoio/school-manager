@@ -15,7 +15,7 @@ export function DetailToolbar({
   return (
     <div className="mb-3 flex items-center gap-3">
       {title ? (
-        <div className="min-w-0 shrink-0 text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+        <div className="min-w-0 shrink-0 text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
           {title}
         </div>
       ) : null}

@@ -185,7 +185,7 @@ export default function SchoolInvoicePage() {
     >
       <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto">
         <div>
-          <h1 className="text-[20px] font-semibold" style={{ color: '#0a2540' }}>
+          <h1 className="text-[1.25rem] font-semibold" style={{ color: '#0a2540' }}>
             {tAdmin('schoolInvoice', 'School invoice')}
           </h1>
           <p className="text-sm mt-1" style={{ color: '#8898aa' }}>
@@ -208,7 +208,7 @@ export default function SchoolInvoicePage() {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-white border p-4" style={{ borderColor: '#e0e6ed', borderRadius: 10 }}>
-                <p className="text-[11px] uppercase tracking-[0.07em]" style={{ color: '#8898aa' }}>
+                <p className="text-[0.6875rem] uppercase tracking-[0.07em]" style={{ color: '#8898aa' }}>
                   {tAdmin('activeStudents', 'Active students')}
                 </p>
                 <p className="text-2xl font-semibold mt-2" style={{ color: '#0a2540' }}>{invoice.activeStudents}</p>
@@ -219,7 +219,7 @@ export default function SchoolInvoicePage() {
                 </p>
               </div>
               <div className="bg-white border p-4" style={{ borderColor: '#e0e6ed', borderRadius: 10 }}>
-                <p className="text-[11px] uppercase tracking-[0.07em]" style={{ color: '#8898aa' }}>
+                <p className="text-[0.6875rem] uppercase tracking-[0.07em]" style={{ color: '#8898aa' }}>
                   {tAdmin('invoiceYear', 'Invoice {year}').replace('{year}', String(invoice.billingYear))}
                 </p>
                 <p className="text-2xl font-semibold mt-2" style={{ color: '#0a2540' }}>{formatUSD(invoice.invoiceAmount)}</p>
@@ -228,7 +228,7 @@ export default function SchoolInvoicePage() {
                 </p>
               </div>
               <div className="bg-white border p-4" style={{ borderColor: '#e0e6ed', borderRadius: 10 }}>
-                <p className="text-[11px] uppercase tracking-[0.07em]" style={{ color: '#8898aa' }}>
+                <p className="text-[0.6875rem] uppercase tracking-[0.07em]" style={{ color: '#8898aa' }}>
                   {tAdmin('outstanding', 'Outstanding')}
                 </p>
                 <p className="text-2xl font-semibold mt-2" style={{ color: invoice.outstanding > 0 ? '#c0392b' : '#1b8a5a' }}>
@@ -295,13 +295,13 @@ export default function SchoolInvoicePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr>
-                  <th className="text-left text-[11px] uppercase tracking-[0.07em] pb-2" style={{ color: '#8898aa' }}>
+                  <th className="text-left text-[0.6875rem] uppercase tracking-[0.07em] pb-2" style={{ color: '#8898aa' }}>
                     {tAdmin('date', 'Date')}
                   </th>
-                  <th className="text-left text-[11px] uppercase tracking-[0.07em] pb-2" style={{ color: '#8898aa' }}>
+                  <th className="text-left text-[0.6875rem] uppercase tracking-[0.07em] pb-2" style={{ color: '#8898aa' }}>
                     {tAdmin('type', 'Type')}
                   </th>
-                  <th className="text-right text-[11px] uppercase tracking-[0.07em] pb-2" style={{ color: '#8898aa' }}>
+                  <th className="text-right text-[0.6875rem] uppercase tracking-[0.07em] pb-2" style={{ color: '#8898aa' }}>
                     {tAdmin('amount', 'Amount')}
                   </th>
                 </tr>

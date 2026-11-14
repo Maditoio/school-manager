@@ -559,7 +559,7 @@ export default function AdminExpensesPage() {
       <div className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-[20px] font-semibold ui-text-primary">
+            <h1 className="text-[1.25rem] font-semibold ui-text-primary">
               {t('approvalPageTitle', 'Approbation des dépenses')}
             </h1>
             <p className="mt-1 text-sm ui-text-secondary">
@@ -666,7 +666,7 @@ export default function AdminExpensesPage() {
                     setDateFrom(e.target.value)
                     setTablePage(1)
                   }}
-                  className="ui-input h-8 rounded-lg px-2.5 text-[12px]"
+                  className="ui-input h-8 rounded-lg px-2.5 text-[0.75rem]"
                   style={{ minHeight: '2rem', paddingTop: 0, paddingBottom: 0 }}
                   aria-label={t('fromDate', 'Du')}
                 />
@@ -677,7 +677,7 @@ export default function AdminExpensesPage() {
                     setDateTo(e.target.value)
                     setTablePage(1)
                   }}
-                  className="ui-input h-8 rounded-lg px-2.5 text-[12px]"
+                  className="ui-input h-8 rounded-lg px-2.5 text-[0.75rem]"
                   style={{ minHeight: '2rem', paddingTop: 0, paddingBottom: 0 }}
                   aria-label={t('toDate', 'Au')}
                 />
@@ -816,7 +816,7 @@ export default function AdminExpensesPage() {
       {showVoidModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--overlay) p-4">
           <div className="w-full max-w-md rounded-[10px] border border-(--border-subtle) bg-(--surface) p-5">
-            <h2 className="text-[20px] font-semibold ui-text-primary">
+            <h2 className="text-[1.25rem] font-semibold ui-text-primary">
               {t('voidReasonTitle', 'Annuler la dépense')}
             </h2>
             <div className="mt-4 space-y-4">
@@ -864,7 +864,7 @@ export default function AdminExpensesPage() {
           <div className="w-full max-w-3xl rounded-[10px] border border-(--border-subtle) bg-(--surface) p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <h2 className="text-[20px] font-semibold ui-text-primary">
+                <h2 className="text-[1.25rem] font-semibold ui-text-primary">
                   {t('invoicePreview', 'Aperçu de la facture')}
                 </h2>
                 <p className="truncate text-sm ui-text-secondary">{invoicePreview.fileName}</p>
@@ -873,14 +873,14 @@ export default function AdminExpensesPage() {
                 <a
                   href={invoicePreview.url}
                   download={invoicePreview.fileName}
-                  className="ui-button ui-button-secondary h-8 px-3.5 text-[13px] inline-flex items-center"
+                  className="ui-button ui-button-secondary h-8 px-3.5 text-[0.8125rem] inline-flex items-center"
                 >
                   {t('download', 'Télécharger')}
                 </a>
                 <button
                   type="button"
                   onClick={() => setInvoicePreview(null)}
-                  className="ui-button ui-button-secondary h-8 px-3.5 text-[13px]"
+                  className="ui-button ui-button-secondary h-8 px-3.5 text-[0.8125rem]"
                 >
                   {t('close', 'Fermer')}
                 </button>

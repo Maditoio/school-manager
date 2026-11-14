@@ -46,14 +46,14 @@ export function LanguageSwitcher({
   const active = resolveLocale(value || locale)
   const label = translateText('Language', activeLocale)
   const pad = size === 'md' ? 'px-2.5 py-1.5' : 'px-2 py-1.5'
-  const textSize = size === 'md' ? 'text-[13px]' : 'text-[12px]'
+  const textSize = size === 'md' ? 'text-[0.8125rem]' : 'text-[0.75rem]'
   const names = LANGUAGE_NAME_BY_LOCALE[activeLocale]
 
   return (
     <div className={className}>
       <p
         id={groupId}
-        className={`mb-1.5 px-0.5 text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary ${
+        className={`mb-1.5 px-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary ${
           hideLabel ? 'sr-only' : ''
         }`}
       >

@@ -605,7 +605,7 @@ export default function FinanceExpensesPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-[24px] font-bold ui-text-primary">Expenses</h1>
+            <h1 className="text-[1.5rem] font-bold ui-text-primary">Expenses</h1>
             <p className="mt-1 ui-text-secondary">Track operational costs, salaries, student support, maintenance, and every school expense with a full audit trail.</p>
           </div>
           {session?.user?.role !== 'FINANCE_MANAGER' && (

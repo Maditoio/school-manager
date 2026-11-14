@@ -959,7 +959,7 @@ export default function AdminFeesPage({
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-[24px] font-bold ui-text-primary">Fees Management</h1>
+            <h1 className="text-[1.5rem] font-bold ui-text-primary">Fees Management</h1>
             <p className="mt-1 ui-text-secondary">
               Track payments by period. Each class can have its own fee rate or share one flat rate.
             </p>

@@ -211,7 +211,7 @@ function ParentMessagesContent() {
           <>
             <ParentCard>
               <label className="flex min-w-[220px] max-w-md flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+                <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
                   {tParent('contact', 'Contact')}
                 </span>
                 <select
@@ -266,7 +266,7 @@ function ParentMessagesContent() {
                               <p className="whitespace-pre-wrap break-words text-sm">
                                 {message.content}
                               </p>
-                              <p className="mt-1 text-[11px] ui-text-secondary">
+                              <p className="mt-1 text-[0.6875rem] ui-text-secondary">
                                 {formatDateTime(message.createdAt)}
                               </p>
                             </div>

@@ -312,26 +312,26 @@ export default async function ParentDashboard() {
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <ParentCard>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
                   {tParent(lang, 'termAttendance', 'Présence')}
                 </p>
-                <p className="mt-2 text-[22px] font-semibold ui-text-primary">
+                <p className="mt-2 text-[1.375rem] font-semibold ui-text-primary">
                   {restricted ? '—' : `${data.attendanceRate}%`}
                 </p>
               </ParentCard>
               <ParentCard>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
                   {tParent(lang, 'overallAverage', 'Moyenne')}
                 </p>
-                <p className="mt-2 text-[22px] font-semibold ui-text-primary">
+                <p className="mt-2 text-[1.375rem] font-semibold ui-text-primary">
                   {restricted ? '—' : `${data.overallAverage}%`}
                 </p>
               </ParentCard>
               <ParentCard>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
                   {tParent(lang, 'upcomingCount', 'À venir')}
                 </p>
-                <p className="mt-2 text-[22px] font-semibold ui-text-primary">
+                <p className="mt-2 text-[1.375rem] font-semibold ui-text-primary">
                   {restricted ? '—' : data.upcoming.length}
                 </p>
               </ParentCard>
@@ -475,7 +475,7 @@ export default async function ParentDashboard() {
                             </StatusPill>
                           </div>
                           <p className="mt-1 line-clamp-2 text-xs ui-text-secondary">{announcement.message}</p>
-                          <p className="mt-1 text-[11px] ui-text-secondary">
+                          <p className="mt-1 text-[0.6875rem] ui-text-secondary">
                             {formatParentDate(announcement.createdAt, lang)}
                           </p>
                         </div>

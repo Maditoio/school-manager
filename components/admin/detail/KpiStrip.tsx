@@ -28,10 +28,10 @@ export function KpiStrip({ items }: { items: KpiItem[] }) {
           className="rounded-[10px] border border-(--border-subtle) bg-(--surface) px-4 py-3.5"
         >
           <DetailMetaLabel>{item.label}</DetailMetaLabel>
-          <p className="mt-2 text-[20px] font-semibold leading-tight tracking-[-0.01em] ui-text-primary">
+          <p className="mt-2 text-[1.25rem] font-semibold leading-tight tracking-[-0.01em] ui-text-primary">
             {item.value}
           </p>
-          {item.hint ? <p className="mt-1 text-[12px] leading-snug ui-text-secondary">{item.hint}</p> : null}
+          {item.hint ? <p className="mt-1 text-[0.75rem] leading-snug ui-text-secondary">{item.hint}</p> : null}
         </div>
       ))}
     </div>

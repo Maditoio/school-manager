@@ -259,7 +259,7 @@ export default function ConfirmDialog({
 
             <h2
               id={dialogTitleId}
-              className="mt-5 text-center text-[18px] font-bold"
+              className="mt-5 text-center text-[1.125rem] font-bold"
               style={{ color: '#e2e8f0' }}
             >
               {title}
@@ -267,7 +267,7 @@ export default function ConfirmDialog({
 
             <p
               id={dialogDescriptionId}
-              className="mx-auto mt-2 max-w-85 text-center text-[14px]"
+              className="mx-auto mt-2 max-w-85 text-center text-[0.875rem]"
               style={{ color: '#64748b', lineHeight: 1.65 }}
             >
               {description}
@@ -289,7 +289,7 @@ export default function ConfirmDialog({
                   </div>
                 )}
                 <div>
-                  <p className="text-[13.5px] font-bold text-slate-200">{entity.name}</p>
+                  <p className="text-[0.8438rem] font-bold text-slate-200">{entity.name}</p>
                   {entity.subtitle ? <p className="text-xs text-slate-400">{entity.subtitle}</p> : null}
                 </div>
               </div>

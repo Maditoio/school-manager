@@ -213,7 +213,7 @@ export default function TeacherResultsPage() {
   const filterFields = (
     <>
       <div>
-        <label className="mb-1 block text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary">
+        <label className="mb-1 block text-[0.6875rem] font-medium uppercase tracking-[0.07em] ui-text-secondary">
           {t('classLabel', 'Class')}
         </label>
         <Select value={selectedClass} onChange={(event) => handleClassChange(event.target.value)}>
@@ -226,7 +226,7 @@ export default function TeacherResultsPage() {
         </Select>
       </div>
       <div>
-        <label className="mb-1 block text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary">
+        <label className="mb-1 block text-[0.6875rem] font-medium uppercase tracking-[0.07em] ui-text-secondary">
           {t('subjectLabel', 'Subject')}
         </label>
         <Select
@@ -244,7 +244,7 @@ export default function TeacherResultsPage() {
         </Select>
       </div>
       <div>
-        <label className="mb-1 block text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary">
+        <label className="mb-1 block text-[0.6875rem] font-medium uppercase tracking-[0.07em] ui-text-secondary">
           {t('assessmentLabel', 'Assessment')}
         </label>
         <Select
@@ -274,7 +274,7 @@ export default function TeacherResultsPage() {
     >
       <div className="space-y-4">
         <div>
-          <h1 className="text-[20px] font-semibold ui-text-primary">{t('title', 'Assessment Results')}</h1>
+          <h1 className="text-[1.25rem] font-semibold ui-text-primary">{t('title', 'Assessment Results')}</h1>
           <p className="mt-1 text-sm ui-text-secondary">
             {t('subtitle', 'View all student results from assessments by class and subject')}
           </p>
@@ -288,7 +288,7 @@ export default function TeacherResultsPage() {
             aria-expanded={filtersOpen}
           >
             <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-[0.07em] ui-text-secondary">
+              <p className="text-[0.6875rem] uppercase tracking-[0.07em] ui-text-secondary">
                 {tCommon('filter', 'Filter')}
               </p>
               <p className="truncate text-sm font-medium ui-text-primary">{filterSummary}</p>
@@ -307,21 +307,21 @@ export default function TeacherResultsPage() {
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <Card className="p-4">
-            <p className="text-[11px] uppercase tracking-[0.07em] ui-text-secondary">
+            <p className="text-[0.6875rem] uppercase tracking-[0.07em] ui-text-secondary">
               {t('totalRecords', 'Total Records')}
             </p>
             <p className="text-xl font-semibold ui-text-primary">{summary.total}</p>
           </Card>
           <Card className="p-4">
-            <p className="text-[11px] uppercase tracking-[0.07em] ui-text-secondary">{t('graded', 'Graded')}</p>
+            <p className="text-[0.6875rem] uppercase tracking-[0.07em] ui-text-secondary">{t('graded', 'Graded')}</p>
             <p className="text-xl font-semibold text-[#1b8a5a]">{summary.graded}</p>
           </Card>
           <Card className="p-4">
-            <p className="text-[11px] uppercase tracking-[0.07em] ui-text-secondary">{t('pending', 'Pending')}</p>
+            <p className="text-[0.6875rem] uppercase tracking-[0.07em] ui-text-secondary">{t('pending', 'Pending')}</p>
             <p className="text-xl font-semibold text-[#b07d00]">{summary.pending}</p>
           </Card>
           <Card className="p-4">
-            <p className="text-[11px] uppercase tracking-[0.07em] ui-text-secondary">
+            <p className="text-[0.6875rem] uppercase tracking-[0.07em] ui-text-secondary">
               {t('averagePct', 'Average (%)')}
             </p>
             <p className="text-xl font-semibold" style={{ color: '#635bff' }}>
@@ -347,7 +347,7 @@ export default function TeacherResultsPage() {
                         <p className="truncate text-sm font-semibold ui-text-primary">
                           {result.student.firstName} {result.student.lastName}
                         </p>
-                        <p className="mt-0.5 text-[11px] uppercase tracking-[0.07em] ui-text-secondary">
+                        <p className="mt-0.5 text-[0.6875rem] uppercase tracking-[0.07em] ui-text-secondary">
                           {result.student.admissionNumber || '—'}
                         </p>
                       </div>

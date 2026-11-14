@@ -58,11 +58,11 @@ function PulseCard({ item, onClick, locale }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[12px] font-medium text-slate-400">{translateText(item.label, locale)}</p>
+          <p className="text-[0.75rem] font-medium text-slate-400">{translateText(item.label, locale)}</p>
           <p className="mt-2 text-4xl font-extrabold tracking-tight text-slate-100">
             {Number(item?.value ?? 0).toLocaleString()}
           </p>
-          <p className="mt-1 text-[12px] text-slate-500">
+          <p className="mt-1 text-[0.75rem] text-slate-500">
             {translateDashboardDynamic(item?.trendLabel || '', locale)}
           </p>
         </div>

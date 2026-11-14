@@ -810,12 +810,12 @@ export default function ClassOverviewPage() {
                                   {group.subjects.map((subject) => (
                                     <span
                                       key={subject.assignmentId}
-                                      className="inline-flex items-center gap-1.5 rounded-[6px] border border-(--border-subtle) bg-(--surface-soft) px-2.5 py-1 text-[13px] ui-text-primary"
+                                      className="inline-flex items-center gap-1.5 rounded-[6px] border border-(--border-subtle) bg-(--surface-soft) px-2.5 py-1 text-[0.8125rem] ui-text-primary"
                                     >
                                       {subject.name}
                                       <button
                                         type="button"
-                                        className="rounded px-1 text-[15px] leading-none font-medium text-[var(--danger)] hover:bg-(--surface)"
+                                        className="rounded px-1 text-[0.9375rem] leading-none font-medium text-[var(--danger)] hover:bg-(--surface)"
                                         aria-label={t('remove', 'Retirer')}
                                         onClick={(event) => {
                                           event.preventDefault()
@@ -834,7 +834,7 @@ export default function ClassOverviewPage() {
                                   ))}
                                 </div>
                               ) : (
-                                <span className="text-[13px] ui-text-secondary">
+                                <span className="text-[0.8125rem] ui-text-secondary">
                                   {t('noSubjectsYet', 'Aucune matière assignée pour le moment.')}
                                 </span>
                               )}
@@ -961,7 +961,7 @@ export default function ClassOverviewPage() {
       {showAddTeacher ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] p-4">
           <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-[10px] border border-(--border-subtle) bg-(--surface) p-5">
-            <h2 className="text-[20px] font-semibold ui-text-primary">
+            <h2 className="text-[1.25rem] font-semibold ui-text-primary">
               {t('addTeacherTitle', 'Ajouter un enseignant')}
             </h2>
             <form onSubmit={handleAddTeacher} className="mt-4 space-y-3">
@@ -1042,7 +1042,7 @@ export default function ClassOverviewPage() {
       {showAssignSubjects ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] p-4">
           <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-[10px] border border-(--border-subtle) bg-(--surface) p-5">
-            <h2 className="text-[20px] font-semibold ui-text-primary">
+            <h2 className="text-[1.25rem] font-semibold ui-text-primary">
               {t('assignSubjectsTitle', 'Assigner des matières')}
             </h2>
             <form onSubmit={handleAssignSubjects} className="mt-4 space-y-3">
@@ -1092,7 +1092,7 @@ export default function ClassOverviewPage() {
       {showAddStudents ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] p-4">
           <div className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-[10px] border border-(--border-subtle) bg-(--surface) p-5">
-            <h2 className="text-[20px] font-semibold ui-text-primary">
+            <h2 className="text-[1.25rem] font-semibold ui-text-primary">
               {t('addStudentsTitle', 'Ajouter des élèves')}
             </h2>
             <form onSubmit={handleAddStudents} className="mt-4 flex min-h-0 flex-1 flex-col gap-3">
@@ -1177,7 +1177,7 @@ export default function ClassOverviewPage() {
       {editClassOpen && data ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] p-4">
           <div className="w-full max-w-md rounded-[10px] border border-(--border-subtle) bg-(--surface) p-5">
-            <h2 className="text-[20px] font-semibold ui-text-primary">{t('editTitle', 'Modifier la classe')}</h2>
+            <h2 className="text-[1.25rem] font-semibold ui-text-primary">{t('editTitle', 'Modifier la classe')}</h2>
             <form onSubmit={handleSaveClass} className="mt-4 space-y-3">
               <Input
                 label={t('className', 'Nom')}

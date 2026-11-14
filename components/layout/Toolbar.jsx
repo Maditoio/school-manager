@@ -14,6 +14,8 @@ export default function Toolbar({
   schoolName,
   theme,
   onThemeToggle,
+  fontScale = 'normal',
+  onFontScaleCycle,
   language,
   onLanguageChange,
 }) {
@@ -31,6 +33,11 @@ export default function Toolbar({
 
   const sidebarWidth = sidebarOpen ? 240 : 64
   const isDark = String(theme || '').toLowerCase() !== 'light'
+  const scale = String(fontScale || 'normal').toLowerCase()
+  const fontScaleLabel =
+    scale === 'x-large' ? 'Extra large' : scale === 'large' ? 'Large' : 'Default'
+  const fontScaleLetterClass =
+    scale === 'x-large' ? 'text-[1.125rem]' : scale === 'large' ? 'text-[1rem]' : 'text-[0.875rem]'
 
   useEffect(() => {
     const onPointerDown = (event) => {
@@ -232,7 +239,7 @@ export default function Toolbar({
                         >
                           <span>{option.label}</span>
                           {isSelected ? (
-                            <span className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
+                            <span className={`text-[0.625rem] font-semibold uppercase tracking-[0.12em] ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
                               Active
                             </span>
                           ) : null}
@@ -243,6 +250,32 @@ export default function Toolbar({
                 </ul>
               </div>
             </div>
+
+            <button
+              type="button"
+              aria-label={`Text size: ${fontScaleLabel}. Click to change.`}
+              title={`Text size: ${fontScaleLabel}`}
+              onClick={() => onFontScaleCycle?.()}
+              className={`relative inline-flex h-9 min-w-12 items-center justify-center gap-0.5 rounded-full border px-2 transition-all duration-200 ease-in-out ${
+                isDark
+                  ? 'border-white/10 bg-white/5 text-slate-100 hover:border-indigo-300/40 hover:bg-white/10 hover:shadow-[0_0_0_2px_rgba(99,102,241,0.18)]'
+                  : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-indigo-300 hover:bg-slate-100 hover:shadow-[0_0_0_2px_rgba(99,102,241,0.1)]'
+              } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/50`}
+            >
+              <span aria-hidden="true" className={`font-semibold leading-none ${fontScaleLetterClass}`}>
+                A
+              </span>
+              {scale !== 'normal' ? (
+                <span
+                  aria-hidden="true"
+                  className={`font-semibold leading-none ${isDark ? 'text-indigo-300' : 'text-indigo-600'} ${
+                    scale === 'x-large' ? 'text-[0.625rem]' : 'text-[0.5rem]'
+                  }`}
+                >
+                  {scale === 'x-large' ? '++' : '+'}
+                </span>
+              ) : null}
+            </button>
 
             <button
               type="button"

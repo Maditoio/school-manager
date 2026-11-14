@@ -641,7 +641,7 @@ export default function SubjectsPage() {
       {showPresetsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] p-4">
           <div className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-[10px] border border-(--border-subtle) bg-(--surface) p-5">
-            <h2 className="text-[20px] font-semibold ui-text-primary">
+            <h2 className="text-[1.25rem] font-semibold ui-text-primary">
               {tAdmin('quickAddTitle', 'Ajout rapide depuis les modèles')}
             </h2>
             <p className="mt-1 text-sm ui-text-secondary">

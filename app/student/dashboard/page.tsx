@@ -108,7 +108,7 @@ const statusDotStyles: Record<string, string> = {
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <p className="text-[11px] font-medium uppercase tracking-wider ui-text-secondary mb-0.5">{label}</p>
+      <p className="text-[0.6875rem] font-medium uppercase tracking-wider ui-text-secondary mb-0.5">{label}</p>
       <p className="text-sm font-medium ui-text-primary">{value || '-'}</p>
     </div>
   )
@@ -258,7 +258,7 @@ export default function StudentDashboardPage() {
                     {/* <p className="text-xs ui-text-secondary mt-0.5">
                       {s.class?.name ?? 'Sans classe'} · {s.academicYear}
                     </p> */}
-                    <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                    <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[0.6875rem] font-medium ${
                       s.status === 'ACTIVE'
                         ? 'bg-green-100 text-green-700'
                         : 'bg-red-100 text-red-700'
@@ -284,23 +284,23 @@ export default function StudentDashboardPage() {
                   </p>
                   <div className="grid gap-3 sm:grid-cols-3">
                     <div className="rounded-2xl border border-(--border-subtle) p-4">
-                      <p className="text-[11px] ui-text-secondary">{tStudent('termAverage', 'Term Average')}</p>
+                      <p className="text-[0.6875rem] ui-text-secondary">{tStudent('termAverage', 'Term Average')}</p>
                       <p className="mt-2 text-2xl font-semibold ui-text-primary">{profile.termAverage}%</p>
-                      <p className="text-[11px] ui-text-secondary mt-2">{profile.termName}</p>
+                      <p className="text-[0.6875rem] ui-text-secondary mt-2">{profile.termName}</p>
                     </div>
                     <div className="rounded-2xl border border-(--border-subtle) p-4">
-                      <p className="text-[11px] ui-text-secondary">{tStudent('passRate', 'Pass Rate')}</p>
+                      <p className="text-[0.6875rem] ui-text-secondary">{tStudent('passRate', 'Pass Rate')}</p>
                       <p className="mt-2 text-2xl font-semibold ui-text-primary">{profile.overallPassRate}%</p>
-                      <p className="text-[11px] ui-text-secondary mt-2">{tStudent('basedOnCurrentSubjects', 'Based on current subjects')}</p>
+                      <p className="text-[0.6875rem] ui-text-secondary mt-2">{tStudent('basedOnCurrentSubjects', 'Based on current subjects')}</p>
                     </div>
                     <div className="rounded-2xl border border-(--border-subtle) p-4">
-                      <p className="text-[11px] ui-text-secondary">{tStudent('focus', 'Focus')}</p>
+                      <p className="text-[0.6875rem] ui-text-secondary">{tStudent('focus', 'Focus')}</p>
                       <p className="mt-2 text-sm ui-text-primary">
                         {topWeakSubject
                           ? `${tStudent('supportIn', 'Support in')} ${topWeakSubject.subjectName}`
                           : tStudent('noWeakSubject', 'No weak subject')}
                       </p>
-                      <p className="text-[11px] ui-text-secondary mt-2">
+                      <p className="text-[0.6875rem] ui-text-secondary mt-2">
                         {topStrongSubject
                           ? `${tStudent('strongIn', 'Strong in')} ${topStrongSubject.subjectName}`
                           : tStudent('noStrongSubjectYet', 'No strong subject yet')}
@@ -334,7 +334,7 @@ export default function StudentDashboardPage() {
                             style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-soft)' }}
                           >
                             <span className="text-xs font-semibold ui-text-primary">{formatDay(record.date)}</span>
-                            <span className="mt-2 text-[10px] ui-text-secondary">{formatDate(record.date)}</span>
+                            <span className="mt-2 text-[0.625rem] ui-text-secondary">{formatDate(record.date)}</span>
                             <span
                               className={`mt-2 h-3 w-3 rounded-full ${statusDotStyles[record.status] || 'bg-slate-500'}`}
                               title={statusTextLabels[record.status] || record.status}
@@ -350,15 +350,15 @@ export default function StudentDashboardPage() {
                     <div className="mt-4 flex flex-wrap gap-2">
                       <span className="rounded-lg border border-(--border-subtle) bg-green-50 px-3 py-1.5 text-center">
                         <span className="block text-base font-bold text-green-700">{s.attendanceSummary.present}</span>
-                        <span className="text-[10px] text-green-600">{tStudent('present', 'Present')}</span>
+                        <span className="text-[0.625rem] text-green-600">{tStudent('present', 'Present')}</span>
                       </span>
                       <span className="rounded-lg border border-(--border-subtle) bg-red-50 px-3 py-1.5 text-center">
                         <span className="block text-base font-bold text-red-700">{s.attendanceSummary.absent}</span>
-                        <span className="text-[10px] text-red-600">{tStudent('absent', 'Absent')}</span>
+                        <span className="text-[0.625rem] text-red-600">{tStudent('absent', 'Absent')}</span>
                       </span>
                       <span className="rounded-lg border border-(--border-subtle) px-3 py-1.5 text-center" style={{ background: 'var(--surface-soft)' }}>
                         <span className="block text-base font-bold" style={{ color: 'var(--accent)' }}>{s.attendanceSummary.rate}%</span>
-                        <span className="text-[10px] ui-text-secondary">{tStudent('rate', 'Rate')}</span>
+                        <span className="text-[0.625rem] ui-text-secondary">{tStudent('rate', 'Rate')}</span>
                       </span>
                     </div>
                   </>
@@ -469,7 +469,7 @@ export default function StudentDashboardPage() {
                               <p className="mt-0.5 text-xs ui-text-secondary">{r.assessment.subject.name}</p>
                             </div>
                             <span
-                              className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                              className={`shrink-0 rounded-full px-2 py-0.5 text-[0.6875rem] font-medium ${
                                 typeColors[r.assessment.type] ?? 'bg-gray-100 text-gray-700'
                               }`}
                             >
@@ -480,7 +480,7 @@ export default function StudentDashboardPage() {
                             {r.graded && r.score !== null ? (
                               <>
                                 {r.score}/{r.assessment.totalMarks}
-                                <span className="ml-1 text-[11px] font-normal ui-text-secondary">({pct}%)</span>
+                                <span className="ml-1 text-[0.6875rem] font-normal ui-text-secondary">({pct}%)</span>
                               </>
                             ) : (
                               <span className="text-xs font-medium ui-text-secondary">{tStudent('pending', 'Pending')}</span>
@@ -496,16 +496,16 @@ export default function StudentDashboardPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-(--border-subtle)" style={{ background: 'var(--surface-soft)' }}>
-                          <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">
+                          <th className="px-3 py-2 text-left text-[0.6875rem] font-semibold uppercase tracking-wider ui-text-secondary">
                             {tStudent('assessment', 'Assessment')}
                           </th>
-                          <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">
+                          <th className="px-3 py-2 text-left text-[0.6875rem] font-semibold uppercase tracking-wider ui-text-secondary">
                             {tStudent('subject', 'Subject')}
                           </th>
-                          <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">
+                          <th className="px-3 py-2 text-left text-[0.6875rem] font-semibold uppercase tracking-wider ui-text-secondary">
                             {tStudent('type', 'Type')}
                           </th>
-                          <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wider ui-text-secondary">
+                          <th className="px-3 py-2 text-right text-[0.6875rem] font-semibold uppercase tracking-wider ui-text-secondary">
                             {tStudent('score', 'Score')}
                           </th>
                         </tr>
@@ -522,7 +522,7 @@ export default function StudentDashboardPage() {
                               <td className="px-3 py-2.5 text-xs ui-text-secondary">{r.assessment.subject.name}</td>
                               <td className="px-3 py-2.5">
                                 <span
-                                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                                  className={`rounded-full px-2 py-0.5 text-[0.6875rem] font-medium ${
                                     typeColors[r.assessment.type] ?? 'bg-gray-100 text-gray-700'
                                   }`}
                                 >
@@ -541,10 +541,10 @@ export default function StudentDashboardPage() {
                                     }`}
                                   >
                                     {r.score}/{r.assessment.totalMarks}
-                                    <span className="ml-1 text-[11px] font-normal ui-text-secondary">({pct}%)</span>
+                                    <span className="ml-1 text-[0.6875rem] font-normal ui-text-secondary">({pct}%)</span>
                                   </span>
                                 ) : (
-                                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500">
+                                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[0.6875rem] text-gray-500">
                                     {tStudent('pending', 'Pending')}
                                   </span>
                                 )}

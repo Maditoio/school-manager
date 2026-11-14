@@ -165,7 +165,7 @@ export default function TeacherCoursesPage() {
           </div>
           <Button onClick={() => setShowCreate(true)}>
             <span className="inline-flex items-center gap-1.5">
-              <MaterialIcon name="add" className="text-[18px]" />
+              <MaterialIcon name="add" className="text-[1.125rem]" />
               {t('New Course')}
             </span>
           </Button>
@@ -222,17 +222,17 @@ export default function TeacherCoursesPage() {
                     <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleThumbnailUpload} className="hidden" disabled={thumbnailUploading} />
                     {thumbnailUploading ? (
                       <span className="inline-flex items-center gap-1.5">
-                        <MaterialIcon name="hourglass_top" className="text-[16px]" />
+                        <MaterialIcon name="hourglass_top" className="text-[1rem]" />
                         {t('Uploading...')}
                       </span>
                     ) : form.thumbnailUrl ? (
                       <span className="inline-flex items-center gap-1.5">
-                        <MaterialIcon name="sync" className="text-[16px]" />
+                        <MaterialIcon name="sync" className="text-[1rem]" />
                         {t('Change Thumbnail')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5">
-                        <MaterialIcon name="add_photo_alternate" className="text-[16px]" />
+                        <MaterialIcon name="add_photo_alternate" className="text-[1rem]" />
                         {t('Upload Thumbnail')}
                       </span>
                     )}
@@ -301,7 +301,7 @@ export default function TeacherCoursesPage() {
                   </span>
                   {course.allSchools && (
                     <span className="absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full font-semibold shadow bg-blue-600 text-white inline-flex items-center gap-1">
-                      <MaterialIcon name="public" className="text-[14px]" />
+                      <MaterialIcon name="public" className="text-[0.875rem]" />
                       {t('All Schools')}
                     </span>
                   )}
@@ -316,10 +316,10 @@ export default function TeacherCoursesPage() {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs ui-text-secondary mt-auto pt-1">
-                    <span className="inline-flex items-center gap-1"><MaterialIcon name="video_library" className="text-[14px]" /> {course.lessons.length} {t('lessons')}</span>
-                    {course.totalDuration > 0 && <span className="inline-flex items-center gap-1"><MaterialIcon name="schedule" className="text-[14px]" /> {formatDuration(course.totalDuration)}</span>}
-                    <span className="inline-flex items-center gap-1"><MaterialIcon name="group" className="text-[14px]" /> {course._count.enrollments} {t('enrolled')}</span>
-                    {avgRating(course.ratings) && <span className="inline-flex items-center gap-1"><MaterialIcon name="star" className="text-[14px]" /> {avgRating(course.ratings)}</span>}
+                    <span className="inline-flex items-center gap-1"><MaterialIcon name="video_library" className="text-[0.875rem]" /> {course.lessons.length} {t('lessons')}</span>
+                    {course.totalDuration > 0 && <span className="inline-flex items-center gap-1"><MaterialIcon name="schedule" className="text-[0.875rem]" /> {formatDuration(course.totalDuration)}</span>}
+                    <span className="inline-flex items-center gap-1"><MaterialIcon name="group" className="text-[0.875rem]" /> {course._count.enrollments} {t('enrolled')}</span>
+                    {avgRating(course.ratings) && <span className="inline-flex items-center gap-1"><MaterialIcon name="star" className="text-[0.875rem]" /> {avgRating(course.ratings)}</span>}
                     <span className="font-medium ui-text-primary">{course.price === 0 ? t('Free') : `$${course.price}`}</span>
                   </div>
                   <div className="flex gap-2 pt-2 border-t ui-border">

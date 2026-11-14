@@ -309,7 +309,7 @@ export default function TeacherAssessmentsPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-[24px] font-bold ui-text-primary">Assessments</h1>
+            <h1 className="text-[1.5rem] font-bold ui-text-primary">Assessments</h1>
             <p className="ui-text-secondary mt-2">{t('Create and manage assessments for your classes')}</p>
           </div>
           <Button
@@ -473,7 +473,7 @@ export default function TeacherAssessmentsPage() {
             aria-expanded={filtersOpen}
           >
             <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-[0.07em] ui-text-secondary">{t('Filters')}</p>
+              <p className="text-[0.6875rem] uppercase tracking-[0.07em] ui-text-secondary">{t('Filters')}</p>
               <p className="truncate text-sm font-medium ui-text-primary">
                 {[
                   filters.classId ? classes.find((c) => c.id === filters.classId)?.name : t('All classes'),

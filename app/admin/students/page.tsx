@@ -761,7 +761,7 @@ export default function StudentsPage() {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-[24px] font-bold ui-text-primary">{t('pageTitle', 'Students Management')}</h1>
+            <h1 className="text-[1.5rem] font-bold ui-text-primary">{t('pageTitle', 'Students Management')}</h1>
             <p className="mt-1 ui-text-secondary">{t('pageSubtitle', 'Manage students, classes, and parent contacts')}</p>
           </div>
           <div className="flex gap-2">

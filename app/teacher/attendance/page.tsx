@@ -210,7 +210,7 @@ export default function TeacherAttendancePage() {
   const filterControls = (
     <>
       <div>
-        <label className="block text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary mb-1.5">
+        <label className="block text-[0.6875rem] font-medium uppercase tracking-[0.07em] ui-text-secondary mb-1.5">
           {t('selectClass', 'Select Class')}
         </label>
         <Select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>
@@ -223,7 +223,7 @@ export default function TeacherAttendancePage() {
         </Select>
       </div>
       <div>
-        <label className="block text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary mb-1.5">
+        <label className="block text-[0.6875rem] font-medium uppercase tracking-[0.07em] ui-text-secondary mb-1.5">
           {t('dateLabel', 'Date')}
         </label>
         <input
@@ -246,7 +246,7 @@ export default function TeacherAttendancePage() {
             type="button"
             onClick={() => handleAttendanceChange(studentId, option)}
             className={`${
-              size === 'mobile' ? 'min-h-11 text-sm' : 'h-8 px-3 text-[13px]'
+              size === 'mobile' ? 'min-h-11 text-sm' : 'h-8 px-3 text-[0.8125rem]'
             } rounded-[6px] transition-all duration-150 ease-in-out active:scale-[0.97] ${statusButtonClass(
               active,
               option
@@ -270,7 +270,7 @@ export default function TeacherAttendancePage() {
     >
       <div className="space-y-4 pb-24 md:pb-0">
         <div>
-          <h1 className="text-[20px] font-semibold ui-text-primary">{t('title', 'Attendance')}</h1>
+          <h1 className="text-[1.25rem] font-semibold ui-text-primary">{t('title', 'Attendance')}</h1>
           <p className="ui-text-secondary mt-1 text-sm">{t('subtitle', 'Mark student attendance')}</p>
         </div>
 
@@ -283,7 +283,7 @@ export default function TeacherAttendancePage() {
             aria-expanded={filtersOpen}
           >
             <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-[0.07em] ui-text-secondary">
+              <p className="text-[0.6875rem] uppercase tracking-[0.07em] ui-text-secondary">
                 {t('filters', 'Filters')}
               </p>
               <p className="truncate text-sm font-medium ui-text-primary">
@@ -378,7 +378,7 @@ export default function TeacherAttendancePage() {
                       <p className="truncate text-sm font-semibold ui-text-primary">
                         {student.firstName} {student.lastName}
                       </p>
-                      <p className="mt-0.5 text-[11px] uppercase tracking-[0.07em] ui-text-secondary">
+                      <p className="mt-0.5 text-[0.6875rem] uppercase tracking-[0.07em] ui-text-secondary">
                         {student.admissionNumber}
                       </p>
                     </div>

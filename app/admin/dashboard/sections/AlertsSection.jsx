@@ -92,7 +92,7 @@ export default function AlertsSection({ data, loading }) {
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="text-[13.5px] font-semibold text-slate-100">{translateDashboardDynamic(alert.message, locale)}</p>
+                    <p className="text-[0.8438rem] font-semibold text-slate-100">{translateDashboardDynamic(alert.message, locale)}</p>
                     <p className="text-xs text-slate-500">{translateDashboardDynamic(alert.context, locale)}</p>
                   </div>
 

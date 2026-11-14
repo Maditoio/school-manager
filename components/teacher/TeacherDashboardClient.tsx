@@ -154,7 +154,7 @@ export function TeacherDashboardClient({
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-[20px] font-semibold leading-tight tracking-[-0.01em] ui-text-primary">
+        <h1 className="text-[1.25rem] font-semibold leading-tight tracking-[-0.01em] ui-text-primary">
           {t('title', 'Teacher dashboard')}
         </h1>
         <p className="mt-1 text-sm ui-text-secondary">
@@ -164,7 +164,7 @@ export function TeacherDashboardClient({
 
       <section className="rounded-[10px] border border-(--border-subtle) border-l-[3px] border-l-[#635bff] bg-(--surface) p-4 sm:p-5">
         <div className="mb-4 flex items-center justify-between gap-2">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[#635bff]">
+          <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] text-[#635bff]">
             {t('actionsTitle', 'Actions')}
           </h2>
         </div>
@@ -202,10 +202,10 @@ export function TeacherDashboardClient({
             key={card.label}
             className="rounded-[10px] border border-(--border-subtle) bg-(--surface) p-4"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
               {card.label}
             </p>
-            <p className="mt-2 text-[22px] font-semibold ui-text-primary">{card.value}</p>
+            <p className="mt-2 text-[1.375rem] font-semibold ui-text-primary">{card.value}</p>
           </div>
         ))}
       </div>
@@ -213,7 +213,7 @@ export function TeacherDashboardClient({
       <section className="rounded-[10px] border border-(--border-subtle) bg-(--surface) p-4 sm:p-5">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+            <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
               {t('trendsTitle', 'Performance trends')}
             </h2>
             <p className="mt-1 text-sm ui-text-secondary">
@@ -241,7 +241,7 @@ export function TeacherDashboardClient({
           <>
             <div className="mb-4 flex flex-wrap items-end gap-3">
               <label className="flex min-w-[200px] flex-1 flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+                <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
                   {t('selectClass', 'Class')}
                 </span>
                 <select

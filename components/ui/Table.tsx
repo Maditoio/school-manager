@@ -283,7 +283,7 @@ export default function Table<T extends RowData = RowData>({
       aria-label={ariaLabel || title || 'Data table'}
     >
       <div className="ui-table-toolbar px-4 sm:px-5">
-        <h3 className="truncate text-[15px] font-semibold ui-text-primary">{tTitle}</h3>
+        <h3 className="truncate text-[0.9375rem] font-semibold ui-text-primary">{tTitle}</h3>
 
         <div className="ui-table-toolbar-controls">
           <label className="ui-search-field hidden w-52 sm:block">
@@ -293,7 +293,7 @@ export default function Table<T extends RowData = RowData>({
               value={searchValue}
               onChange={handleSearchChange}
               placeholder={tSearchPlaceholder}
-              className="ui-input ui-input-search w-full text-[12px]"
+              className="ui-input ui-input-search w-full text-[0.75rem]"
               style={{
                 background: 'var(--field-bg)',
                 color: 'var(--text-primary)',
@@ -315,7 +315,7 @@ export default function Table<T extends RowData = RowData>({
                   onFilterClick?.()
                 }
               }}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium transition-all duration-150 ease focus-visible:outline-none"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[0.75rem] font-medium transition-all duration-150 ease focus-visible:outline-none"
               style={{
                 borderColor: 'var(--border-subtle)',
                 background: 'var(--field-bg)',
@@ -541,7 +541,7 @@ export default function Table<T extends RowData = RowData>({
         className="flex min-h-13 items-center justify-between border-t px-4 sm:px-5"
         style={{ borderColor: 'var(--border-subtle)' }}
       >
-        <p className="text-[12px] ui-text-secondary">{formatRange(startIndex, endIndex, resolvedTotal, locale)}</p>
+        <p className="text-[0.75rem] ui-text-secondary">{formatRange(startIndex, endIndex, resolvedTotal, locale)}</p>
 
         <div className="flex items-center gap-2">
           <button

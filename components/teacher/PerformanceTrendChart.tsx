@@ -98,7 +98,7 @@ export function PerformanceTrendChart({
       ) : (
         <>
           <div>
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+            <p className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
               {categoryAveragesLabel}
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -133,7 +133,7 @@ export function PerformanceTrendChart({
           </div>
 
           <div>
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+            <p className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
               {trendsLabel}
             </p>
             <div className="w-full overflow-x-auto">

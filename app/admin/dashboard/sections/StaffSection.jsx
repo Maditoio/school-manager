@@ -73,7 +73,7 @@ export default function StaffSection({ data, loading }) {
           <div className="overflow-hidden rounded-xl border" style={{ borderColor: 'var(--dash-border)' }}>
             <table className="min-w-full">
               <thead style={{ background: 'var(--dash-surface-elevated)' }}>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-slate-400">
+                <tr className="text-left text-[0.6875rem] uppercase tracking-wide text-slate-400">
                   <th className="px-3 py-2 font-medium">{translateText('Teacher', locale)}</th>
                   <th className="px-3 py-2 font-medium">{translateText('Subject', locale)}</th>
                   <th className="px-3 py-2 font-medium">{translateText('Today', locale)}</th>
@@ -94,7 +94,7 @@ export default function StaffSection({ data, loading }) {
                     >
                       <td className="px-3 py-2 text-sm text-slate-100">
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-700 text-[11px] font-semibold text-slate-200">
+                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-700 text-[0.6875rem] font-semibold text-slate-200">
                             {teacher.name.split(' ').map((p) => p[0]).slice(0, 2).join('')}
                           </span>
                           <a href={`/admin/teachers/${teacher.id}`} className="hover:text-indigo-300 transition-colors">
@@ -105,7 +105,7 @@ export default function StaffSection({ data, loading }) {
                       <td className="px-3 py-2 text-sm text-slate-300">{teacher.subject}</td>
                       <td className="px-3 py-2">
                         <span
-                          className="inline-flex rounded-full px-2 py-1 text-[11px] font-semibold"
+                          className="inline-flex rounded-full px-2 py-1 text-[0.6875rem] font-semibold"
                           style={attendance[teacher.id] === 'Present'
                             ? { background: 'rgba(52,211,153,0.12)', color: '#34d399' }
                             : { background: 'rgba(239,68,68,0.12)', color: '#ef4444' }}
@@ -153,7 +153,7 @@ export default function StaffSection({ data, loading }) {
                     </div>
                   </div>
                   <button
-                    className="rounded-lg border px-2 py-1 text-[11px] font-semibold text-slate-300 hover:text-slate-100"
+                    className="rounded-lg border px-2 py-1 text-[0.6875rem] font-semibold text-slate-300 hover:text-slate-100"
                     style={{ borderColor: 'var(--dash-border-strong)', background: 'var(--dash-muted-fill)' }}
                     onClick={() => openAction(card.actionHref)}
                   >

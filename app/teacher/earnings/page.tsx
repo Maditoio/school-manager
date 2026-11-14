@@ -80,7 +80,7 @@ export default function TeacherEarningsPage() {
     >
       <div className="space-y-4">
         <div>
-          <h1 className="text-[20px] font-semibold ui-text-primary">{t('Course Earnings')}</h1>
+          <h1 className="text-[1.25rem] font-semibold ui-text-primary">{t('Course Earnings')}</h1>
           <p className="mt-1 text-sm ui-text-secondary">{t('Track revenue from your paid courses')}</p>
         </div>
 
@@ -96,10 +96,10 @@ export default function TeacherEarningsPage() {
                 key={card.label}
                 className="rounded-[10px] border border-(--border-subtle) bg-(--surface) p-4"
               >
-                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
                   {card.label}
                 </p>
-                <p className="mt-2 text-[22px] font-semibold ui-text-primary">{card.value}</p>
+                <p className="mt-2 text-[1.375rem] font-semibold ui-text-primary">{card.value}</p>
               </div>
             ))}
           </div>

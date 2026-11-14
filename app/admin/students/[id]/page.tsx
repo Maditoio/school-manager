@@ -947,7 +947,7 @@ export default function StudentDetailsPage() {
       {showEditModal && data ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] p-4">
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[10px] border border-(--border-subtle) bg-(--surface) p-5">
-            <h2 className="text-[20px] font-semibold ui-text-primary">
+            <h2 className="text-[1.25rem] font-semibold ui-text-primary">
               {t('editTitle', "Modifier l'étudiant")}
             </h2>
             <form onSubmit={handleSaveEdit} className="mt-4 space-y-3">
@@ -1052,7 +1052,7 @@ export default function StudentDetailsPage() {
       {showStatusModal && data ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] p-4">
           <div className="w-full max-w-md rounded-[10px] border border-(--border-subtle) bg-(--surface) p-5">
-            <h2 className="text-[20px] font-semibold ui-text-primary">
+            <h2 className="text-[1.25rem] font-semibold ui-text-primary">
               {t('statusTitle', 'Mettre à jour le statut')}
             </h2>
             <form onSubmit={handleSaveStatus} className="mt-4 space-y-3">
@@ -1118,7 +1118,7 @@ export default function StudentDetailsPage() {
       {loginCredentials ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] p-4">
           <div className="w-full max-w-md rounded-[10px] border border-(--border-subtle) bg-(--surface) p-5">
-            <h2 className="text-[20px] font-semibold ui-text-primary">
+            <h2 className="text-[1.25rem] font-semibold ui-text-primary">
               {t('loginCreatedTitle', 'Connexion créée')}
             </h2>
             <p className="mt-1 text-sm ui-text-secondary">

@@ -339,7 +339,7 @@ export default function AdminUsersPage() {
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-[20px] font-semibold ui-text-primary">
+            <h1 className="text-[1.25rem] font-semibold ui-text-primary">
               {t('pageTitle', 'Gestion des utilisateurs')}
             </h1>
             <p className="mt-1 text-sm ui-text-secondary">
@@ -389,7 +389,7 @@ export default function AdminUsersPage() {
       {showModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--overlay) p-4">
           <div className="w-full max-w-lg rounded-[10px] border border-(--border-subtle) bg-(--surface) p-5">
-            <h2 className="text-[20px] font-semibold ui-text-primary">
+            <h2 className="text-[1.25rem] font-semibold ui-text-primary">
               {t('addUser', 'Ajouter un utilisateur')}
             </h2>
             <form onSubmit={handleSubmit} className="mt-4 space-y-3">

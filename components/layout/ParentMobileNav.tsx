@@ -24,6 +24,8 @@ interface ParentMobileNavProps {
   onLogout?: () => void
   language?: string
   onLanguageChange?: (code: string) => void
+  fontScale?: string
+  onFontScaleCycle?: () => void
 }
 
 const iconBySegment: Record<string, ComponentType<{ className?: string }>> = {
@@ -56,6 +58,8 @@ export function ParentMobileNav({
   onLogout,
   language,
   onLanguageChange,
+  fontScale = 'normal',
+  onFontScaleCycle,
 }: ParentMobileNavProps) {
   const pathname = usePathname()
   const { locale } = useLocale()
@@ -66,6 +70,13 @@ export function ParentMobileNav({
   const closeDrawer = useCallback(() => setOpen(false), [])
   const toggleDrawer = useCallback(() => setOpen((prev) => !prev), [])
   const activeLanguage = String(language || locale || 'en').toLowerCase()
+  const scale = String(fontScale || 'normal').toLowerCase()
+  const fontScaleLabel =
+    scale === 'x-large'
+      ? translateText('Extra large', locale)
+      : scale === 'large'
+        ? translateText('Large', locale)
+        : translateText('Default', locale)
 
   useEffect(() => {
     setOpen(false)
@@ -106,7 +117,7 @@ export function ParentMobileNav({
           >
             {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </button>
-          <p className="min-w-0 truncate text-[14px] font-semibold ui-text-primary">{currentTitle}</p>
+          <p className="min-w-0 truncate text-[0.875rem] font-semibold ui-text-primary">{currentTitle}</p>
         </div>
       </header>
 
@@ -128,7 +139,7 @@ export function ParentMobileNav({
         aria-hidden={!open}
       >
         <div className="flex h-14 items-center justify-between border-b border-(--border-subtle) px-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
             {translateText('Menu', locale)}
           </p>
           <button
@@ -153,7 +164,7 @@ export function ParentMobileNav({
                     href={item.href}
                     onClick={closeDrawer}
                     aria-current={isActive ? 'page' : undefined}
-                    className={`flex h-10 items-center gap-2.5 rounded-[6px] px-3 text-[14px] font-medium transition-colors duration-[150ms] ease-[ease] ${
+                    className={`flex h-10 items-center gap-2.5 rounded-[6px] px-3 text-[0.875rem] font-medium transition-colors duration-[150ms] ease-[ease] ${
                       isActive
                         ? 'border-l-[3px] border-l-[#635bff] bg-[#f0effe] pl-[9px] text-[#635bff]'
                         : 'border-l-[3px] border-l-transparent ui-text-primary hover:bg-[#f6f9fc]'
@@ -178,6 +189,20 @@ export function ParentMobileNav({
             />
           ) : null}
 
+          {onFontScaleCycle ? (
+            <button
+              type="button"
+              onClick={onFontScaleCycle}
+              aria-label={`${translateText('Text size', locale)}: ${fontScaleLabel}`}
+              className="flex h-10 w-full items-center justify-between rounded-[6px] px-3 text-[0.875rem] font-medium ui-text-primary transition-colors duration-[150ms] ease-[ease] hover:bg-[#f6f9fc]"
+            >
+              <span>{translateText('Text size', locale)}</span>
+              <span className="text-[0.75rem] font-semibold uppercase tracking-[0.06em] text-[#635bff]">
+                {fontScaleLabel}
+              </span>
+            </button>
+          ) : null}
+
           {onLogout ? (
             <button
               type="button"
@@ -185,7 +210,7 @@ export function ParentMobileNav({
                 closeDrawer()
                 onLogout()
               }}
-              className="flex h-10 w-full items-center gap-2.5 rounded-[6px] px-3 text-[14px] font-medium text-[#c0392b] transition-colors duration-[150ms] ease-[ease] hover:bg-[#fff0ee]"
+              className="flex h-10 w-full items-center gap-2.5 rounded-[6px] px-3 text-[0.875rem] font-medium text-[#c0392b] transition-colors duration-[150ms] ease-[ease] hover:bg-[#fff0ee]"
               aria-label={translateText('Logout', locale)}
             >
               <LogOut className="h-4 w-4 shrink-0" />

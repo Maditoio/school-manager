@@ -210,7 +210,7 @@ export default function TeacherProfilePage({ params }: { params: Promise<{ id: s
             >
               Add Contract
             </Button>
-            <a href="/admin/teachers" className="ui-button ui-button-secondary h-8 px-3.5 text-[13px] inline-flex items-center justify-center">
+            <a href="/admin/teachers" className="ui-button ui-button-secondary h-8 px-3.5 text-[0.8125rem] inline-flex items-center justify-center">
               Back to Teachers
             </a>
           </div>

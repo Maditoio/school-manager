@@ -36,7 +36,7 @@ export default function BillingManagementPage() {
       navItems={navItems}
     >
       <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
-        <p className="text-[20px] font-semibold ui-text-primary">
+        <p className="text-[1.25rem] font-semibold ui-text-primary">
           {tAdmin('comingSoon', 'Coming soon')}
         </p>
       </div>

@@ -137,11 +137,11 @@ export default function TeacherStudentsPage() {
       <div className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-[20px] font-semibold ui-text-primary">My Students</h1>
+            <h1 className="text-[1.25rem] font-semibold ui-text-primary">My Students</h1>
             <p className="mt-1 text-sm ui-text-secondary">Students in your classes</p>
           </div>
           <label className="flex min-w-[200px] flex-col gap-1">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+            <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
               Class
             </span>
             <Select

@@ -123,7 +123,7 @@ export default function AcademicSection({ data, loading }) {
         <div className="xl:col-span-2 rounded-2xl border p-4" style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border)' }}>
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-semibold text-slate-200">{translateText('Term Performance Trend', locale)}</p>
-            <div className="flex items-center gap-3 text-[11px] text-slate-400">
+            <div className="flex items-center gap-3 text-[0.6875rem] text-slate-400">
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-indigo-500" />{translateText('Previous Term', locale)}</span>
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-sky-400" />{translateText('Two Terms Ago', locale)}</span>
               <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-500" />{translateText('Three Terms Ago', locale)}</span>

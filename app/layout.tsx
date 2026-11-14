@@ -39,12 +39,17 @@ export default async function RootLayout({
   const cookieStore = await cookies();
   const localeCookie = cookieStore.get('NEXT_LOCALE')?.value;
   const themeCookie = cookieStore.get('ui-theme')?.value;
+  const fontScaleCookie = cookieStore.get('ui-font-scale')?.value;
   const htmlLang = localeCookie === 'fr' || localeCookie === 'sw' || localeCookie === 'en'
     ? localeCookie
     : 'en';
   const initialTheme = themeCookie === 'dark' || themeCookie === 'calm' || themeCookie === 'light'
     ? themeCookie
     : 'light'
+  const initialFontScale =
+    fontScaleCookie === 'large' || fontScaleCookie === 'x-large' || fontScaleCookie === 'normal'
+      ? fontScaleCookie
+      : 'normal'
   const initialThemeColor = initialTheme === 'dark'
     ? '#0f1720'
     : initialTheme === 'calm'
@@ -52,7 +57,12 @@ export default async function RootLayout({
       : '#f5f6f8'
   
   return (
-    <html lang={htmlLang} data-theme={initialTheme} style={{ colorScheme: initialTheme === 'dark' ? 'dark' : 'light' }}>
+    <html
+      lang={htmlLang}
+      data-theme={initialTheme}
+      data-font-scale={initialFontScale}
+      style={{ colorScheme: initialTheme === 'dark' ? 'dark' : 'light' }}
+    >
       <head>
         <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
@@ -87,6 +97,19 @@ export default async function RootLayout({
                   metaTheme.setAttribute('content', themeColorMap[theme] || themeColorMap.light);
                 });
                 document.documentElement.classList.add('theme-transition');
+
+                var scaleAllowed = { normal: 1, large: 1, 'x-large': 1 };
+                var storedScale = null;
+                try { storedScale = localStorage.getItem('ui-font-scale'); } catch (e) {}
+                var scaleCookieMatch = document.cookie.match(/(?:^|;\\s*)ui-font-scale=([^;]*)/);
+                var cookieScale = scaleCookieMatch ? decodeURIComponent(scaleCookieMatch[1]) : null;
+                var attrScale = document.documentElement.getAttribute('data-font-scale');
+                var fontScale = [storedScale, cookieScale, attrScale].find(function (value) {
+                  return value && scaleAllowed[value];
+                }) || 'normal';
+                document.documentElement.setAttribute('data-font-scale', fontScale);
+                document.cookie = 'ui-font-scale=' + encodeURIComponent(fontScale) + '; path=/; max-age=31536000; SameSite=Lax';
+                try { localStorage.setItem('ui-font-scale', fontScale); } catch (e) {}
               } catch (e) {}
             `,
           }}

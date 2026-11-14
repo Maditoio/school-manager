@@ -100,7 +100,7 @@ export default function MyCoursesPage() {
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => router.push('/student/hub')}>
             <span className="inline-flex items-center gap-1.5">
-              <MaterialIcon name="arrow_back" className="text-[18px]" /> {tStudent('browse', 'Browse')}
+              <MaterialIcon name="arrow_back" className="text-[1.125rem]" /> {tStudent('browse', 'Browse')}
             </span>
           </Button>
           <div>
@@ -174,7 +174,7 @@ export default function MyCoursesPage() {
                       ) : (
                         <MaterialIcon name="play_circle" className="text-6xl" />
                       )}
-                      <span className="absolute top-3 left-3 text-[11px] px-2 py-0.5 rounded-full bg-black/60 text-white font-semibold tracking-wide">
+                      <span className="absolute top-3 left-3 text-[0.6875rem] px-2 py-0.5 rounded-full bg-black/60 text-white font-semibold tracking-wide">
                         {tStudent('enrolled', 'Enrolled')}
                       </span>
                     </div>
@@ -209,14 +209,14 @@ export default function MyCoursesPage() {
 
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs ui-text-secondary">
                         <span className="inline-flex items-center gap-1">
-                          <MaterialIcon name="video_library" className="text-[14px]" />{' '}
+                          <MaterialIcon name="video_library" className="text-[0.875rem]" />{' '}
                           {tStudent('lessonsCount', '{count} lessons', { count: course.lessons.length })}
                         </span>
                         <span className="inline-flex items-center gap-1">
-                          <MaterialIcon name="schedule" className="text-[14px]" /> {formatDuration(course.totalDuration)}
+                          <MaterialIcon name="schedule" className="text-[0.875rem]" /> {formatDuration(course.totalDuration)}
                         </span>
                         <span className="inline-flex items-center gap-1">
-                          <MaterialIcon name="calendar_month" className="text-[14px]" />{' '}
+                          <MaterialIcon name="calendar_month" className="text-[0.875rem]" />{' '}
                           {tStudent('enrolledOn', 'Enrolled {date}', { date: formatDate(enrollment.enrolledAt) })}
                         </span>
                       </div>

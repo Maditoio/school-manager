@@ -73,7 +73,7 @@ const leaveReasonLabels: Record<'SUSPENSION' | 'GRADUATION' | 'TRANSFERRED_SCHOO
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <p className="text-[11px] font-medium uppercase tracking-wider ui-text-secondary mb-0.5">{label}</p>
+      <p className="text-[0.6875rem] font-medium uppercase tracking-wider ui-text-secondary mb-0.5">{label}</p>
       <p className="text-sm font-medium ui-text-primary">{value || 'N/A'}</p>
     </div>
   )
@@ -164,7 +164,7 @@ export default function TeacherStudentDetailsPage() {
         {/* Breadcrumb */}
         <Link
           href="/teacher/students"
-          className="inline-flex items-center gap-1 text-[13px] ui-text-secondary hover:ui-text-primary transition-colors"
+          className="inline-flex items-center gap-1 text-[0.8125rem] ui-text-secondary hover:ui-text-primary transition-colors"
         >
           ← Students
         </Link>
@@ -198,11 +198,11 @@ export default function TeacherStudentDetailsPage() {
                       <h1 className="text-base font-semibold ui-text-primary leading-snug">
                         {s.firstName} {s.lastName}
                       </h1>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[0.625rem] font-semibold ${s.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                         {s.status === 'ACTIVE' ? 'Active' : `Left${s.statusReason ? ` · ${leaveReasonLabels[s.statusReason]}` : ''}`}
                       </span>
                     </div>
-                    <p className="text-[12px] ui-text-secondary mt-0.5">
+                    <p className="text-[0.75rem] ui-text-secondary mt-0.5">
                       {s.class.name}{s.class.grade ? ` · ${s.class.grade}` : ''}
                       {s.admissionNumber ? ` · ${s.admissionNumber}` : ''}
                     </p>
@@ -224,21 +224,21 @@ export default function TeacherStudentDetailsPage() {
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-sm font-semibold ui-text-primary">Attendance</h2>
                   {attendanceRate !== null && (
-                    <span className="text-[12px] font-semibold ui-text-secondary">{attendanceRate}% rate</span>
+                    <span className="text-[0.75rem] font-semibold ui-text-secondary">{attendanceRate}% rate</span>
                   )}
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="rounded-lg bg-emerald-50 border border-emerald-100 py-2.5 text-center">
                     <p className="text-xl font-bold text-emerald-700">{data.attendanceSummary.present}</p>
-                    <p className="text-[10px] font-medium text-emerald-600 uppercase tracking-wide">Present</p>
+                    <p className="text-[0.625rem] font-medium text-emerald-600 uppercase tracking-wide">Present</p>
                   </div>
                   <div className="rounded-lg bg-red-50 border border-red-100 py-2.5 text-center">
                     <p className="text-xl font-bold text-red-600">{data.attendanceSummary.absent}</p>
-                    <p className="text-[10px] font-medium text-red-500 uppercase tracking-wide">Absent</p>
+                    <p className="text-[0.625rem] font-medium text-red-500 uppercase tracking-wide">Absent</p>
                   </div>
                   <div className="rounded-lg bg-amber-50 border border-amber-100 py-2.5 text-center">
                     <p className="text-xl font-bold text-amber-600">{data.attendanceSummary.late}</p>
-                    <p className="text-[10px] font-medium text-amber-500 uppercase tracking-wide">Late</p>
+                    <p className="text-[0.625rem] font-medium text-amber-500 uppercase tracking-wide">Late</p>
                   </div>
                 </div>
               </div>
@@ -263,7 +263,7 @@ export default function TeacherStudentDetailsPage() {
                     {data.subjects.map((subject) => (
                       <span
                         key={subject.id}
-                        className="rounded-md border border-(--border-subtle) bg-(--surface-soft) px-2.5 py-1 text-[12px] font-medium ui-text-primary"
+                        className="rounded-md border border-(--border-subtle) bg-(--surface-soft) px-2.5 py-1 text-[0.75rem] font-medium ui-text-primary"
                       >
                         {subject.name}{subject.code ? ` (${subject.code})` : ''}
                       </span>
@@ -280,7 +280,7 @@ export default function TeacherStudentDetailsPage() {
                 <div>
                   <h2 className="text-sm font-semibold ui-text-primary">Assessment Results</h2>
                   {avgScore !== null && (
-                    <p className="text-[12px] ui-text-secondary mt-0.5">
+                    <p className="text-[0.75rem] ui-text-secondary mt-0.5">
                       Average: <span className="font-semibold ui-text-primary">{avgScore}%</span>
                       {' · '}{gradedResults.length} graded
                     </p>
@@ -292,7 +292,7 @@ export default function TeacherStudentDetailsPage() {
                     <button
                       key={t}
                       onClick={() => setTypeFilter(t)}
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                      className={`rounded-full px-2.5 py-1 text-[0.6875rem] font-medium transition-colors ${
                         typeFilter === t
                           ? 'bg-(--accent) text-white'
                           : 'border border-(--border-subtle) ui-text-secondary hover:ui-text-primary'
@@ -332,7 +332,7 @@ export default function TeacherStudentDetailsPage() {
                           <td>
                             <p className="font-medium ui-text-primary leading-snug">{r.assessment.title}</p>
                             {r.feedback ? (
-                              <p className="mt-0.5 max-w-50 truncate text-[11px] ui-text-secondary" title={r.feedback}>
+                              <p className="mt-0.5 max-w-50 truncate text-[0.6875rem] ui-text-secondary" title={r.feedback}>
                                 {r.feedback}
                               </p>
                             ) : null}

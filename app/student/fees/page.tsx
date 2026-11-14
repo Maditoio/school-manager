@@ -138,7 +138,7 @@ export default function StudentFeesPaymentPage() {
     >
       <div className="mx-auto max-w-4xl space-y-5 p-1 sm:p-0">
         <div>
-          <h1 className="text-[20px] font-semibold ui-text-primary">
+          <h1 className="text-[1.25rem] font-semibold ui-text-primary">
             {tStudent('schoolFees', 'School Fees')}
           </h1>
           <p className="mt-1 text-sm ui-text-secondary">
@@ -149,19 +149,19 @@ export default function StudentFeesPaymentPage() {
         {!loading && invoices.length > 0 && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="ui-card rounded-[10px] border border-(--border-subtle) bg-(--surface-card) p-4">
-              <p className="text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-[0.07em] ui-text-secondary">
                 {tStudent('totalOutstanding', 'Total Outstanding')}
               </p>
               <p className="mt-1 text-2xl font-semibold ui-text-primary">{formatUSD(totalOutstanding)}</p>
             </div>
             <div className="ui-card rounded-[10px] border border-(--border-subtle) bg-(--surface-card) p-4">
-              <p className="text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-[0.07em] ui-text-secondary">
                 {tStudent('invoices', 'Invoices')}
               </p>
               <p className="mt-1 text-2xl font-semibold ui-text-primary">{invoices.length}</p>
             </div>
             <div className="ui-card rounded-[10px] border border-(--border-subtle) bg-(--surface-card) p-4">
-              <p className="text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-[0.07em] ui-text-secondary">
                 {tStudent('totalPaid', 'Total Paid')}
               </p>
               <p className="mt-1 text-2xl font-semibold text-[#1b8a5a]">
@@ -214,7 +214,7 @@ export default function StudentFeesPaymentPage() {
                   </div>
                   <div className="mt-3 flex items-end justify-between gap-3">
                     <div>
-                      <p className="text-[11px] uppercase tracking-[0.07em] ui-text-secondary">
+                      <p className="text-[0.6875rem] uppercase tracking-[0.07em] ui-text-secondary">
                         {tStudent('balance', 'Balance')}
                       </p>
                       <p
@@ -248,22 +248,22 @@ export default function StudentFeesPaymentPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-(--border-subtle) text-left">
-                      <th className="p-4 text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary">
+                      <th className="p-4 text-[0.6875rem] font-medium uppercase tracking-[0.07em] ui-text-secondary">
                         {tStudent('period', 'Period')}
                       </th>
-                      <th className="p-4 text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary">
+                      <th className="p-4 text-[0.6875rem] font-medium uppercase tracking-[0.07em] ui-text-secondary">
                         {tStudent('dueDate', 'Due Date')}
                       </th>
-                      <th className="p-4 text-right text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary">
+                      <th className="p-4 text-right text-[0.6875rem] font-medium uppercase tracking-[0.07em] ui-text-secondary">
                         {tStudent('amountDue', 'Amount Due')}
                       </th>
-                      <th className="p-4 text-right text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary">
+                      <th className="p-4 text-right text-[0.6875rem] font-medium uppercase tracking-[0.07em] ui-text-secondary">
                         {tStudent('balance', 'Balance')}
                       </th>
-                      <th className="p-4 text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary">
+                      <th className="p-4 text-[0.6875rem] font-medium uppercase tracking-[0.07em] ui-text-secondary">
                         {tStudent('status', 'Status')}
                       </th>
-                      <th className="p-4 text-right text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary">
+                      <th className="p-4 text-right text-[0.6875rem] font-medium uppercase tracking-[0.07em] ui-text-secondary">
                         {tStudent('action', 'Action')}
                       </th>
                     </tr>
@@ -315,7 +315,7 @@ export default function StudentFeesPaymentPage() {
 
         <div className="rounded-[10px] border border-(--border-subtle) bg-(--surface-card) p-4">
           <div className="flex gap-3">
-            <MaterialIcon name="info" className="mt-0.5 shrink-0 text-[20px] text-[#635bff]" />
+            <MaterialIcon name="info" className="mt-0.5 shrink-0 text-[1.25rem] text-[#635bff]" />
             <div className="text-sm ui-text-secondary">
               <p className="mb-1 font-medium ui-text-primary">
                 {tStudent('paymentProcessing', 'Payment Processing')}

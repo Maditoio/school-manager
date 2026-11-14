@@ -225,7 +225,7 @@ export function Sidebar({ items, user, onLogout, appName = 'Azelio', onDesktopWi
   const sections = useMemo(() => buildSections(items), [items])
 
   const sidebarLabelBase =
-    'pointer-events-none whitespace-nowrap text-[13px] font-medium transition-all duration-200 ease-out'
+    'pointer-events-none whitespace-nowrap text-[0.8125rem] font-medium transition-all duration-200 ease-out'
 
   // Shared nav link renderer
   const renderNavLink = (item: NavItem, index: number, indent = false) => {
@@ -387,8 +387,8 @@ export function Sidebar({ items, user, onLogout, appName = 'Azelio', onDesktopWi
               transitionDelay: isOpen ? '100ms' : '0ms',
             }}
           >
-            <p className="max-w-28 truncate text-[13px] font-semibold text-slate-100">{user.name}</p>
-            <p className="max-w-28 truncate text-[11px] text-slate-400">{user.role}</p>
+            <p className="max-w-28 truncate text-[0.8125rem] font-semibold text-slate-100">{user.name}</p>
+            <p className="max-w-28 truncate text-[0.6875rem] text-slate-400">{user.role}</p>
           </div>
           <button
             type="button"

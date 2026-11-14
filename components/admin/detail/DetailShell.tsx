@@ -28,7 +28,7 @@ export function DetailCard({
 
 export function DetailMetaLabel({ children }: { children: ReactNode }) {
   return (
-    <p className="text-[11px] font-semibold uppercase tracking-[0.07em] leading-normal ui-text-secondary">
+    <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] leading-normal ui-text-secondary">
       {children}
     </p>
   )

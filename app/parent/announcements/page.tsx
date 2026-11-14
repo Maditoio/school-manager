@@ -120,7 +120,7 @@ export default async function ParentAnnouncementsPage({
                   <p className="mt-2 text-sm ui-text-secondary whitespace-pre-wrap">
                     {announcement.message}
                   </p>
-                  <p className="mt-2 text-[11px] ui-text-secondary">
+                  <p className="mt-2 text-[0.6875rem] ui-text-secondary">
                     {formatParentDate(announcement.createdAt, lang, true)}
                   </p>
                 </ParentCard>

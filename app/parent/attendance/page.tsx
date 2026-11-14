@@ -85,26 +85,26 @@ export default async function ParentAttendancePage({
           <>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <ParentCard>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
                   {tParent(lang, 'termAttendance', 'Présence')}
                 </p>
-                <p className="mt-2 text-[22px] font-semibold ui-text-primary">
+                <p className="mt-2 text-[1.375rem] font-semibold ui-text-primary">
                   {attendance.rate}%
                 </p>
               </ParentCard>
               <ParentCard>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
                   {tParent(lang, 'present', 'Présent')}
                 </p>
-                <p className="mt-2 text-[22px] font-semibold ui-text-primary">
+                <p className="mt-2 text-[1.375rem] font-semibold ui-text-primary">
                   {attendance.presentCount}
                 </p>
               </ParentCard>
               <ParentCard>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
                   {tParent(lang, 'recordsCount', 'Enregistrements')}
                 </p>
-                <p className="mt-2 text-[22px] font-semibold ui-text-primary">
+                <p className="mt-2 text-[1.375rem] font-semibold ui-text-primary">
                   {attendance.totalCount}
                 </p>
               </ParentCard>

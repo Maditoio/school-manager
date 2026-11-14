@@ -156,7 +156,7 @@ export default function AlertDialog({
           {/* Title */}
           <h2
             id={dialogTitleId}
-            className="mt-5 text-center text-[18px] font-bold"
+            className="mt-5 text-center text-[1.125rem] font-bold"
             style={{ color: '#e2e8f0' }}
           >
             {title}
@@ -165,7 +165,7 @@ export default function AlertDialog({
           {/* Message */}
           <p
             id={dialogDescriptionId}
-            className="mx-auto mt-2 max-w-85 text-center text-[14px]"
+            className="mx-auto mt-2 max-w-85 text-center text-[0.875rem]"
             style={{ color: '#64748b', lineHeight: 1.65 }}
           >
             {message}

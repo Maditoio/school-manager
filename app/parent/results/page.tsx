@@ -85,16 +85,16 @@ export default async function ParentResultsPage({
           <>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <ParentCard>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
                   {tParent(lang, 'overallAverage', 'Moyenne')}
                 </p>
-                <p className="mt-2 text-[22px] font-semibold ui-text-primary">{average}%</p>
+                <p className="mt-2 text-[1.375rem] font-semibold ui-text-primary">{average}%</p>
               </ParentCard>
               <ParentCard>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
                   {tParent(lang, 'gradedCount', 'Évaluations notées')}
                 </p>
-                <p className="mt-2 text-[22px] font-semibold ui-text-primary">{results.length}</p>
+                <p className="mt-2 text-[1.375rem] font-semibold ui-text-primary">{results.length}</p>
               </ParentCard>
             </div>
 

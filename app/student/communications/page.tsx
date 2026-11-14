@@ -169,10 +169,10 @@ export default function StudentCommunicationsPage() {
                         <p className="text-sm font-semibold ui-text-primary leading-tight">
                           {ann.title}
                         </p>
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${ps.badge}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide ${ps.badge}`}>
                           {priorityLabels[ann.priority] ?? ann.priority}
                         </span>
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        <span className={`rounded-full px-2 py-0.5 text-[0.625rem] font-medium ${
                           ann.type === 'class'
                             ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
                             : 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300'
@@ -187,7 +187,7 @@ export default function StudentCommunicationsPage() {
                         <p className="text-xs ui-text-secondary line-clamp-2">{ann.message}</p>
                       )}
 
-                      <div className="mt-1.5 flex items-center gap-2 text-[11px] ui-text-secondary">
+                      <div className="mt-1.5 flex items-center gap-2 text-[0.6875rem] ui-text-secondary">
                         {ann.creator && (
                           <span>
                             {ann.creator.firstName} {ann.creator.lastName}
@@ -226,7 +226,7 @@ export default function StudentCommunicationsPage() {
                       <p className="text-sm ui-text-primary whitespace-pre-wrap leading-relaxed">
                         {ann.message}
                       </p>
-                      <p className="mt-3 text-[11px] ui-text-secondary">
+                      <p className="mt-3 text-[0.6875rem] ui-text-secondary">
                         {tStudent('publishedOn', 'Published on {date}', {
                           date: new Date(ann.createdAt).toLocaleDateString(dateLocale, {
                             weekday: 'long',

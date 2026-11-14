@@ -20,7 +20,7 @@ import {
 
 function sectionLabel(text) {
   return (
-    <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+    <p className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-slate-500">
       {text}
     </p>
   )

@@ -178,7 +178,7 @@ export function MeetingAgendaView({
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-[24px] font-bold ui-text-primary">Meeting Agenda</h1>
+            <h1 className="text-[1.5rem] font-bold ui-text-primary">Meeting Agenda</h1>
             <p className="mt-1 ui-text-secondary">
               Auto-generated talking points from fund requests in the selected period.
             </p>

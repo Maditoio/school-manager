@@ -33,9 +33,9 @@ export function Button({
   }
 
   const sizeClasses = {
-    sm: 'h-7 px-3 text-[13px]',
-    md: 'h-8 px-3.5 text-[13px]',
-    lg: 'h-8 px-4 text-[13px]',
+    sm: 'h-7 px-3 text-[0.8125rem]',
+    md: 'h-8 px-3.5 text-[0.8125rem]',
+    lg: 'h-8 px-4 text-[0.8125rem]',
   }
 
   return (

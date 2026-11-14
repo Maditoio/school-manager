@@ -501,7 +501,7 @@ export default function AdminSettingsPage() {
     >
       <div className="space-y-5">
         <div>
-          <h1 className="text-[20px] font-semibold ui-text-primary">{t('Settings')}</h1>
+          <h1 className="text-[1.25rem] font-semibold ui-text-primary">{t('Settings')}</h1>
           <p className="mt-1 text-sm ui-text-secondary">
             {t('Manage school-wide configurations — finance rules and academic calendar.')}
           </p>
@@ -527,7 +527,7 @@ export default function AdminSettingsPage() {
           <div className="space-y-8 min-w-0">
             {/* Finance */}
             <section id="finance" className="scroll-mt-6">
-              <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+              <h2 className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
                 {t('Finance')}
               </h2>
 
@@ -606,7 +606,7 @@ export default function AdminSettingsPage() {
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[11px] font-semibold ui-text-secondary mb-1 uppercase tracking-[0.07em]">
+                          <label className="block text-[0.6875rem] font-semibold ui-text-secondary mb-1 uppercase tracking-[0.07em]">
                             {t('Generation day')}
                           </label>
                           <input
@@ -620,7 +620,7 @@ export default function AdminSettingsPage() {
                           <p className="mt-1 text-xs ui-text-secondary">{t('Day invoices are created (1–28)')}</p>
                         </div>
                         <div>
-                          <label className="block text-[11px] font-semibold ui-text-secondary mb-1 uppercase tracking-[0.07em]">
+                          <label className="block text-[0.6875rem] font-semibold ui-text-secondary mb-1 uppercase tracking-[0.07em]">
                             {t('Due day')}
                           </label>
                           <input
@@ -637,7 +637,7 @@ export default function AdminSettingsPage() {
                     </div>
 
                     <div>
-                      <p className="text-[11px] font-semibold ui-text-secondary mb-2 uppercase tracking-[0.07em]">
+                      <p className="text-[0.6875rem] font-semibold ui-text-secondary mb-2 uppercase tracking-[0.07em]">
                         {t('Active months (leave empty for all)')}
                       </p>
                       <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
@@ -684,7 +684,7 @@ export default function AdminSettingsPage() {
 
             {/* Academic */}
             <section id="academic" className="scroll-mt-6">
-              <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+              <h2 className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
                 {t('Academic Calendar')}
               </h2>
 
@@ -811,7 +811,7 @@ export default function AdminSettingsPage() {
                               <td className="ui-text-secondary">{new Date(term.endDate).toLocaleDateString()}</td>
                               <td>
                                 {term.isCurrent ? (
-                                  <span className="inline-flex rounded-full bg-[#eafaf3] px-2.5 py-1 text-[11px] font-semibold text-[#1b8a5a]">
+                                  <span className="inline-flex rounded-full bg-[#eafaf3] px-2.5 py-1 text-[0.6875rem] font-semibold text-[#1b8a5a]">
                                     {t('Current')}
                                   </span>
                                 ) : (
@@ -820,7 +820,7 @@ export default function AdminSettingsPage() {
                               </td>
                               <td>
                                 {term.isLocked ? (
-                                  <span className="inline-flex rounded-full bg-[#fff8e6] px-2.5 py-1 text-[11px] font-semibold text-[#b07d00]">
+                                  <span className="inline-flex rounded-full bg-[#fff8e6] px-2.5 py-1 text-[0.6875rem] font-semibold text-[#b07d00]">
                                     {t('Locked')}
                                   </span>
                                 ) : (
@@ -859,7 +859,7 @@ export default function AdminSettingsPage() {
 
             {/* Courses */}
             <section id="courses" className="scroll-mt-6">
-              <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+              <h2 className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
                 {t('Video Courses')}
               </h2>
               <Card title={t('Cross-School Course Sharing')} className="p-5">
@@ -897,7 +897,7 @@ export default function AdminSettingsPage() {
 
             {/* Branding */}
             <section id="branding" className="scroll-mt-6">
-              <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+              <h2 className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
                 {t('School Branding')}
               </h2>
               <Card title={t('School Logo')} className="p-5">
@@ -906,7 +906,7 @@ export default function AdminSettingsPage() {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-[160px_minmax(0,1fr)] gap-5 items-start">
                   <div>
-                    <label className="block text-[11px] font-semibold ui-text-secondary mb-2 uppercase tracking-[0.07em]">
+                    <label className="block text-[0.6875rem] font-semibold ui-text-secondary mb-2 uppercase tracking-[0.07em]">
                       {t('Preview')}
                     </label>
                     <div
@@ -928,7 +928,7 @@ export default function AdminSettingsPage() {
 
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-[11px] font-semibold ui-text-secondary mb-2 uppercase tracking-[0.07em]">
+                      <label className="block text-[0.6875rem] font-semibold ui-text-secondary mb-2 uppercase tracking-[0.07em]">
                         {t('Upload image')}
                       </label>
                       <input

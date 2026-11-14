@@ -14,13 +14,13 @@ export function DetailHeader({ title, badges, meta, subtitle, actions }: DetailH
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.01em] ui-text-primary">
+            <h1 className="text-[1.375rem] font-semibold leading-tight tracking-[-0.01em] ui-text-primary">
               {title}
             </h1>
             {badges}
           </div>
-          {meta ? <div className="text-[13px] leading-snug ui-text-secondary">{meta}</div> : null}
-          {subtitle ? <div className="text-[12px] ui-text-secondary">{subtitle}</div> : null}
+          {meta ? <div className="text-[0.8125rem] leading-snug ui-text-secondary">{meta}</div> : null}
+          {subtitle ? <div className="text-[0.75rem] ui-text-secondary">{subtitle}</div> : null}
         </div>
         {actions ? <div className="shrink-0 self-start">{actions}</div> : null}
       </div>

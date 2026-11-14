@@ -60,7 +60,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen bg-[#f6f9fc] flex items-center justify-center p-4">
       <div className="bg-white rounded-[10px] border border-[#e0e6ed] p-8 w-full max-w-md">
-        <h1 className="text-[20px] font-semibold text-[#0a2540] mb-2">Forgot password</h1>
+        <h1 className="text-[1.25rem] font-semibold text-[#0a2540] mb-2">Forgot password</h1>
         <p className="text-sm text-[#8898aa] mb-6">
           Enter the email address for your account. Password reset is only available for email
           logins — not student numbers or phone numbers.

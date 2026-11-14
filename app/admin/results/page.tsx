@@ -199,7 +199,7 @@ export default function AdminResultsPage() {
     >
       <div className="space-y-4">
         <div>
-          <h1 className="text-[20px] font-semibold ui-text-primary">Assessment Results</h1>
+          <h1 className="text-[1.25rem] font-semibold ui-text-primary">Assessment Results</h1>
           <p className="ui-text-secondary mt-1">View all student results from assessments by class and subject</p>
         </div>
 

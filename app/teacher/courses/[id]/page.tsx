@@ -226,7 +226,7 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
       <div className="p-4 sm:p-6 space-y-6 max-w-4xl mx-auto">
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => router.push('/teacher/courses')}>
-            <span className="inline-flex items-center gap-1.5"><MaterialIcon name="arrow_back" className="text-[18px]" /> Back</span>
+            <span className="inline-flex items-center gap-1.5"><MaterialIcon name="arrow_back" className="text-[1.125rem]" /> Back</span>
           </Button>
           <h1 className="text-xl font-bold ui-text-primary flex-1">{course?.title ?? 'Loading…'}</h1>
           {course && (
@@ -243,7 +243,7 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
               }}
             >
               <span className="inline-flex items-center gap-1.5">
-                <MaterialIcon name={course.published ? 'pause_circle' : 'rocket_launch'} className="text-[18px]" />
+                <MaterialIcon name={course.published ? 'pause_circle' : 'rocket_launch'} className="text-[1.125rem]" />
                 {course.published ? 'Unpublish' : 'Publish'}
               </span>
             </Button>
@@ -320,11 +320,11 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
                     <label className="cursor-pointer flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border ui-border text-xs ui-text-secondary hover:bg-(--surface-soft) transition-colors w-full">
                       <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleThumbnailUpload} className="hidden" disabled={thumbnailUploading} />
                       {thumbnailUploading ? (
-                        <span className="inline-flex items-center gap-1"><MaterialIcon name="hourglass_top" className="text-[14px]" /> Uploading...</span>
+                        <span className="inline-flex items-center gap-1"><MaterialIcon name="hourglass_top" className="text-[0.875rem]" /> Uploading...</span>
                       ) : course.thumbnailUrl ? (
-                        <span className="inline-flex items-center gap-1"><MaterialIcon name="sync" className="text-[14px]" /> Change Thumbnail</span>
+                        <span className="inline-flex items-center gap-1"><MaterialIcon name="sync" className="text-[0.875rem]" /> Change Thumbnail</span>
                       ) : (
-                        <span className="inline-flex items-center gap-1"><MaterialIcon name="add_photo_alternate" className="text-[14px]" /> Upload Thumbnail</span>
+                        <span className="inline-flex items-center gap-1"><MaterialIcon name="add_photo_alternate" className="text-[0.875rem]" /> Upload Thumbnail</span>
                       )}
                     </label>
                   </div>
@@ -337,18 +337,18 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
                         <span className="ui-text-secondary">Avg Rating: <strong className="ui-text-primary">
                           <span className="inline-flex items-center gap-1">
                             {(course.ratings.reduce((s, r) => s + r.rating, 0) / course.ratings.length).toFixed(1)}
-                            <MaterialIcon name="star" className="text-[14px]" />
+                            <MaterialIcon name="star" className="text-[0.875rem]" />
                           </span>
                         </strong></span>
                       )}
                     </div>
                     <span className={`inline-flex items-center text-xs px-2.5 py-1 rounded-full font-semibold ${course.published ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                      <MaterialIcon name={course.published ? 'check_circle' : 'warning'} className="text-[14px] mr-1" />
+                      <MaterialIcon name={course.published ? 'check_circle' : 'warning'} className="text-[0.875rem] mr-1" />
                       {course.published ? 'Published' : 'Draft - not visible to students'}
                     </span>
                     {course.allSchools && (
                       <span className="inline-flex items-center text-xs px-2.5 py-1 rounded-full font-semibold bg-blue-100 text-blue-700 gap-1">
-                        <MaterialIcon name="public" className="text-[14px]" />
+                        <MaterialIcon name="public" className="text-[0.875rem]" />
                         Shared across all schools
                       </span>
                     )}
@@ -363,7 +363,7 @@ export default function TeacherCourseDetailPage({ params }: { params: Promise<{ 
               action={
                 <Button size="sm" onClick={() => setShowAddLesson(s => !s)}>
                   <span className="inline-flex items-center gap-1.5">
-                    <MaterialIcon name="add" className="text-[16px]" />
+                    <MaterialIcon name="add" className="text-[1rem]" />
                     Add Lesson
                   </span>
                 </Button>
@@ -484,19 +484,19 @@ function LessonRow({
           <p className="text-sm font-medium ui-text-primary truncate">{lesson.title}</p>
           <p className="text-xs ui-text-secondary inline-flex items-center gap-1.5 flex-wrap">
             <span className="inline-flex items-center gap-1">
-              <MaterialIcon name={lesson.videoUrl ? 'check_circle' : 'warning'} className="text-[14px]" />
+              <MaterialIcon name={lesson.videoUrl ? 'check_circle' : 'warning'} className="text-[0.875rem]" />
               {lesson.videoUrl ? `Video uploaded - ${formatDuration(lesson.duration)}` : 'No video'}
             </span>
             {lesson.isFreePreview && (
               <span className="inline-flex items-center gap-1">
-                <MaterialIcon name="lock_open" className="text-[14px]" />
+                <MaterialIcon name="lock_open" className="text-[0.875rem]" />
                 Free preview
               </span>
             )}
           </p>
         </div>
         <span className="text-xs ui-text-secondary inline-flex items-center">
-          <MaterialIcon name={expanded ? 'expand_less' : 'expand_more'} className="text-[16px]" />
+          <MaterialIcon name={expanded ? 'expand_less' : 'expand_more'} className="text-[1rem]" />
         </span>
       </button>
 
@@ -531,7 +531,7 @@ function LessonRow({
               <input type="file" accept="video/mp4,video/quicktime,video/webm" className="hidden" onChange={handleFileSelect} disabled={!!videoUploading} />
               <span className="inline-flex items-center h-7 px-3 rounded text-xs font-medium ui-button-secondary cursor-pointer">
                 <span className="inline-flex items-center gap-1">
-                  <MaterialIcon name={lesson.videoUrl ? 'sync' : 'upload'} className="text-[14px]" />
+                  <MaterialIcon name={lesson.videoUrl ? 'sync' : 'upload'} className="text-[0.875rem]" />
                   {lesson.videoUrl ? 'Replace Video' : 'Upload Video'}
                 </span>
               </span>

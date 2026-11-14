@@ -40,7 +40,7 @@ export function ParentPageHeader({
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-[20px] font-semibold leading-tight tracking-[-0.01em] ui-text-primary">
+        <h1 className="text-[1.25rem] font-semibold leading-tight tracking-[-0.01em] ui-text-primary">
           {title}
         </h1>
         {subtitle ? <p className="mt-1 text-sm ui-text-secondary">{subtitle}</p> : null}
@@ -61,7 +61,7 @@ export function ParentSectionHeader({
 }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-2">
-      <h2 className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+      <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
         {title}
       </h2>
       {href && linkLabel ? (
@@ -88,7 +88,7 @@ export function ChildSelect({
 
   return (
     <label className="flex min-w-[200px] flex-col gap-1">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
+      <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
         {label}
       </span>
       <select

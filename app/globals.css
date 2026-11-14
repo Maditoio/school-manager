@@ -20,6 +20,34 @@
   --danger: #e11d48;
   --overlay: rgba(15, 23, 42, 0.34);
   --placeholder: #7d828c;
+
+  /* Type scale @ 16px root — matches current default look at data-font-scale=normal */
+  --fs-meta: 0.6875rem; /* 11px */
+  --fs-label: 0.75rem; /* 12px */
+  --fs-body: 0.8125rem; /* 13px */
+  --fs-body-lg: 0.84375rem; /* 13.5px */
+  --fs-subtitle: 0.875rem; /* 14px */
+  --fs-title: 1.25rem; /* 20px */
+}
+
+/* Accessibility: three user-selectable text sizes. Default (normal) = today’s look. */
+html,
+html[data-font-scale='normal'] {
+  font-size: 100%;
+}
+
+html[data-font-scale='large'] {
+  font-size: 112.5%;
+}
+
+html[data-font-scale='x-large'] {
+  font-size: 125%;
+}
+
+@media print {
+  html {
+    font-size: 100% !important;
+  }
 }
 
 html[data-theme='calm'] {
@@ -77,13 +105,13 @@ body {
   background: var(--background);
   color: var(--text-primary);
   font-family: var(--font-inter), var(--font-geist-sans), Inter, system-ui, -apple-system, sans-serif;
-  font-size: 13px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 h1 {
-  font-size: 20px;
+  font-size: var(--fs-title);
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.01em;
@@ -91,7 +119,7 @@ h1 {
 
 h2,
 h3 {
-  font-size: 14px;
+  font-size: var(--fs-subtitle);
   font-weight: 600;
   line-height: 1.35;
 }
@@ -103,7 +131,7 @@ input,
 select,
 textarea,
 button {
-  font-size: 13px;
+  font-size: var(--fs-body);
 }
 
 input,
@@ -115,7 +143,7 @@ textarea {
   padding: 8px 12px;
   min-height: 34px;
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: var(--fs-body);
   transition: all 0.15s ease;
 }
 
@@ -156,7 +184,7 @@ table thead th {
   top: 0;
   z-index: 1;
   background: color-mix(in srgb, var(--surface-soft) 90%, var(--background));
-  font-size: 11px;
+  font-size: var(--fs-meta);
   text-transform: uppercase;
   letter-spacing: 0.03em;
   font-weight: 500;
@@ -166,7 +194,7 @@ table thead th {
 
 table td {
   padding: 8px 12px;
-  font-size: 13px;
+  font-size: var(--fs-body);
   color: var(--text-primary);
   border-bottom: 1px solid var(--border-subtle);
   vertical-align: middle;
@@ -195,7 +223,7 @@ table tbody tr:hover {
   align-items: center;
   border-radius: 20px;
   padding: 3px 10px;
-  font-size: 12px;
+  font-size: var(--fs-label);
   font-weight: 500;
   line-height: 1.2;
 }
@@ -328,7 +356,7 @@ html[data-theme='calm'] .ui-toolbar {
   border: 1px solid transparent;
   height: 34px;
   padding: 8px 14px;
-  font-size: 13px;
+  font-size: var(--fs-body);
   font-weight: 600;
   /* Narrow transitions — `all` + hover translate/shadow was a common INP cost in dense action columns */
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
@@ -363,7 +391,7 @@ html[data-theme='calm'] .ui-toolbar {
   border: 1px solid transparent;
   background: var(--field-bg);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: var(--fs-body);
   transition: all 0.15s ease;
 }
 
@@ -438,7 +466,7 @@ input[type='search'] {
 
 .ui-table th {
   text-align: left;
-  font-size: 11px;
+  font-size: var(--fs-meta);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -456,7 +484,7 @@ input[type='search'] {
 
 .ui-table td {
   padding: 10px 12px;
-  font-size: 13.5px;
+  font-size: var(--fs-body-lg);
   line-height: 1.45;
   color: var(--text-primary);
   border-bottom: 1px solid var(--border-subtle);
@@ -496,7 +524,7 @@ table.no-table-stripes tbody tr:nth-child(even) {
   border-radius: 9999px;
   border: 1px solid var(--border-subtle);
   background: var(--surface-soft);
-  font-size: 12px;
+  font-size: var(--fs-label);
   font-weight: 600;
   color: var(--text-primary);
 }

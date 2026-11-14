@@ -295,7 +295,7 @@ export default function AttendancePage() {
                   setSelectedDate(e.target.value)
                   setTablePage(1)
                 }}
-                className="ui-input h-8 rounded-lg px-2.5 text-[12px]"
+                className="ui-input h-8 rounded-lg px-2.5 text-[0.75rem]"
                 style={{ minHeight: '2rem', paddingTop: 0, paddingBottom: 0 }}
                 aria-label="Filter attendance by date"
               />

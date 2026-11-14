@@ -105,9 +105,9 @@ export default function TeacherTimetablePage() {
             <div className="flex flex-wrap gap-3">
               {todaySlots.map(slot => (
                 <Card key={slot.id} className={`p-4 border-l-4 border-l-blue-400 min-w-50`}>
-                  <div className="text-[11px] font-mono ui-text-secondary">{slot.startTime}–{slot.endTime}</div>
+                  <div className="text-[0.6875rem] font-mono ui-text-secondary">{slot.startTime}–{slot.endTime}</div>
                   <div className="font-semibold ui-text-primary mt-1">{slot.subject.name}</div>
-                  <div className="text-[12px] ui-text-secondary">{slot.class.name}{slot.room ? ` · ${slot.room}` : ''}</div>
+                  <div className="text-[0.75rem] ui-text-secondary">{slot.class.name}{slot.room ? ` · ${slot.room}` : ''}</div>
                 </Card>
               ))}
             </div>
@@ -140,7 +140,7 @@ export default function TeacherTimetablePage() {
                     >
                       {DAYS[d]}
                       {d === TODAY_DOW ? (
-                        <span className="ml-1 rounded-[20px] bg-[#f0effe] px-1.5 py-0.5 text-[9px] font-semibold text-[#635bff]">
+                        <span className="ml-1 rounded-[20px] bg-[#f0effe] px-1.5 py-0.5 text-[0.5625rem] font-semibold text-[#635bff]">
                           Today
                         </span>
                       ) : null}
@@ -151,13 +151,13 @@ export default function TeacherTimetablePage() {
               <tbody>
                 {uniqueTimes.map(time => (
                   <tr key={time} className="bg-(--surface)">
-                    <td className="ui-border border p-2 ui-text-secondary text-[11px] font-mono align-top bg-(--surface-soft)">{time}</td>
+                    <td className="ui-border border p-2 ui-text-secondary text-[0.6875rem] font-mono align-top bg-(--surface-soft)">{time}</td>
                     {displayDays.map(d => {
                       const cell = slots.find(s => s.dayOfWeek === d && s.startTime === time)
                       return (
                         <td key={d} className={`ui-border border p-1 align-top ${d === TODAY_DOW ? 'bg-blue-50/40 dark:bg-blue-900/10' : 'bg-(--surface)'}`}>
                           {cell ? (
-                            <div className={`rounded-md p-2 text-[11px] ${subjectColor(cell.subjectId)}`}>
+                            <div className={`rounded-md p-2 text-[0.6875rem] ${subjectColor(cell.subjectId)}`}>
                               <div className="font-semibold">{cell.subject.name}</div>
                               <div className="opacity-75">{cell.class.name}</div>
                               <div className="opacity-60">{cell.startTime}–{cell.endTime}{cell.room ? ` · ${cell.room}` : ''}</div>

@@ -95,7 +95,7 @@ export default function StudentTimetablePage() {
     >
       <div className="space-y-5">
         <div>
-          <h1 className="text-[20px] font-semibold ui-text-primary">
+          <h1 className="text-[1.25rem] font-semibold ui-text-primary">
             {tStudent('timetableTitle', 'My Class Schedule')}
           </h1>
           <p className="mt-1 text-sm ui-text-secondary">
@@ -108,7 +108,7 @@ export default function StudentTimetablePage() {
             <h2 className="mb-3 text-sm font-semibold ui-text-primary">
               {tStudent('today', 'Today')} — {DAYS[TODAY_DOW]}
               <span
-                className="ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                className="ml-2 rounded-full px-2 py-0.5 text-[0.625rem] font-medium"
                 style={{ background: '#f0effe', color: '#5146e8' }}
               >
                 {classCountLabel}
@@ -120,11 +120,11 @@ export default function StudentTimetablePage() {
                   key={slot.id}
                   className="min-w-[180px] shrink-0 border-l-[3px] border-l-[#635bff] p-4"
                 >
-                  <div className="font-mono text-[11px] ui-text-secondary">
+                  <div className="font-mono text-[0.6875rem] ui-text-secondary">
                     {slot.startTime}–{slot.endTime}
                   </div>
                   <div className="mt-1 font-semibold ui-text-primary">{slot.subject.name}</div>
-                  <div className="text-[12px] ui-text-secondary">
+                  <div className="text-[0.75rem] ui-text-secondary">
                     {slot.teacher.firstName} {slot.teacher.lastName}
                     {slot.room ? ` · ${slot.room}` : ''}
                   </div>
@@ -149,7 +149,7 @@ export default function StudentTimetablePage() {
           <>
             {/* Mobile: day chips + list */}
             <div className="space-y-3 md:hidden">
-              <p className="text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary">
+              <p className="text-[0.6875rem] font-medium uppercase tracking-[0.07em] ui-text-secondary">
                 {tStudent('weeklySchedule', 'Weekly schedule')}
               </p>
               <div className="flex gap-2 overflow-x-auto pb-1">
@@ -187,7 +187,7 @@ export default function StudentTimetablePage() {
                             {slot.room ? ` · ${slot.room}` : ''}
                           </p>
                         </div>
-                        <p className="shrink-0 font-mono text-[12px] font-medium ui-text-primary">
+                        <p className="shrink-0 font-mono text-[0.75rem] font-medium ui-text-primary">
                           {slot.startTime}–{slot.endTime}
                         </p>
                       </div>
@@ -203,7 +203,7 @@ export default function StudentTimetablePage() {
                 <table className="w-full border-collapse text-sm">
                   <thead>
                     <tr className="bg-(--surface-soft)">
-                      <th className="min-w-20 border border-(--border-subtle) bg-(--surface-soft) p-2 text-left text-[11px] font-medium uppercase tracking-[0.07em] ui-text-secondary">
+                      <th className="min-w-20 border border-(--border-subtle) bg-(--surface-soft) p-2 text-left text-[0.6875rem] font-medium uppercase tracking-[0.07em] ui-text-secondary">
                         {tStudent('time', 'Time')}
                       </th>
                       {displayDays.map((d) => (
@@ -217,7 +217,7 @@ export default function StudentTimetablePage() {
                           {DAYS[d]}
                           {d === TODAY_DOW && (
                             <span
-                              className="ml-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium"
+                              className="ml-1 rounded-full px-1.5 py-0.5 text-[0.5625rem] font-medium"
                               style={{ background: '#f0effe', color: '#5146e8' }}
                             >
                               {tStudent('today', 'Today')}
@@ -230,7 +230,7 @@ export default function StudentTimetablePage() {
                   <tbody>
                     {uniqueTimes.map((time) => (
                       <tr key={time}>
-                        <td className="border border-(--border-subtle) bg-(--surface-soft) p-2 align-top font-mono text-[11px] ui-text-secondary">
+                        <td className="border border-(--border-subtle) bg-(--surface-soft) p-2 align-top font-mono text-[0.6875rem] ui-text-secondary">
                           {time}
                         </td>
                         {displayDays.map((d) => {
@@ -244,7 +244,7 @@ export default function StudentTimetablePage() {
                               }
                             >
                               {cell ? (
-                                <div className={`rounded-[6px] p-2 text-[11px] ${subjectColor(cell.subjectId)}`}>
+                                <div className={`rounded-[6px] p-2 text-[0.6875rem] ${subjectColor(cell.subjectId)}`}>
                                   <div className="font-semibold">{cell.subject.name}</div>
                                   <div className="opacity-75">
                                     {cell.teacher.firstName} {cell.teacher.lastName}
