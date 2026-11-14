@@ -51,8 +51,8 @@ function relativeLabel(days, locale) {
 function CalendarSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-      <div className="xl:col-span-3 h-[340px] animate-pulse rounded-2xl border" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }} />
-      <div className="xl:col-span-2 h-[340px] animate-pulse rounded-2xl border" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }} />
+      <div className="xl:col-span-3 h-[340px] animate-pulse rounded-2xl border" style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border)' }} />
+      <div className="xl:col-span-2 h-[340px] animate-pulse rounded-2xl border" style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border)' }} />
     </div>
   )
 }
@@ -81,7 +81,7 @@ export default function CalendarSection({ data, loading }) {
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-      <div className="xl:col-span-3 rounded-2xl border p-4" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }}>
+      <div className="xl:col-span-3 rounded-2xl border p-4" style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border)' }}>
         <p className="mb-3 text-sm font-semibold text-slate-200">{translateText('Upcoming Events', locale)}</p>
         {data.length ? (
           <div className="space-y-2">
@@ -89,9 +89,9 @@ export default function CalendarSection({ data, loading }) {
               const dt = new Date(event.startDateISO || event.dateISO)
               const hasRange = Boolean(event.endDateISO && event.endDateISO !== (event.startDateISO || event.dateISO))
               return (
-                <div key={event.id} className="flex items-center gap-3 rounded-xl border px-3 py-2" style={{ background: '#161924', borderColor: 'rgba(255,255,255,0.07)' }}>
+                <div key={event.id} className="flex items-center gap-3 rounded-xl border px-3 py-2" style={{ background: 'var(--dash-surface-elevated)', borderColor: 'var(--dash-border)' }}>
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: event.color }} />
-                  <div className="w-[62px] shrink-0 rounded-lg border px-2 py-1 text-center" style={{ borderColor: 'rgba(255,255,255,0.08)', background: '#111420' }}>
+                  <div className="w-[62px] shrink-0 rounded-lg border px-2 py-1 text-center" style={{ borderColor: 'var(--dash-border)', background: 'var(--dash-surface)' }}>
                     <p className="text-lg font-extrabold text-slate-100 leading-none">{dt.getDate()}</p>
                     <p className="text-[10px] uppercase text-slate-500">{dt.toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-KE' : 'en-ZA', { month: 'short' })}</p>
                   </div>
@@ -116,13 +116,13 @@ export default function CalendarSection({ data, loading }) {
             })}
           </div>
         ) : (
-          <div className="rounded-xl border px-4 py-6 text-center" style={{ background: '#161924', borderColor: 'rgba(255,255,255,0.07)' }}>
+          <div className="rounded-xl border px-4 py-6 text-center" style={{ background: 'var(--dash-surface-elevated)', borderColor: 'var(--dash-border)' }}>
             <p className="text-sm text-slate-400">{translateText('No announcements scheduled.', locale)}</p>
           </div>
         )}
       </div>
 
-      <div className="xl:col-span-2 rounded-2xl border p-4" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }}>
+      <div className="xl:col-span-2 rounded-2xl border p-4" style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border)' }}>
         <div className="mb-3 flex items-center justify-between">
           <button className="rounded-md p-1.5 text-slate-400 hover:bg-white/5 hover:text-slate-200" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1))}>
             <ChevronLeft className="h-4 w-4" />
@@ -151,7 +151,7 @@ export default function CalendarSection({ data, loading }) {
                 className="relative h-9 rounded-md text-xs transition"
                 style={{
                   background: selectedDateISO === iso ? 'rgba(99,102,241,0.18)' : 'transparent',
-                  color: isCurrentMonth ? '#cbd5e1' : '#475569',
+                  color: isCurrentMonth ? 'var(--dash-day-text)' : 'var(--dash-day-muted)',
                 }}
               >
                 <span
@@ -166,12 +166,12 @@ export default function CalendarSection({ data, loading }) {
           })}
         </div>
 
-        <div className="mt-3 rounded-xl border p-3" style={{ background: '#161924', borderColor: 'rgba(255,255,255,0.08)' }}>
+        <div className="mt-3 rounded-xl border p-3" style={{ background: 'var(--dash-surface-elevated)', borderColor: 'var(--dash-border)' }}>
           <p className="text-xs font-semibold text-slate-300">{new Date(selectedDateISO).toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-KE' : 'en-ZA', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
           {selectedEvents.length ? (
             <div className="mt-2 space-y-3">
               {selectedEvents.map((event) => (
-                <div key={`${event.id}-${selectedDateISO}`} className="rounded-lg border p-3" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }}>
+                <div key={`${event.id}-${selectedDateISO}`} className="rounded-lg border p-3" style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border)' }}>
                   {event.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={event.imageUrl} alt={event.title} className="mb-3 h-28 w-full rounded-lg object-cover" />

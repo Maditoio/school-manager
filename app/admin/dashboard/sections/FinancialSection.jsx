@@ -20,12 +20,12 @@ function FinancialSkeleton() {
       <div className="xl:col-span-3 space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-[124px] animate-pulse rounded-2xl border" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }} />
+            <div key={i} className="h-[124px] animate-pulse rounded-2xl border" style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border)' }} />
           ))}
         </div>
-        <div className="h-[52px] animate-pulse rounded-xl border" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }} />
+        <div className="h-[52px] animate-pulse rounded-xl border" style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border)' }} />
       </div>
-      <div className="xl:col-span-2 h-[340px] animate-pulse rounded-2xl border" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }} />
+      <div className="xl:col-span-2 h-[340px] animate-pulse rounded-2xl border" style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border)' }} />
     </div>
   )
 }
@@ -67,7 +67,7 @@ export default function FinancialSection({ data, loading }) {
               <div
                 key={card.key}
                 className="rounded-2xl border p-4 transition-all duration-200 hover:-translate-y-0.5"
-                style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)', boxShadow: '0 10px 30px rgba(0,0,0,0.28)' }}
+                style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border)', boxShadow: 'var(--dash-shadow)' }}
               >
                 <div className="flex items-start justify-between">
                   <div>
@@ -84,12 +84,12 @@ export default function FinancialSection({ data, loading }) {
           })}
         </div>
 
-        <div className="rounded-2xl border p-4" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }}>
+        <div className="rounded-2xl border p-4" style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border)' }}>
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-semibold text-slate-200">{translateText('Fee Collection Progress', locale)}</p>
             <p className="text-xs text-slate-400">{progressLabel}</p>
           </div>
-          <div className="h-2 w-full rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
+          <div className="h-2 w-full rounded-full" style={{ background: 'var(--dash-track)' }}>
             <div
               className="h-2 rounded-full"
               style={{
@@ -102,7 +102,7 @@ export default function FinancialSection({ data, loading }) {
         </div>
       </div>
 
-      <div className="xl:col-span-2 rounded-2xl border p-4" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }}>
+      <div className="xl:col-span-2 rounded-2xl border p-4" style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border)' }}>
         <p className="text-sm font-semibold text-slate-200">{translateText('Payment Method Breakdown', locale)}</p>
         <div className="mt-3 h-[250px]">
           <ResponsiveContainer width="100%" height="100%">
@@ -124,9 +124,9 @@ export default function FinancialSection({ data, loading }) {
               </Pie>
               <Tooltip
                 formatter={(value, name, props) => [translateDashboardDynamic(`${formatCurrency(props.payload.amount)} (${props.payload.count} payments)`, locale), translateText(String(name), locale)]}
-                contentStyle={{ background: '#161924', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, color: '#e2e8f0' }}
-                labelStyle={{ color: '#f8fafc' }}
-                itemStyle={{ color: '#e2e8f0' }}
+                contentStyle={{ background: 'var(--dash-tooltip-bg)', border: '1px solid var(--dash-tooltip-border)', borderRadius: 10, color: 'var(--dash-tooltip-color)' }}
+                labelStyle={{ color: 'var(--dash-tooltip-color)' }}
+                itemStyle={{ color: 'var(--dash-tooltip-color)' }}
                 wrapperStyle={{ outline: 'none' }}
               />
             </PieChart>

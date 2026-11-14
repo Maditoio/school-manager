@@ -15,7 +15,7 @@ function AlertsSkeleton() {
   return (
     <div className="space-y-3">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="h-[86px] animate-pulse rounded-xl border" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }} />
+        <div key={i} className="h-[86px] animate-pulse rounded-xl border" style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border)' }} />
       ))}
     </div>
   )
@@ -56,7 +56,7 @@ export default function AlertsSection({ data, loading }) {
     <div>
       <div className="mb-3 flex items-center justify-between">
         <p className="text-sm font-semibold text-slate-200">{translateText('Alerts Requiring Attention', locale)}</p>
-        <span className="rounded-full border px-2 py-1 text-xs text-slate-300" style={{ borderColor: 'rgba(255,255,255,0.12)', background: '#161924' }}>
+        <span className="rounded-full border px-2 py-1 text-xs text-slate-300" style={{ borderColor: 'var(--dash-border-strong)', background: 'var(--dash-surface-elevated)' }}>
           {translateDashboardDynamic(`${activeAlerts.length} alerts`, locale)}
         </span>
       </div>
@@ -76,8 +76,8 @@ export default function AlertsSection({ data, loading }) {
                 key={alert.id}
                 className="overflow-hidden rounded-xl border transition-all duration-200"
                 style={{
-                  background: '#111420',
-                  borderColor: 'rgba(255,255,255,0.07)',
+                  background: 'var(--dash-surface)',
+                  borderColor: 'var(--dash-border)',
                   borderLeft: `3px solid ${cfg.color}`,
                   maxHeight: isDismissing ? 0 : 140,
                   opacity: isDismissing ? 0 : 1,
@@ -98,7 +98,7 @@ export default function AlertsSection({ data, loading }) {
 
                   <button
                     className="rounded-lg border px-2.5 py-1 text-xs font-semibold text-slate-300 hover:text-white"
-                    style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.12)' }}
+                    style={{ background: 'var(--dash-muted-fill)', borderColor: 'var(--dash-border-strong)' }}
                     onClick={() => openAction(alert)}
                   >
                     {translateText(alert.action, locale)}

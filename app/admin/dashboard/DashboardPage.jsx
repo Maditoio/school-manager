@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import SchoolPulseSection from './sections/SchoolPulseSection'
 import FinancialSection from './sections/FinancialSection'
@@ -12,6 +12,11 @@ import { dashboardData } from './dashboardData'
 import { useLocale } from '@/lib/locale-context'
 import { translateDashboardDynamic, translateText } from '@/lib/client-i18n'
 import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
+import {
+  getUiThemeServerSnapshot,
+  getUiThemeSnapshot,
+  subscribeUiTheme,
+} from '@/lib/ui-theme'
 
 function sectionLabel(text) {
   return (
@@ -41,6 +46,8 @@ function announcementColor(priority) {
 
 export default function DashboardPage({ user }) {
   const { locale } = useLocale()
+  const theme = useSyncExternalStore(subscribeUiTheme, getUiThemeSnapshot, getUiThemeServerSnapshot)
+  const isDarkDashboard = theme === 'dark'
   const [dashboardState, setDashboardState] = useState({
     ...dashboardData,
     academic: null,
@@ -394,7 +401,7 @@ export default function DashboardPage({ user }) {
 
   return (
     <DashboardLayout user={user} navItems={navItems}>
-      <div className="admin-dashboard-dark min-h-full" style={{ background: '#0b0d14' }}>
+      <div className={`min-h-full ${isDarkDashboard ? 'admin-dashboard-dark' : 'admin-dashboard-light'}`}>
         <div className="mx-auto max-w-[1680px] space-y-8 p-2 md:p-4 lg:p-6">
           <header>
             <h1 className="text-3xl font-bold text-slate-100">{translateText('Good morning', locale)}, {greetingName} 👋</h1>

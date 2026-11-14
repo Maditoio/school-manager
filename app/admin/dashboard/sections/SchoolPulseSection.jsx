@@ -47,12 +47,12 @@ function PulseCard({ item, onClick, locale }) {
       }
       className="group rounded-2xl border p-4 transition-all duration-200"
       style={{
-        background: '#111420',
-        borderColor: 'rgba(255,255,255,0.07)',
+        background: 'var(--dash-surface)',
+        borderColor: 'var(--dash-border)',
         transform: 'translateY(0)',
-        boxShadow: absentThresholdExceeded ? '0 0 0 1px rgba(239,68,68,0.25), 0 0 24px rgba(239,68,68,0.14)' : '0 8px 28px rgba(0,0,0,0.28)',
+        boxShadow: absentThresholdExceeded ? '0 0 0 1px rgba(239,68,68,0.25), 0 0 24px rgba(239,68,68,0.14)' : 'var(--dash-shadow)',
         animation: absentThresholdExceeded ? 'pulseGlow 2.2s ease-in-out infinite' : undefined,
-        borderLeft: unassignedAttention ? '3px solid #ef4444' : '1px solid rgba(255,255,255,0.07)',
+        borderLeft: unassignedAttention ? '3px solid #ef4444' : '1px solid var(--dash-border)',
         cursor: onClick ? 'pointer' : 'default',
       }}
     >
@@ -79,10 +79,10 @@ function PulseCard({ item, onClick, locale }) {
           <LineChart data={sparklineData}>
             <Tooltip
               contentStyle={{
-                background: '#161924',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'var(--dash-tooltip-bg)',
+                border: '1px solid var(--dash-tooltip-border)',
                 borderRadius: 10,
-                color: '#e2e8f0',
+                color: 'var(--dash-tooltip-color)',
               }}
               labelStyle={{ display: 'none' }}
             />
@@ -94,7 +94,7 @@ function PulseCard({ item, onClick, locale }) {
       <style jsx>{`
         .group:hover {
           transform: translateY(-2px);
-          box-shadow: 0 14px 34px rgba(0, 0, 0, 0.42);
+          box-shadow: var(--dash-shadow);
         }
         @keyframes pulseGlow {
           0%, 100% { box-shadow: 0 0 0 1px rgba(239,68,68,0.20), 0 0 18px rgba(239,68,68,0.12); }
@@ -109,7 +109,7 @@ function SchoolPulseSkeleton() {
   return (
     <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
       {Array.from({ length: 8 }).map((_, idx) => (
-        <div key={idx} className="h-[190px] animate-pulse rounded-2xl border" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }} />
+        <div key={idx} className="h-[190px] animate-pulse rounded-2xl border" style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border)' }} />
       ))}
     </div>
   )

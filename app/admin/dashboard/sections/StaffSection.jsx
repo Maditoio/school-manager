@@ -20,10 +20,10 @@ const iconMap = {
 function StaffSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-      <div className="xl:col-span-3 h-[340px] animate-pulse rounded-2xl border" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }} />
+      <div className="xl:col-span-3 h-[340px] animate-pulse rounded-2xl border" style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border)' }} />
       <div className="xl:col-span-2 space-y-3">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-[98px] animate-pulse rounded-xl border" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }} />
+          <div key={i} className="h-[98px] animate-pulse rounded-xl border" style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border)' }} />
         ))}
       </div>
     </div>
@@ -55,12 +55,12 @@ export default function StaffSection({ data, loading }) {
   return (
     <>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-        <div className="xl:col-span-3 rounded-2xl border p-4" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.07)' }}>
+        <div className="xl:col-span-3 rounded-2xl border p-4" style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border)' }}>
           <div className="mb-3 flex items-center justify-between">
             <p className="text-sm font-semibold text-slate-200">{translateText('Teacher Status Today', locale)}</p>
             <button
               className="h-8 rounded-[10px] border px-3 text-xs font-semibold text-slate-300 transition hover:text-white"
-              style={{ background: '#161924', borderColor: 'rgba(255,255,255,0.08)', opacity: 0.5, cursor: 'not-allowed' }}
+              style={{ background: 'var(--dash-surface-elevated)', borderColor: 'var(--dash-border)', opacity: 0.5, cursor: 'not-allowed' }}
               disabled
               aria-disabled="true"
               title="Temporarily unavailable"
@@ -70,9 +70,9 @@ export default function StaffSection({ data, loading }) {
             </button>
           </div>
 
-          <div className="overflow-hidden rounded-xl border" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+          <div className="overflow-hidden rounded-xl border" style={{ borderColor: 'var(--dash-border)' }}>
             <table className="min-w-full">
-              <thead style={{ background: '#161924' }}>
+              <thead style={{ background: 'var(--dash-surface-elevated)' }}>
                 <tr className="text-left text-[11px] uppercase tracking-wide text-slate-400">
                   <th className="px-3 py-2 font-medium">{translateText('Teacher', locale)}</th>
                   <th className="px-3 py-2 font-medium">{translateText('Subject', locale)}</th>
@@ -87,8 +87,8 @@ export default function StaffSection({ data, loading }) {
                       key={teacher.id}
                       className="border-t"
                       style={{
-                        borderColor: 'rgba(255,255,255,0.06)',
-                        background: absent ? 'rgba(239,68,68,0.04)' : '#111420',
+                        borderColor: 'var(--dash-border)',
+                        background: absent ? 'rgba(239,68,68,0.04)' : 'var(--dash-surface)',
                         borderLeft: absent ? '3px solid #ef4444' : undefined,
                       }}
                     >
@@ -140,7 +140,7 @@ export default function StaffSection({ data, loading }) {
                 className="rounded-xl border px-4 py-3 transition-all duration-200 hover:-translate-y-0.5"
                 style={{
                   background: tone.bg,
-                  borderColor: 'rgba(255,255,255,0.08)',
+                  borderColor: 'var(--dash-border)',
                   borderLeft: `3px solid ${tone.border}`,
                 }}
               >
@@ -154,7 +154,7 @@ export default function StaffSection({ data, loading }) {
                   </div>
                   <button
                     className="rounded-lg border px-2 py-1 text-[11px] font-semibold text-slate-300 hover:text-slate-100"
-                    style={{ borderColor: 'rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)' }}
+                    style={{ borderColor: 'var(--dash-border-strong)', background: 'var(--dash-muted-fill)' }}
                     onClick={() => openAction(card.actionHref)}
                   >
                     {translateText(card.action, locale)}
@@ -168,7 +168,7 @@ export default function StaffSection({ data, loading }) {
 
       {showAttendanceModal ? (
         <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-2xl border p-5" style={{ background: '#111420', borderColor: 'rgba(255,255,255,0.1)' }}>
+          <div className="w-full max-w-2xl rounded-2xl border p-5" style={{ background: 'var(--dash-surface)', borderColor: 'var(--dash-border-strong)' }}>
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-bold text-slate-100">{translateText('Mark Teacher Attendance', locale)}</h3>
               <button className="text-slate-400 hover:text-slate-200" onClick={() => setShowAttendanceModal(false)}>
@@ -178,12 +178,12 @@ export default function StaffSection({ data, loading }) {
 
             <div className="max-h-[55vh] space-y-2 overflow-auto">
               {data.teachers.map((teacher) => (
-                <div key={teacher.id} className="flex items-center justify-between rounded-xl border p-3" style={{ background: '#161924', borderColor: 'rgba(255,255,255,0.07)' }}>
+                <div key={teacher.id} className="flex items-center justify-between rounded-xl border p-3" style={{ background: 'var(--dash-surface-elevated)', borderColor: 'var(--dash-border)' }}>
                   <div>
                     <p className="text-sm font-semibold text-slate-100">{teacher.name}</p>
                     <p className="text-xs text-slate-400">{teacher.subject}</p>
                   </div>
-                  <div className="inline-flex rounded-lg border p-1" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+                  <div className="inline-flex rounded-lg border p-1" style={{ borderColor: 'var(--dash-border)' }}>
                     {['Present', 'Absent'].map((status) => (
                       <button
                         key={status}

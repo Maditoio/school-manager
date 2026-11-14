@@ -610,10 +610,69 @@ table.no-table-hover a:hover {
 }
 
 /*
- * Admin dashboard uses a fixed dark canvas (#0b0d14) even when the app theme is light.
- * The remaps above would force dark --text-primary onto slate-100/200 and hide names.
- * Restore true light-on-dark slate colors inside that surface.
+ * Admin dashboard surfaces: light mode uses design-system page/card colors;
+ * dark mode keeps the fixed dark canvas. Dark text remaps for slate-100/200
+ * only apply under .admin-dashboard-dark so light mode stays readable.
  */
+.admin-dashboard-light {
+  --dash-page-bg: #f6f9fc;
+  --dash-surface: #ffffff;
+  --dash-surface-elevated: #ffffff;
+  --dash-border: #e0e6ed;
+  --dash-border-strong: #e0e6ed;
+  --dash-track: rgba(10, 37, 64, 0.08);
+  --dash-shadow: 0 4px 16px rgba(0, 0, 0, 0.07);
+  --dash-tooltip-bg: #ffffff;
+  --dash-tooltip-border: #e0e6ed;
+  --dash-tooltip-color: #0a2540;
+  --dash-grid: rgba(10, 37, 64, 0.08);
+  --dash-muted-fill: rgba(10, 37, 64, 0.04);
+  --dash-day-text: #0a2540;
+  --dash-day-muted: #8898aa;
+  background: var(--dash-page-bg);
+  color: #0a2540;
+}
+
+.admin-dashboard-light .text-slate-50,
+.admin-dashboard-light .text-slate-100,
+.admin-dashboard-light .text-slate-200,
+.admin-dashboard-light .text-zinc-100,
+.admin-dashboard-light .text-zinc-200,
+.admin-dashboard-light .text-gray-100,
+.admin-dashboard-light .text-gray-200 {
+  color: #0a2540 !important;
+}
+
+.admin-dashboard-light .text-slate-300,
+.admin-dashboard-light .text-slate-400,
+.admin-dashboard-light .text-slate-500,
+.admin-dashboard-light .text-zinc-300,
+.admin-dashboard-light .text-zinc-400,
+.admin-dashboard-light .text-zinc-500,
+.admin-dashboard-light .text-gray-300,
+.admin-dashboard-light .text-gray-400,
+.admin-dashboard-light .text-gray-500 {
+  color: #8898aa !important;
+}
+
+.admin-dashboard-dark {
+  --dash-page-bg: #0b0d14;
+  --dash-surface: #111420;
+  --dash-surface-elevated: #161924;
+  --dash-border: rgba(255, 255, 255, 0.07);
+  --dash-border-strong: rgba(255, 255, 255, 0.12);
+  --dash-track: rgba(255, 255, 255, 0.06);
+  --dash-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+  --dash-tooltip-bg: #161924;
+  --dash-tooltip-border: rgba(255, 255, 255, 0.12);
+  --dash-tooltip-color: #e2e8f0;
+  --dash-grid: rgba(255, 255, 255, 0.06);
+  --dash-muted-fill: rgba(255, 255, 255, 0.04);
+  --dash-day-text: #cbd5e1;
+  --dash-day-muted: #475569;
+  background: var(--dash-page-bg);
+}
+
 .admin-dashboard-dark .text-slate-50,
 .admin-dashboard-dark .text-slate-100,
 .admin-dashboard-dark .text-zinc-100,
