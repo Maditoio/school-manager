@@ -235,10 +235,13 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
       ? translateText('Platform Dashboard', locale)
       : schoolName
 
+  // Admin dashboard shell: design-system page bg in light/calm; dark canvas only in dark theme
+  const adminDashboardShellBg = theme === 'dark' ? '#0b0d14' : '#f6f9fc'
+
   return (
     <div
       className="min-h-screen ui-text-primary"
-      style={{ background: isAdminDashboardRoute ? '#0b0d14' : 'var(--background)' }}
+      style={{ background: isAdminDashboardRoute ? adminDashboardShellBg : 'var(--background)' }}
     >
       {!isParentView ? (
         <div className="print:hidden">
@@ -254,7 +257,7 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
       <div
         className="flex min-h-screen flex-col overflow-hidden print:ml-0"
         style={{
-          background: isAdminDashboardRoute ? '#0b0d14' : 'transparent',
+          background: isAdminDashboardRoute ? adminDashboardShellBg : 'transparent',
           marginLeft: isParentView ? 0 : desktopSidebarWidth,
           transition: 'margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)',
         }}
@@ -273,7 +276,7 @@ export function DashboardLayout({ children, user, navItems }: LayoutProps) {
         ) : null}
         <main
           className={`flex-1 overflow-auto p-4 ${isParentView ? 'pt-16 pb-4 md:pt-20 md:pb-6' : 'pt-20 pb-20 md:p-6 md:pt-22 md:pb-6'}`}
-          style={{ background: isAdminDashboardRoute ? '#0b0d14' : 'transparent' }}
+          style={{ background: isAdminDashboardRoute ? adminDashboardShellBg : 'transparent' }}
         >
           {translatedChildren}
         </main>
