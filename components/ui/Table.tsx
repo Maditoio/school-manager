@@ -45,6 +45,7 @@ type TableProps<T extends RowData = RowData> = {
   totalCount?: number
   loading?: boolean
   emptyMessage?: string
+  searchPlaceholder?: string
   filterLabel?: string
   filterOptions?: FilterOption[]
   activeFilter?: string
@@ -111,6 +112,7 @@ export default function Table<T extends RowData = RowData>({
   totalCount,
   loading = false,
   emptyMessage = 'No records found.',
+  searchPlaceholder = 'Search...',
   filterLabel = 'Filter',
   filterOptions,
   activeFilter,
@@ -127,7 +129,7 @@ export default function Table<T extends RowData = RowData>({
   const tTitle = translateText(title, locale)
   const tEmptyMessage = translateText(emptyMessage, locale)
   const tFilterLabel = translateText(filterLabel, locale)
-  const tSearchPlaceholder = translateText('Search...', locale)
+  const tSearchPlaceholder = translateText(searchPlaceholder, locale)
 
   const [searchValue, setSearchValue] = useState('')
   const [selectedRowKey, setSelectedRowKey] = useState<string | number | null>(null)
