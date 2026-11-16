@@ -1,14 +1,15 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
-import { CalendarPlus, Plus, Save } from 'lucide-react'
+import { CalendarPlus, ChevronDown, ChevronRight, Plus, Save } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Form'
 import { useToast } from '@/components/ui/Toast'
+import { ActionMenu } from '@/components/admin/detail'
 import { ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 import { CURRENCY_OPTIONS, useCurrency } from '@/lib/currency-context'
 import type { CurrencyCode } from '@/lib/currency-context'
@@ -73,6 +74,10 @@ export default function AdminSettingsPage() {
   const [logoPreview, setLogoPreview] = useState<string>('')
   const [logoSaving, setLogoSaving] = useState(false)
 
+  // Settings panel tabs — ordered by operational importance
+  type SettingsPanelId = 'academic' | 'finance' | 'branding' | 'courses'
+  const [activePanel, setActivePanel] = useState<SettingsPanelId>('academic')
+
   // Keep local dropdown in sync with the context value (loaded asynchronously)
   useEffect(() => {
     setCurrencyInput(activeCurrency)
@@ -87,6 +92,9 @@ export default function AdminSettingsPage() {
   const [termName, setTermName] = useState('Term 1')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [academicComposer, setAcademicComposer] = useState<'closed' | 'year' | 'term'>('closed')
+  const [passMarkEditing, setPassMarkEditing] = useState(false)
+  const [expandedYearId, setExpandedYearId] = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') redirect('/login')
@@ -254,11 +262,11 @@ export default function AdminSettingsPage() {
     }
   }
 
-  const handleSaveMinimumPassRate = async () => {
+  const handleSaveMinimumPassRate = async (): Promise<boolean> => {
     const value = Number(minimumPassRateInput)
     if (isNaN(value) || value < 0 || value > 100) {
       showToast(t('Please enter a valid percentage between 0 and 100'), 'warning')
-      return
+      return false
     }
 
     try {
@@ -271,14 +279,16 @@ export default function AdminSettingsPage() {
       const data = await res.json()
       if (!res.ok) {
         showToast(data.error || t('Failed to save setting'), 'error')
-        return
+        return false
       }
 
       setMinimumPassRatePerSubject(data.minimumPassRatePerSubject)
       setMinimumPassRateInput(String(data.minimumPassRatePerSubject))
       showToast(t('Minimum pass rate saved'), 'success')
+      return true
     } catch {
       showToast(t('Failed to save setting'), 'error')
+      return false
     } finally {
       setMinimumPassRateSaving(false)
     }
@@ -315,6 +325,38 @@ export default function AdminSettingsPage() {
 
   const selectedYearTerms = useMemo(() => selectedAcademicYear?.terms ?? [], [selectedAcademicYear])
 
+  const currentAcademicYear = useMemo(
+    () => academicYears.find((year) => year.isCurrent) || null,
+    [academicYears]
+  )
+
+  const currentTerm = useMemo(() => {
+    for (const year of academicYears) {
+      const term = year.terms.find((item) => item.isCurrent)
+      if (term) return { year, term }
+    }
+    return null
+  }, [academicYears])
+
+  const openYearComposer = () => {
+    setAcademicComposer('year')
+    setYearInput(String(new Date().getFullYear() + (academicYears[0] ? 1 : 0)))
+  }
+
+  const openTermComposer = (yearId?: string) => {
+    const nextYearId = yearId || selectedAcademicYearId || academicYears[0]?.id || ''
+    if (nextYearId) {
+      setSelectedAcademicYearId(nextYearId)
+      setExpandedYearId(nextYearId)
+    }
+    setAcademicComposer('term')
+  }
+
+  const toggleYearExpanded = (yearId: string) => {
+    setSelectedAcademicYearId(yearId)
+    setExpandedYearId((prev) => (prev === yearId ? '' : yearId))
+  }
+
   // ── Terms: create academic year ────────────────────────────────────────────
 
   const createAcademicYear = async (event: React.FormEvent) => {
@@ -348,8 +390,13 @@ export default function AdminSettingsPage() {
 
       showToast(t('Academic year saved'), 'success')
       setYearInput(String(Math.min(year + 1, 2100)))
+      setAcademicComposer('closed')
       await fetchTerms()
-      if (created?.id) setSelectedAcademicYearId(created.id)
+      if (created?.id) {
+        setSelectedAcademicYearId(created.id)
+        setExpandedYearId(created.id)
+        setAcademicComposer('term')
+      }
     } catch (error) {
       showToast(error instanceof Error ? error.message : t('Failed to create academic year'), 'error')
     } finally {
@@ -414,6 +461,7 @@ export default function AdminSettingsPage() {
       setStartDate('')
       setEndDate('')
       await fetchTerms()
+      // Keep composer open so admins can add Term 2, Term 3, …
     } catch (error) {
       showToast(error instanceof Error ? error.message : t('Failed to create term'), 'error')
     } finally {
@@ -541,11 +589,11 @@ export default function AdminSettingsPage() {
 
   if (status === 'loading' || !session?.user) return <div>{t('Loading...')}</div>
 
-  const settingsSections = [
-    { id: 'finance', label: t('Finance') },
+  const settingsPanels: Array<{ id: SettingsPanelId; label: string }> = [
     { id: 'academic', label: t('Academic Calendar') },
-    { id: 'courses', label: t('Video Courses') },
+    { id: 'finance', label: t('Finance') },
     { id: 'branding', label: t('School Branding') },
+    { id: 'courses', label: t('Video Courses') },
   ]
 
   const toggleClass = (on: boolean) =>
@@ -570,30 +618,426 @@ export default function AdminSettingsPage() {
           </p>
         </div>
 
-        <div className="lg:grid lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-6 lg:items-start">
-          {/* Section jump nav */}
-          <nav
+        <div className="overflow-hidden rounded-[10px] border border-[#e0e6ed] bg-white">
+          <div
+            role="tablist"
             aria-label={t('Settings sections')}
-            className="mb-4 flex gap-2 overflow-x-auto pb-1 lg:mb-0 lg:sticky lg:top-4 lg:flex-col lg:overflow-visible lg:pb-0"
+            className="flex gap-1 overflow-x-auto border-b border-[#e0e6ed] bg-[#f6f9fc] px-2 pt-2"
           >
-            {settingsSections.map((section) => (
-              <a
-                key={section.id}
-                href={`#${section.id}`}
-                className="shrink-0 rounded-[6px] border border-[#e0e6ed] bg-white px-3 py-2 text-xs font-medium uppercase tracking-[0.07em] text-[#8898aa] transition-colors hover:bg-[#f6f9fc] hover:text-[#635bff] lg:border-0 lg:border-l-[3px] lg:border-transparent lg:rounded-none lg:px-3 lg:py-2.5 lg:hover:border-[#635bff] lg:hover:bg-[#f0effe]"
-              >
-                {section.label}
-              </a>
-            ))}
-          </nav>
+            {settingsPanels.map((panel) => {
+              const isActive = activePanel === panel.id
+              return (
+                <button
+                  key={panel.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  id={`settings-tab-${panel.id}`}
+                  aria-controls={`settings-panel-${panel.id}`}
+                  onClick={() => setActivePanel(panel.id)}
+                  className={`shrink-0 rounded-t-[6px] border border-b-0 px-4 py-2.5 text-[0.75rem] font-semibold uppercase tracking-[0.07em] transition-colors ${
+                    isActive
+                      ? 'border-[#e0e6ed] bg-white text-[#635bff]'
+                      : 'border-transparent bg-transparent text-[#8898aa] hover:bg-white/70 hover:text-[#0a2540]'
+                  }`}
+                >
+                  {panel.label}
+                </button>
+              )
+            })}
+          </div>
 
-          <div className="space-y-8 min-w-0">
-            {/* Finance */}
-            <section id="finance" className="scroll-mt-6">
-              <h2 className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
-                {t('Finance')}
-              </h2>
+          <div className="space-y-6 p-4 sm:p-5 min-w-0">
+            {activePanel === 'academic' && (
+            <section
+              id="settings-panel-academic"
+              role="tabpanel"
+              aria-labelledby="settings-tab-academic"
+              className="space-y-4"
+            >
+              <div className="rounded-[10px] border border-[#e0e6ed] bg-white px-4 py-3 sm:px-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                    <div>
+                      <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] text-[#8898aa]">
+                        {t('Current year')}
+                      </p>
+                      <p className="mt-0.5 font-semibold ui-text-primary">
+                        {currentAcademicYear ? currentAcademicYear.year : t('Not set')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] text-[#8898aa]">
+                        {t('Current term')}
+                      </p>
+                      <p className="mt-0.5 font-semibold ui-text-primary">
+                        {currentTerm
+                          ? `${currentTerm.term.name} · ${currentTerm.year.year}`
+                          : t('Not set')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.07em] text-[#8898aa]">
+                        {t('Pass mark')}
+                      </p>
+                      {!passMarkEditing ? (
+                        <p className="mt-0.5 font-semibold ui-text-primary">
+                          {minimumPassRatePerSubject}%
+                          <button
+                            type="button"
+                            className="ml-2 text-xs font-medium text-[#635bff] hover:text-[#5146e8]"
+                            onClick={() => {
+                              setMinimumPassRateInput(String(minimumPassRatePerSubject))
+                              setPassMarkEditing(true)
+                            }}
+                          >
+                            {t('Edit')}
+                          </button>
+                        </p>
+                      ) : (
+                        <div className="mt-1 flex items-center gap-2">
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={minimumPassRateInput}
+                            onChange={(e) => setMinimumPassRateInput(e.target.value)}
+                            className="w-20 rounded-[6px] border border-[#e0e6ed] px-2 py-1 text-sm ui-text-primary focus:outline-none focus:ring-2 focus:ring-[#635bff]/30"
+                            aria-label={t('Minimum pass mark (%)')}
+                          />
+                          <Button
+                            size="sm"
+                            isLoading={minimumPassRateSaving}
+                            onClick={async () => {
+                              const saved = await handleSaveMinimumPassRate()
+                              if (saved) setPassMarkEditing(false)
+                            }}
+                          >
+                            {t('Save')}
+                          </Button>
+                          <button
+                            type="button"
+                            className="text-xs font-medium ui-text-secondary hover:ui-text-primary"
+                            onClick={() => setPassMarkEditing(false)}
+                          >
+                            {t('Cancel')}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <p className="max-w-sm text-xs ui-text-secondary">
+                    {t('Terms belong to a school year. Set Current activates school-wide use; Lock freezes records for that term.')}
+                  </p>
+                </div>
+              </div>
 
+              <div className="rounded-[10px] border border-[#e0e6ed] bg-white">
+                <div className="flex flex-col gap-3 border-b border-[#e0e6ed] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                  <div>
+                    <h3 className="text-[0.875rem] font-semibold ui-text-primary">
+                      {t('Academic Years & Terms')}
+                    </h3>
+                    <p className="mt-0.5 text-xs ui-text-secondary">
+                      {t('Browse the calendar below. Use Add to create a year or a term.')}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="inline-flex items-center gap-1.5"
+                      onClick={openYearComposer}
+                    >
+                      <CalendarPlus className="h-4 w-4" />
+                      {t('Create year')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="inline-flex items-center gap-1.5"
+                      disabled={academicYears.length === 0}
+                      onClick={() => openTermComposer()}
+                    >
+                      <Plus className="h-4 w-4" />
+                      {t('Add Term')}
+                    </Button>
+                  </div>
+                </div>
+
+                {academicComposer !== 'closed' && (
+                  <div className="border-b border-[#e0e6ed] bg-[#f6f9fc] px-4 py-4 sm:px-5">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold ui-text-primary">
+                        {academicComposer === 'year' ? t('Create academic year') : t('Add term to year')}
+                      </p>
+                      <button
+                        type="button"
+                        className="text-xs font-medium ui-text-secondary hover:ui-text-primary"
+                        onClick={() => setAcademicComposer('closed')}
+                      >
+                        {t('Close')}
+                      </button>
+                    </div>
+
+                    {academicComposer === 'year' ? (
+                      <form className="flex flex-wrap items-end gap-3" onSubmit={createAcademicYear}>
+                        <div className="min-w-[8rem] max-w-[12rem] flex-1">
+                          <Input
+                            label={t('Year')}
+                            type="number"
+                            min={2000}
+                            max={2100}
+                            value={yearInput}
+                            onChange={(e) => setYearInput(e.target.value)}
+                          />
+                        </div>
+                        <Button type="submit" isLoading={termsSaving} className="inline-flex items-center gap-1.5">
+                          <CalendarPlus className="h-4 w-4" />
+                          {t('Create year')}
+                        </Button>
+                      </form>
+                    ) : academicYears.length === 0 ? (
+                      <p className="text-sm ui-text-secondary">
+                        {t('Create an academic year before adding terms.')}
+                      </p>
+                    ) : (
+                      <form
+                        className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5"
+                        onSubmit={createTerm}
+                      >
+                        <Select
+                          label={t('Academic Year')}
+                          value={selectedAcademicYearId}
+                          onChange={(e) => setSelectedAcademicYearId(e.target.value)}
+                          options={academicYears.map((year) => ({
+                            value: year.id,
+                            label: `${year.year}${year.isCurrent ? ` (${t('Current')})` : ''}`,
+                          }))}
+                        />
+                        <Input
+                          label={t('Term Name')}
+                          value={termName}
+                          onChange={(e) => setTermName(e.target.value)}
+                          placeholder="Term 1"
+                        />
+                        <Input
+                          label={t('Start Date')}
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                        />
+                        <Input
+                          label={t('End Date')}
+                          type="date"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                        />
+                        <div className="flex items-end">
+                          <Button
+                            type="submit"
+                            isLoading={termsSaving}
+                            disabled={!selectedAcademicYearId || selectedYearTerms.length >= 6}
+                            className="w-full inline-flex items-center justify-center gap-1.5"
+                          >
+                            <Plus className="h-4 w-4" />
+                            {t('Add Term')}
+                          </Button>
+                        </div>
+                      </form>
+                    )}
+
+                    {academicComposer === 'term' && selectedAcademicYear && (
+                      <p className="mt-3 text-xs ui-text-secondary">
+                        {t('Term dates should fall within')} {selectedAcademicYear.year}
+                        {selectedYearTerms.length >= 6
+                          ? ` · ${t('Maximum 6 terms reached for this year')}`
+                          : ` · ${selectedYearTerms.length}/6 ${t('terms')}`}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {termsLoading ? (
+                  <p className="p-5 text-sm ui-text-secondary">{t('Loading academic years...')}</p>
+                ) : academicYears.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <p className="text-sm ui-text-secondary">
+                      {t('No academic years yet. Create one to get started.')}
+                    </p>
+                    <Button
+                      className="mt-3 inline-flex items-center gap-1.5"
+                      onClick={openYearComposer}
+                    >
+                      <CalendarPlus className="h-4 w-4" />
+                      {t('Create year')}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="ui-table min-w-full text-sm">
+                      <thead>
+                        <tr>
+                          <th>{t('Year / Term')}</th>
+                          <th>{t('Dates')}</th>
+                          <th>{t('Status')}</th>
+                          <th className="text-right">{t('Actions')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {academicYears.map((year) => {
+                          const isExpanded = year.id === expandedYearId
+                          const yearMenuItems = [
+                            {
+                              id: 'add-term',
+                              label: t('Add Term'),
+                              onClick: () => openTermComposer(year.id),
+                              disabled: year.terms.length >= 6 || termsSaving,
+                            },
+                            ...(!year.isCurrent
+                              ? [
+                                  {
+                                    id: 'set-current-year',
+                                    label: t('Set Current'),
+                                    onClick: () => {
+                                      void setCurrentAcademicYear(year.id)
+                                    },
+                                    disabled: termsSaving,
+                                  },
+                                ]
+                              : []),
+                          ]
+
+                          return (
+                            <Fragment key={year.id}>
+                              <tr
+                                className={isExpanded ? 'bg-[#f0effe]' : 'bg-[#fafbfc]'}
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => toggleYearExpanded(year.id)}
+                                aria-expanded={isExpanded}
+                              >
+                                <td>
+                                  <div className="flex items-center gap-2 font-semibold ui-text-primary">
+                                    {isExpanded ? (
+                                      <ChevronDown className="h-4 w-4 shrink-0 text-[#635bff]" aria-hidden />
+                                    ) : (
+                                      <ChevronRight className="h-4 w-4 shrink-0 text-[#8898aa]" aria-hidden />
+                                    )}
+                                    <span>
+                                      {year.year}
+                                      <span className="ml-2 text-[0.6875rem] font-medium uppercase tracking-[0.07em] text-[#8898aa]">
+                                        {year.terms.length}/6 {t('terms')}
+                                      </span>
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="text-xs ui-text-secondary">{year.name}</td>
+                                <td>
+                                  {year.isCurrent ? (
+                                    <span className="ui-status ui-status-success">{t('Current')}</span>
+                                  ) : (
+                                    <span className="text-xs ui-text-secondary">—</span>
+                                  )}
+                                </td>
+                                <td>
+                                  <div
+                                    className="flex justify-end"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <ActionMenu label={t('Year actions')} items={yearMenuItems} />
+                                  </div>
+                                </td>
+                              </tr>
+
+                              {isExpanded &&
+                                (year.terms.length === 0 ? (
+                                  <tr>
+                                    <td
+                                      colSpan={4}
+                                      className="border-l-[3px] border-l-[#635bff] pl-8 text-xs ui-text-secondary"
+                                    >
+                                      {t('No terms in this year yet.')}{' '}
+                                      <button
+                                        type="button"
+                                        className="font-medium text-[#635bff] hover:text-[#5146e8]"
+                                        onClick={() => openTermComposer(year.id)}
+                                      >
+                                        {t('Add Term')} →
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  year.terms.map((term) => (
+                                    <tr key={term.id}>
+                                      <td className="border-l-[3px] border-l-[#635bff] pl-10">
+                                        <span className="font-medium ui-text-primary">{term.name}</span>
+                                      </td>
+                                      <td className="whitespace-nowrap ui-text-secondary">
+                                        {formatTermDate(term.startDate)} – {formatTermDate(term.endDate)}
+                                      </td>
+                                      <td>
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {term.isCurrent && (
+                                            <span className="ui-status ui-status-success">{t('Current')}</span>
+                                          )}
+                                          {term.isLocked && (
+                                            <span className="ui-status ui-status-pending">{t('Locked')}</span>
+                                          )}
+                                          {!term.isCurrent && !term.isLocked && (
+                                            <span className="text-xs ui-text-secondary">—</span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td>
+                                        <div className="flex justify-end">
+                                          <ActionMenu
+                                            label={t('Term actions')}
+                                            items={[
+                                              {
+                                                id: 'set-current-term',
+                                                label: t('Set Current'),
+                                                disabled: term.isCurrent || termsSaving,
+                                                onClick: () => {
+                                                  setSelectedAcademicYearId(year.id)
+                                                  void setCurrentTerm(term.id)
+                                                },
+                                              },
+                                              {
+                                                id: 'toggle-lock',
+                                                label: term.isLocked ? t('Unlock') : t('Lock'),
+                                                tone: term.isLocked ? 'default' : 'danger',
+                                                disabled: termsSaving,
+                                                separatorBefore: true,
+                                                onClick: () => {
+                                                  setSelectedAcademicYearId(year.id)
+                                                  void toggleLock(term)
+                                                },
+                                              },
+                                            ]}
+                                          />
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))
+                                ))}
+                            </Fragment>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </section>
+            )}
+
+            {activePanel === 'finance' && (
+            <section
+              id="settings-panel-finance"
+              role="tabpanel"
+              aria-labelledby="settings-tab-finance"
+              className="space-y-4"
+            >
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 <Card title={t('School Currency')} className="p-5 h-full">
                   <p className="text-sm ui-text-secondary mb-4">
@@ -744,335 +1188,14 @@ export default function AdminSettingsPage() {
                 </Card>
               </div>
             </section>
+            )}
 
-            {/* Academic */}
-            <section id="academic" className="scroll-mt-6">
-              <h2 className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
-                {t('Academic Calendar')}
-              </h2>
-
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <Card title={t('Academic Pass Mark')} className="p-5 h-full">
-                  <p className="text-sm ui-text-secondary mb-4">
-                    {t('Minimum exam percentage required to pass a subject.')}
-                  </p>
-                  <div className="flex items-end gap-3">
-                    <div className="min-w-0 flex-1">
-                      <Input
-                        label={t('Minimum pass mark (%)')}
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="1"
-                        value={minimumPassRateInput}
-                        onChange={(e) => setMinimumPassRateInput(e.target.value)}
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      isLoading={minimumPassRateSaving}
-                      onClick={handleSaveMinimumPassRate}
-                      className="shrink-0"
-                    >
-                      {t('Save')}
-                    </Button>
-                  </div>
-                  <p className="mt-2 text-xs text-[#1b8a5a]">
-                    {t('Current minimum pass mark:')} {minimumPassRatePerSubject}%
-                  </p>
-                </Card>
-
-                <Card title={t('Create Academic Year')} className="p-5 h-full">
-                  <p className="text-sm ui-text-secondary mb-4">
-                    {t('Create the school year first. It will appear in the years table even before you add terms.')}
-                  </p>
-                  <form className="flex gap-3 items-end" onSubmit={createAcademicYear}>
-                    <div className="min-w-0 flex-1">
-                      <Input
-                        label={t('Year')}
-                        type="number"
-                        min={2000}
-                        max={2100}
-                        value={yearInput}
-                        onChange={(e) => setYearInput(e.target.value)}
-                      />
-                    </div>
-                    <Button type="submit" isLoading={termsSaving} className="shrink-0 inline-flex items-center gap-1.5">
-                      <CalendarPlus className="h-4 w-4" />
-                      {t('Create')}
-                    </Button>
-                  </form>
-                </Card>
-
-                <Card title={t('Academic Years')} className="p-0 overflow-hidden h-full">
-                  {termsLoading ? (
-                    <p className="ui-text-secondary p-5 text-sm">{t('Loading academic years...')}</p>
-                  ) : academicYears.length === 0 ? (
-                    <p className="ui-text-secondary p-5 text-sm">
-                      {t('No academic years yet. Create one to get started.')}
-                    </p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="ui-table min-w-full text-sm">
-                        <thead>
-                          <tr>
-                            <th>{t('Year')}</th>
-                            <th>{t('Terms')}</th>
-                            <th>{t('Status')}</th>
-                            <th className="text-right">{t('Actions')}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {academicYears.map((year) => {
-                            const isSelected = year.id === selectedAcademicYearId
-                            return (
-                              <tr
-                                key={year.id}
-                                className={isSelected ? 'bg-[#f0effe]' : undefined}
-                                onClick={() => setSelectedAcademicYearId(year.id)}
-                                style={{ cursor: 'pointer' }}
-                              >
-                                <td>
-                                  <div className="font-semibold ui-text-primary">{year.year}</div>
-                                  <div className="text-xs ui-text-secondary">{year.name}</div>
-                                </td>
-                                <td className="font-semibold ui-text-primary">{year.terms.length}</td>
-                                <td>
-                                  {year.isCurrent ? (
-                                    <span className="ui-status ui-status-success">{t('Current')}</span>
-                                  ) : (
-                                    <span className="text-xs ui-text-secondary">—</span>
-                                  )}
-                                </td>
-                                <td>
-                                  <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                                    <button
-                                      type="button"
-                                      className="text-sm font-medium text-[#635bff] hover:text-[#5146e8] transition-colors"
-                                      onClick={() => setSelectedAcademicYearId(year.id)}
-                                    >
-                                      {t('Manage terms')} →
-                                    </button>
-                                    {!year.isCurrent && (
-                                      <Button
-                                        size="sm"
-                                        variant="secondary"
-                                        disabled={termsSaving}
-                                        onClick={() => setCurrentAcademicYear(year.id)}
-                                      >
-                                        {t('Set Current')}
-                                      </Button>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </Card>
-
-                <Card title={t('Add Term')} className="p-5 xl:col-span-2">
-                  <p className="text-sm ui-text-secondary mb-4">
-                    {t('Select an academic year, then add terms that belong to that year.')}
-                  </p>
-                  {academicYears.length === 0 ? (
-                    <p className="text-sm ui-text-secondary">
-                      {t('Create an academic year above before adding terms.')}
-                    </p>
-                  ) : (
-                    <form className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5" onSubmit={createTerm}>
-                      <Select
-                        label={t('Academic Year')}
-                        value={selectedAcademicYearId}
-                        onChange={(e) => setSelectedAcademicYearId(e.target.value)}
-                        options={academicYears.map((year) => ({
-                          value: year.id,
-                          label: `${year.year}${year.isCurrent ? ` (${t('Current')})` : ''}`,
-                        }))}
-                      />
-                      <Input
-                        label={t('Term Name')}
-                        value={termName}
-                        onChange={(e) => setTermName(e.target.value)}
-                        placeholder="Term 1"
-                      />
-                      <Input
-                        label={t('Start Date')}
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                      />
-                      <Input
-                        label={t('End Date')}
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                      />
-                      <div className="flex items-end">
-                        <Button
-                          type="submit"
-                          isLoading={termsSaving}
-                          disabled={!selectedAcademicYearId || selectedYearTerms.length >= 6}
-                          className="w-full sm:w-auto inline-flex items-center gap-1.5"
-                        >
-                          <Plus className="h-4 w-4" />
-                          {t('Add Term')}
-                        </Button>
-                      </div>
-                    </form>
-                  )}
-                  {selectedAcademicYear && (
-                    <p className="mt-3 text-xs ui-text-secondary">
-                      {t('Term dates should fall within')} {selectedAcademicYear.year}
-                      {selectedYearTerms.length >= 6
-                        ? ` · ${t('Maximum 6 terms reached for this year')}`
-                        : ` · ${selectedYearTerms.length}/6 ${t('terms')}`}
-                    </p>
-                  )}
-                </Card>
-
-                <Card title={t('Terms for selected year')} className="p-0 overflow-hidden xl:col-span-2">
-                  <div className="border-b border-[#e0e6ed] bg-white px-5 py-3">
-                    <p className="text-sm ui-text-secondary">
-                      {selectedAcademicYear
-                        ? `${t('Showing terms for')} ${selectedAcademicYear.name}`
-                        : t('Select an academic year to manage its terms.')}
-                    </p>
-                    <div className="mt-2 flex flex-col gap-1 text-xs ui-text-secondary sm:flex-row sm:gap-4">
-                      <span>
-                        <span className="font-semibold uppercase tracking-[0.07em] text-[#8898aa]">
-                          {t('Set Current')}:
-                        </span>{' '}
-                        {t('Makes this the active term used across the school (attendance, results, fees, dashboards). Also marks its academic year as current.')}
-                      </span>
-                      <span>
-                        <span className="font-semibold uppercase tracking-[0.07em] text-[#8898aa]">
-                          {t('Lock')}:
-                        </span>{' '}
-                        {t('Prevents edits to assessments, results, attendance, and fee records for this term. Unlock to allow changes again.')}
-                      </span>
-                    </div>
-                  </div>
-
-                  {termsLoading ? (
-                    <p className="ui-text-secondary p-5 text-sm">{t('Loading terms...')}</p>
-                  ) : !selectedAcademicYear ? (
-                    <p className="ui-text-secondary p-5 text-sm">
-                      {t('Select an academic year to manage its terms.')}
-                    </p>
-                  ) : selectedYearTerms.length === 0 ? (
-                    <p className="ui-text-secondary p-5 text-sm">
-                      {t('No terms in this year yet. Use the form above to add Term 1, Term 2, and so on.')}
-                    </p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="ui-table min-w-full text-sm">
-                        <thead>
-                          <tr>
-                            <th>{t('Term')}</th>
-                            <th>{t('Start')}</th>
-                            <th>{t('End')}</th>
-                            <th>{t('Status')}</th>
-                            <th className="text-right">{t('Actions')}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selectedYearTerms.map((term) => (
-                            <tr key={term.id}>
-                              <td className="font-semibold ui-text-primary">{term.name}</td>
-                              <td className="ui-text-secondary">{formatTermDate(term.startDate)}</td>
-                              <td className="ui-text-secondary">{formatTermDate(term.endDate)}</td>
-                              <td>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {term.isCurrent && (
-                                    <span className="ui-status ui-status-success">{t('Current')}</span>
-                                  )}
-                                  {term.isLocked && (
-                                    <span className="ui-status ui-status-pending">{t('Locked')}</span>
-                                  )}
-                                  {!term.isCurrent && !term.isLocked && (
-                                    <span className="text-xs ui-text-secondary">—</span>
-                                  )}
-                                </div>
-                              </td>
-                              <td>
-                                <div className="flex justify-end gap-1">
-                                  <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    disabled={term.isCurrent || termsSaving}
-                                    title={t('Makes this the active term used across the school (attendance, results, fees, dashboards). Also marks its academic year as current.')}
-                                    onClick={() => setCurrentTerm(term.id)}
-                                  >
-                                    {t('Set Current')}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant={term.isLocked ? 'secondary' : 'danger'}
-                                    disabled={termsSaving}
-                                    title={t('Prevents edits to assessments, results, attendance, and fee records for this term. Unlock to allow changes again.')}
-                                    onClick={() => toggleLock(term)}
-                                  >
-                                    {term.isLocked ? t('Unlock') : t('Lock')}
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </Card>
-              </div>
-            </section>
-
-            {/* Courses */}
-            <section id="courses" className="scroll-mt-6">
-              <h2 className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
-                {t('Video Courses')}
-              </h2>
-              <Card title={t('Cross-School Course Sharing')} className="p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <p className="text-sm ui-text-secondary max-w-xl">
-                    {t(
-                      'When enabled, teachers can share courses with students from other schools on the platform.'
-                    )}
-                  </p>
-                  <label className="flex items-center gap-3 cursor-pointer shrink-0">
-                    <div
-                      role="switch"
-                      aria-checked={allowCrossSchoolCourses}
-                      onClick={() =>
-                        !crossSchoolCoursesSaving && handleSaveCrossSchoolCourses(!allowCrossSchoolCourses)
-                      }
-                      className={`${toggleClass(allowCrossSchoolCourses)} ${
-                        crossSchoolCoursesSaving ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
-                          allowCrossSchoolCourses ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </div>
-                    <span className="text-sm font-medium ui-text-primary">
-                      {allowCrossSchoolCourses ? t('Enabled') : t('Disabled')}
-                      {crossSchoolCoursesSaving ? ` · ${t('Saving…')}` : ''}
-                    </span>
-                  </label>
-                </div>
-              </Card>
-            </section>
-
-            {/* Branding */}
-            <section id="branding" className="scroll-mt-6">
-              <h2 className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.07em] ui-text-secondary">
-                {t('School Branding')}
-              </h2>
+            {activePanel === 'branding' && (
+            <section
+              id="settings-panel-branding"
+              role="tabpanel"
+              aria-labelledby="settings-tab-branding"
+            >
               <Card title={t('School Logo')} className="p-5">
                 <p className="text-sm ui-text-secondary mb-4">
                   {t('Appears on report cards. PNG or SVG recommended, max 2 MB.')}
@@ -1153,6 +1276,47 @@ export default function AdminSettingsPage() {
                 </div>
               </Card>
             </section>
+            )}
+
+            {activePanel === 'courses' && (
+            <section
+              id="settings-panel-courses"
+              role="tabpanel"
+              aria-labelledby="settings-tab-courses"
+            >
+              <Card title={t('Cross-School Course Sharing')} className="p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <p className="text-sm ui-text-secondary max-w-xl">
+                    {t(
+                      'When enabled, teachers can share courses with students from other schools on the platform.'
+                    )}
+                  </p>
+                  <label className="flex items-center gap-3 cursor-pointer shrink-0">
+                    <div
+                      role="switch"
+                      aria-checked={allowCrossSchoolCourses}
+                      onClick={() =>
+                        !crossSchoolCoursesSaving && handleSaveCrossSchoolCourses(!allowCrossSchoolCourses)
+                      }
+                      className={`${toggleClass(allowCrossSchoolCourses)} ${
+                        crossSchoolCoursesSaving ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+                          allowCrossSchoolCourses ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </div>
+                    <span className="text-sm font-medium ui-text-primary">
+                      {allowCrossSchoolCourses ? t('Enabled') : t('Disabled')}
+                      {crossSchoolCoursesSaving ? ` · ${t('Saving…')}` : ''}
+                    </span>
+                  </label>
+                </div>
+              </Card>
+            </section>
+            )}
           </div>
         </div>
       </div>
