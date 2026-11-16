@@ -130,17 +130,19 @@ export default function AdminSettingsPage() {
         throw new Error(err?.error || 'Failed to fetch terms')
       }
       const data = await res.json()
-      const years = Array.isArray(data.academicYears) ? data.academicYears : []
+      const years: AcademicYear[] = Array.isArray(data.academicYears) ? data.academicYears : []
       setAcademicYears(years)
-      if (!selectedAcademicYearId && years.length > 0) {
-        setSelectedAcademicYearId(years[0].id)
-      }
+      setSelectedAcademicYearId((prev) => {
+        if (prev && years.some((year) => year.id === prev)) return prev
+        const current = years.find((year) => year.isCurrent)
+        return current?.id || years[0]?.id || ''
+      })
     } catch (error) {
       showToast(error instanceof Error ? error.message : t('Failed to fetch terms'), 'error')
     } finally {
       setTermsLoading(false)
     }
-  }, [selectedAcademicYearId, showToast, t])
+  }, [showToast, t])
 
   useEffect(() => {
     if (session?.user?.role === 'SCHOOL_ADMIN') {
@@ -306,12 +308,19 @@ export default function AdminSettingsPage() {
     }
   }
 
+  const selectedAcademicYear = useMemo(
+    () => academicYears.find((year) => year.id === selectedAcademicYearId) || null,
+    [academicYears, selectedAcademicYearId]
+  )
+
+  const selectedYearTerms = useMemo(() => selectedAcademicYear?.terms ?? [], [selectedAcademicYear])
+
   // ── Terms: create academic year ────────────────────────────────────────────
 
   const createAcademicYear = async (event: React.FormEvent) => {
     event.preventDefault()
     const year = Number(yearInput)
-    if (isNaN(year) || year < 2000 || year > 2030) {
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
       showToast(t('Enter a valid year between 2000 and 2100'), 'warning')
       return
     }
@@ -324,10 +333,23 @@ export default function AdminSettingsPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || t('Failed to create academic year'))
+
+      const created: AcademicYear | undefined = data?.academicYear
+      if (created?.id) {
+        // Show the year immediately even before refetch completes
+        setAcademicYears((prev) => {
+          const without = prev.filter((item) => item.id !== created.id && item.year !== created.year)
+          return [...without, { ...created, terms: Array.isArray(created.terms) ? created.terms : [] }].sort(
+            (a, b) => b.year - a.year
+          )
+        })
+        setSelectedAcademicYearId(created.id)
+      }
+
       showToast(t('Academic year saved'), 'success')
-      setYearInput(String(new Date().getFullYear()))
+      setYearInput(String(Math.min(year + 1, 2100)))
       await fetchTerms()
-      if (data?.academicYear?.id) setSelectedAcademicYearId(data.academicYear.id)
+      if (created?.id) setSelectedAcademicYearId(created.id)
     } catch (error) {
       showToast(error instanceof Error ? error.message : t('Failed to create academic year'), 'error')
     } finally {
@@ -343,25 +365,52 @@ export default function AdminSettingsPage() {
       showToast(t('Academic year, name, start date and end date are required'), 'warning')
       return
     }
-    
-    // Check if adding another term would exceed 6 terms
-    const selectedYear = academicYears.find(y => y.id === selectedAcademicYearId)
+
+    if (endDate < startDate) {
+      showToast(t('End date must be on or after start date'), 'warning')
+      return
+    }
+
+    const selectedYear = academicYears.find((y) => y.id === selectedAcademicYearId)
     if (selectedYear && selectedYear.terms.length >= 6) {
       showToast(t('Maximum 6 terms allowed per academic year'), 'warning')
       return
     }
-    
+
+    if (selectedYear) {
+      const startYear = Number(startDate.slice(0, 4))
+      const endYear = Number(endDate.slice(0, 4))
+      if (
+        startYear < selectedYear.year - 1 ||
+        endYear > selectedYear.year + 1 ||
+        (startYear !== selectedYear.year && endYear !== selectedYear.year)
+      ) {
+        showToast(
+          t('Term dates should fall within the selected academic year') + ` (${selectedYear.year}).`,
+          'warning'
+        )
+        return
+      }
+    }
+
     try {
       setTermsSaving(true)
       const res = await fetch('/api/terms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'createTerm', academicYearId: selectedAcademicYearId, name: termName, startDate, endDate }),
+        body: JSON.stringify({
+          action: 'createTerm',
+          academicYearId: selectedAcademicYearId,
+          name: termName,
+          startDate,
+          endDate,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || t('Failed to create term'))
       showToast(t('Term created'), 'success')
-      setTermName('Term 1')
+      const nextIndex = (selectedYear?.terms.length || 0) + 2
+      setTermName(nextIndex <= 6 ? `Term ${nextIndex}` : 'Term 1')
       setStartDate('')
       setEndDate('')
       await fetchTerms()
@@ -372,7 +421,27 @@ export default function AdminSettingsPage() {
     }
   }
 
-  // ── Terms: set current ─────────────────────────────────────────────────────
+  // ── Terms: set current year / term ─────────────────────────────────────────
+
+  const setCurrentAcademicYear = async (academicYearId: string) => {
+    try {
+      setTermsSaving(true)
+      const res = await fetch('/api/terms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'setCurrentAcademicYear', academicYearId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || t('Failed to set current academic year'))
+      showToast(t('Current academic year updated'), 'success')
+      setSelectedAcademicYearId(academicYearId)
+      await fetchTerms()
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : t('Failed to set current academic year'), 'error')
+    } finally {
+      setTermsSaving(false)
+    }
+  }
 
   const setCurrentTerm = async (termId: string) => {
     try {
@@ -414,17 +483,11 @@ export default function AdminSettingsPage() {
     }
   }
 
-  const allTerms = useMemo(
-    () =>
-      academicYears.flatMap((year) =>
-        year.terms.map((term) => ({
-          ...term,
-          academicYearLabel: year.name,
-          academicYear: year.year,
-        }))
-      ),
-    [academicYears]
-  )
+  const formatTermDate = (value: string) => {
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return '—'
+    return date.toLocaleDateString(locale === 'fr' ? 'fr-FR' : locale === 'sw' ? 'sw-TZ' : 'en-GB')
+  }
 
   // ── Invoice settings: save ────────────────────────────────────────────────
 
@@ -721,21 +784,15 @@ export default function AdminSettingsPage() {
 
                 <Card title={t('Create Academic Year')} className="p-5 h-full">
                   <p className="text-sm ui-text-secondary mb-4">
-                    {t('Start a new school year, then add terms below.')}
+                    {t('Create the school year first. It will appear in the years table even before you add terms.')}
                   </p>
-                  <form
-                    className="flex gap-3 items-end"
-                    onSubmit={(e) => {
-                      e.preventDefault()
-                      createAcademicYear(e)
-                    }}
-                  >
+                  <form className="flex gap-3 items-end" onSubmit={createAcademicYear}>
                     <div className="min-w-0 flex-1">
                       <Input
                         label={t('Year')}
                         type="number"
                         min={2000}
-                        max={2030}
+                        max={2100}
                         value={yearInput}
                         onChange={(e) => setYearInput(e.target.value)}
                       />
@@ -747,9 +804,95 @@ export default function AdminSettingsPage() {
                   </form>
                 </Card>
 
-                {selectedAcademicYearId && (
-                  <Card title={t('Add Term to Academic Year')} className="p-5 xl:col-span-2">
-                    <form className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4" onSubmit={createTerm}>
+                <Card title={t('Academic Years')} className="p-0 overflow-hidden h-full">
+                  {termsLoading ? (
+                    <p className="ui-text-secondary p-5 text-sm">{t('Loading academic years...')}</p>
+                  ) : academicYears.length === 0 ? (
+                    <p className="ui-text-secondary p-5 text-sm">
+                      {t('No academic years yet. Create one to get started.')}
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="ui-table min-w-full text-sm">
+                        <thead>
+                          <tr>
+                            <th>{t('Year')}</th>
+                            <th>{t('Terms')}</th>
+                            <th>{t('Status')}</th>
+                            <th className="text-right">{t('Actions')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {academicYears.map((year) => {
+                            const isSelected = year.id === selectedAcademicYearId
+                            return (
+                              <tr
+                                key={year.id}
+                                className={isSelected ? 'bg-[#f0effe]' : undefined}
+                                onClick={() => setSelectedAcademicYearId(year.id)}
+                                style={{ cursor: 'pointer' }}
+                              >
+                                <td>
+                                  <div className="font-semibold ui-text-primary">{year.year}</div>
+                                  <div className="text-xs ui-text-secondary">{year.name}</div>
+                                </td>
+                                <td className="font-semibold ui-text-primary">{year.terms.length}</td>
+                                <td>
+                                  {year.isCurrent ? (
+                                    <span className="ui-status ui-status-success">{t('Current')}</span>
+                                  ) : (
+                                    <span className="text-xs ui-text-secondary">—</span>
+                                  )}
+                                </td>
+                                <td>
+                                  <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      type="button"
+                                      className="text-sm font-medium text-[#635bff] hover:text-[#5146e8] transition-colors"
+                                      onClick={() => setSelectedAcademicYearId(year.id)}
+                                    >
+                                      {t('Manage terms')} →
+                                    </button>
+                                    {!year.isCurrent && (
+                                      <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        disabled={termsSaving}
+                                        onClick={() => setCurrentAcademicYear(year.id)}
+                                      >
+                                        {t('Set Current')}
+                                      </Button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </Card>
+
+                <Card title={t('Add Term')} className="p-5 xl:col-span-2">
+                  <p className="text-sm ui-text-secondary mb-4">
+                    {t('Select an academic year, then add terms that belong to that year.')}
+                  </p>
+                  {academicYears.length === 0 ? (
+                    <p className="text-sm ui-text-secondary">
+                      {t('Create an academic year above before adding terms.')}
+                    </p>
+                  ) : (
+                    <form className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5" onSubmit={createTerm}>
+                      <Select
+                        label={t('Academic Year')}
+                        value={selectedAcademicYearId}
+                        onChange={(e) => setSelectedAcademicYearId(e.target.value)}
+                        options={academicYears.map((year) => ({
+                          value: year.id,
+                          label: `${year.year}${year.isCurrent ? ` (${t('Current')})` : ''}`,
+                        }))}
+                      />
                       <Input
                         label={t('Term Name')}
                         value={termName}
@@ -769,63 +912,91 @@ export default function AdminSettingsPage() {
                         onChange={(e) => setEndDate(e.target.value)}
                       />
                       <div className="flex items-end">
-                        <Button type="submit" isLoading={termsSaving} className="w-full sm:w-auto inline-flex items-center gap-1.5">
+                        <Button
+                          type="submit"
+                          isLoading={termsSaving}
+                          disabled={!selectedAcademicYearId || selectedYearTerms.length >= 6}
+                          className="w-full sm:w-auto inline-flex items-center gap-1.5"
+                        >
                           <Plus className="h-4 w-4" />
-                          {t('Add')}
+                          {t('Add Term')}
                         </Button>
                       </div>
                     </form>
-                    {(academicYears.find((y) => y.id === selectedAcademicYearId)?.terms?.length || 0) >= 6 && (
-                      <p className="mt-3 text-xs text-[#b07d00]">{t('Maximum 6 terms reached for this year')}</p>
-                    )}
-                  </Card>
-                )}
+                  )}
+                  {selectedAcademicYear && (
+                    <p className="mt-3 text-xs ui-text-secondary">
+                      {t('Term dates should fall within')} {selectedAcademicYear.year}
+                      {selectedYearTerms.length >= 6
+                        ? ` · ${t('Maximum 6 terms reached for this year')}`
+                        : ` · ${selectedYearTerms.length}/6 ${t('terms')}`}
+                    </p>
+                  )}
+                </Card>
 
-                <Card title={t('Academic Terms')} className="p-0 overflow-hidden xl:col-span-2">
+                <Card title={t('Terms for selected year')} className="p-0 overflow-hidden xl:col-span-2">
+                  <div className="border-b border-[#e0e6ed] bg-white px-5 py-3">
+                    <p className="text-sm ui-text-secondary">
+                      {selectedAcademicYear
+                        ? `${t('Showing terms for')} ${selectedAcademicYear.name}`
+                        : t('Select an academic year to manage its terms.')}
+                    </p>
+                    <div className="mt-2 flex flex-col gap-1 text-xs ui-text-secondary sm:flex-row sm:gap-4">
+                      <span>
+                        <span className="font-semibold uppercase tracking-[0.07em] text-[#8898aa]">
+                          {t('Set Current')}:
+                        </span>{' '}
+                        {t('Makes this the active term used across the school (attendance, results, fees, dashboards). Also marks its academic year as current.')}
+                      </span>
+                      <span>
+                        <span className="font-semibold uppercase tracking-[0.07em] text-[#8898aa]">
+                          {t('Lock')}:
+                        </span>{' '}
+                        {t('Prevents edits to assessments, results, attendance, and fee records for this term. Unlock to allow changes again.')}
+                      </span>
+                    </div>
+                  </div>
+
                   {termsLoading ? (
                     <p className="ui-text-secondary p-5 text-sm">{t('Loading terms...')}</p>
-                  ) : allTerms.length === 0 ? (
+                  ) : !selectedAcademicYear ? (
                     <p className="ui-text-secondary p-5 text-sm">
-                      {t('No terms yet. Create an academic year above, then add terms to it.')}
+                      {t('Select an academic year to manage its terms.')}
+                    </p>
+                  ) : selectedYearTerms.length === 0 ? (
+                    <p className="ui-text-secondary p-5 text-sm">
+                      {t('No terms in this year yet. Use the form above to add Term 1, Term 2, and so on.')}
                     </p>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="ui-table min-w-full text-sm">
                         <thead>
                           <tr>
-                            <th>{t('Year')}</th>
                             <th>{t('Term')}</th>
                             <th>{t('Start')}</th>
                             <th>{t('End')}</th>
-                            <th>{t('Current')}</th>
-                            <th>{t('Locked')}</th>
+                            <th>{t('Status')}</th>
                             <th className="text-right">{t('Actions')}</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {allTerms.map((term) => (
+                          {selectedYearTerms.map((term) => (
                             <tr key={term.id}>
-                              <td className="ui-text-secondary">{term.academicYearLabel}</td>
                               <td className="font-semibold ui-text-primary">{term.name}</td>
-                              <td className="ui-text-secondary">{new Date(term.startDate).toLocaleDateString()}</td>
-                              <td className="ui-text-secondary">{new Date(term.endDate).toLocaleDateString()}</td>
+                              <td className="ui-text-secondary">{formatTermDate(term.startDate)}</td>
+                              <td className="ui-text-secondary">{formatTermDate(term.endDate)}</td>
                               <td>
-                                {term.isCurrent ? (
-                                  <span className="inline-flex rounded-full bg-[#eafaf3] px-2.5 py-1 text-[0.6875rem] font-semibold text-[#1b8a5a]">
-                                    {t('Current')}
-                                  </span>
-                                ) : (
-                                  <span className="text-xs ui-text-secondary">—</span>
-                                )}
-                              </td>
-                              <td>
-                                {term.isLocked ? (
-                                  <span className="inline-flex rounded-full bg-[#fff8e6] px-2.5 py-1 text-[0.6875rem] font-semibold text-[#b07d00]">
-                                    {t('Locked')}
-                                  </span>
-                                ) : (
-                                  <span className="text-xs ui-text-secondary">—</span>
-                                )}
+                                <div className="flex flex-wrap gap-1.5">
+                                  {term.isCurrent && (
+                                    <span className="ui-status ui-status-success">{t('Current')}</span>
+                                  )}
+                                  {term.isLocked && (
+                                    <span className="ui-status ui-status-pending">{t('Locked')}</span>
+                                  )}
+                                  {!term.isCurrent && !term.isLocked && (
+                                    <span className="text-xs ui-text-secondary">—</span>
+                                  )}
+                                </div>
                               </td>
                               <td>
                                 <div className="flex justify-end gap-1">
@@ -833,6 +1004,7 @@ export default function AdminSettingsPage() {
                                     size="sm"
                                     variant="secondary"
                                     disabled={term.isCurrent || termsSaving}
+                                    title={t('Makes this the active term used across the school (attendance, results, fees, dashboards). Also marks its academic year as current.')}
                                     onClick={() => setCurrentTerm(term.id)}
                                   >
                                     {t('Set Current')}
@@ -841,6 +1013,7 @@ export default function AdminSettingsPage() {
                                     size="sm"
                                     variant={term.isLocked ? 'secondary' : 'danger'}
                                     disabled={termsSaving}
+                                    title={t('Prevents edits to assessments, results, attendance, and fee records for this term. Unlock to allow changes again.')}
                                     onClick={() => toggleLock(term)}
                                   >
                                     {term.isLocked ? t('Unlock') : t('Lock')}

@@ -125,6 +125,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid academic year' }, { status: 400 })
       }
 
+      const existingCount = await prisma.academic_years.count({
+        where: { school_id: schoolId },
+      })
+
       const academicYear = await prisma.academic_years.upsert({
         where: {
           school_id_year: {
@@ -141,17 +145,19 @@ export async function POST(request: NextRequest) {
           school_id: schoolId,
           year: parsedYear,
           name: body?.name?.trim() || `Academic Year ${parsedYear}`,
+          // First year for a school becomes current by default
+          is_current: existingCount === 0,
           updated_at: new Date(),
+        },
+        include: {
+          terms: {
+            orderBy: [{ start_date: 'asc' }, { created_at: 'asc' }],
+          },
         },
       })
 
       return NextResponse.json({
-        academicYear: {
-          id: academicYear.id,
-          year: academicYear.year,
-          name: academicYear.name,
-          isCurrent: academicYear.is_current,
-        },
+        academicYear: normalizeAcademicYear(academicYear),
       }, { status: 201 })
     }
 
@@ -166,35 +172,102 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'academicYearId, name, startDate and endDate are required' }, { status: 400 })
       }
 
+      if (endDate < startDate) {
+        return NextResponse.json({ error: 'End date must be on or after start date' }, { status: 400 })
+      }
+
       const academicYear = await prisma.academic_years.findFirst({
         where: { id: academicYearId, school_id: schoolId },
+        include: { _count: { select: { terms: true } } },
       })
 
       if (!academicYear) {
         return NextResponse.json({ error: 'Academic year not found' }, { status: 404 })
       }
 
-      if (isCurrent) {
-        await prisma.terms.updateMany({
-          where: { school_id: schoolId },
-          data: { is_current: false },
-        })
+      if (academicYear._count.terms >= 6) {
+        return NextResponse.json({ error: 'Maximum 6 terms allowed per academic year' }, { status: 400 })
       }
 
-      const term = await prisma.terms.create({
-        data: {
-          id: randomUUID(),
-          school_id: schoolId,
-          academic_year_id: academicYearId,
-          name,
-          start_date: startDate,
-          end_date: endDate,
-          is_current: isCurrent,
-          is_locked: false,
-        },
+      // Academic years have no stored date range; require term dates near the year number.
+      const yearStart = new Date(`${academicYear.year - 1}-07-01`)
+      const yearEnd = new Date(`${academicYear.year + 1}-06-30`)
+      if (startDate < yearStart || endDate > yearEnd) {
+        return NextResponse.json({
+          error: `Term dates must fall within academic year ${academicYear.year} (roughly ${academicYear.year - 1}-07 to ${academicYear.year + 1}-06)`,
+        }, { status: 400 })
+      }
+
+      if (isCurrent) {
+        await prisma.$transaction([
+          prisma.terms.updateMany({
+            where: { school_id: schoolId },
+            data: { is_current: false },
+          }),
+          prisma.academic_years.updateMany({
+            where: { school_id: schoolId },
+            data: { is_current: false, updated_at: new Date() },
+          }),
+          prisma.academic_years.update({
+            where: { id: academicYearId },
+            data: { is_current: true, updated_at: new Date() },
+          }),
+        ])
+      }
+
+      try {
+        const term = await prisma.terms.create({
+          data: {
+            id: randomUUID(),
+            school_id: schoolId,
+            academic_year_id: academicYearId,
+            name,
+            start_date: startDate,
+            end_date: endDate,
+            is_current: isCurrent,
+            is_locked: false,
+          },
+        })
+
+        return NextResponse.json({ term: normalizeTerm(term) }, { status: 201 })
+      } catch (createError: unknown) {
+        const code = typeof createError === 'object' && createError && 'code' in createError
+          ? String((createError as { code?: string }).code)
+          : ''
+        if (code === 'P2002') {
+          return NextResponse.json({ error: 'A term with this name already exists for the selected year' }, { status: 409 })
+        }
+        throw createError
+      }
+    }
+
+    if (action === 'setCurrentAcademicYear') {
+      const academicYearId = typeof body?.academicYearId === 'string' ? body.academicYearId : ''
+      if (!academicYearId) {
+        return NextResponse.json({ error: 'academicYearId is required' }, { status: 400 })
+      }
+
+      const targetYear = await prisma.academic_years.findFirst({
+        where: { id: academicYearId, school_id: schoolId },
+        select: { id: true },
       })
 
-      return NextResponse.json({ term: normalizeTerm(term) }, { status: 201 })
+      if (!targetYear) {
+        return NextResponse.json({ error: 'Academic year not found' }, { status: 404 })
+      }
+
+      await prisma.$transaction([
+        prisma.academic_years.updateMany({
+          where: { school_id: schoolId },
+          data: { is_current: false, updated_at: new Date() },
+        }),
+        prisma.academic_years.update({
+          where: { id: academicYearId },
+          data: { is_current: true, updated_at: new Date() },
+        }),
+      ])
+
+      return NextResponse.json({ success: true })
     }
 
     if (action === 'setCurrentTerm') {
@@ -208,7 +281,7 @@ export async function POST(request: NextRequest) {
           id: termId,
           school_id: schoolId,
         },
-        select: { id: true },
+        select: { id: true, academic_year_id: true },
       })
 
       if (!targetTerm) {
@@ -223,6 +296,14 @@ export async function POST(request: NextRequest) {
         prisma.terms.update({
           where: { id: termId },
           data: { is_current: true },
+        }),
+        prisma.academic_years.updateMany({
+          where: { school_id: schoolId },
+          data: { is_current: false, updated_at: new Date() },
+        }),
+        prisma.academic_years.update({
+          where: { id: targetTerm.academic_year_id },
+          data: { is_current: true, updated_at: new Date() },
         }),
       ])
 
