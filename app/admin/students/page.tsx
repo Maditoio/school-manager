@@ -926,72 +926,62 @@ export default function StudentsPage() {
           </div>
         </div>
 
-        {loading || students.length > 0 ? (
-          <Table
-            title={t('pageTitle', 'Students Management')}
-            columns={studentColumns}
-            data={students}
-            loading={loading}
-            totalCount={totalCount}
-            page={currentPage}
-            pageSize={pageSize}
-            selectable
-            selectedKeys={selectedStudentIds}
-            onSelectionChange={(keys) => setSelectedStudentIds(keys.map(String))}
-            onSort={() => {
-              // Default order is admissionNumber asc from /api/students; header clicks are not wired to server sort yet.
-            }}
-            onSearch={(value) => {
-              setSearchTerm(value)
-              setCurrentPage(1)
-            }}
-            onPageChange={setCurrentPage}
-            filterLabel={t('filterByClass', 'Filter by class')}
-            filterOptions={[{ value: '', label: t('allClasses', 'All classes') }, ...classes.map((cls) => ({ value: cls.id, label: cls.name }))]}
-            activeFilter={selectedClassId}
-            onFilterChange={(value) => {
-              setSelectedClassId(value)
-              setCurrentPage(1)
-            }}
-            onFilterClick={() => {
-              setSelectedStatusReason('')
-              setStatusDateFrom('')
-              setStatusDateTo('')
-            }}
-            headerControls={
-              selectedStudentIds.length > 0 ? (
-                <Button
-                  variant="danger"
-                  disabled={bulkDeleting}
-                  isLoading={bulkDeleting}
-                  className="inline-flex items-center gap-1.5"
-                  onClick={() => {
-                    void handleDeleteStudents(selectedStudentIds)
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  {t('deleteSelected', 'Delete selected')} ({selectedStudentIds.length})
-                </Button>
-              ) : null
-            }
-            getRowActions={studentRowActions}
-            rowKey="id"
-            emptyMessage={
-              searchTerm.trim()
-                ? t('noSearchResults', 'No students match your search.')
-                : t('noStudentsFound', 'No students found. Click "Enroll Student" to create one.')
-            }
-            ariaLabel={t('pageTitle', 'Students Management')}
-          />
-        ) : (
-          <Card className="p-6">
-            <p className="text-center text-gray-500">
-              {searchTerm.trim()
-                ? t('noSearchResults', 'No students match your search.')
-                : t('noStudentsFound', 'No students found. Click "Enroll Student" to create one.')}
-            </p>
-          </Card>
-        )}
+        <Table
+          title={t('pageTitle', 'Students Management')}
+          columns={studentColumns}
+          data={students}
+          loading={loading}
+          totalCount={totalCount}
+          page={currentPage}
+          pageSize={pageSize}
+          selectable
+          selectedKeys={selectedStudentIds}
+          onSelectionChange={(keys) => setSelectedStudentIds(keys.map(String))}
+          onSort={() => {
+            // Default order is admissionNumber asc from /api/students; header clicks are not wired to server sort yet.
+          }}
+          onSearch={(value) => {
+            setSearchTerm(value)
+            setCurrentPage(1)
+          }}
+          onPageChange={setCurrentPage}
+          filterLabel={t('filterByClass', 'Filter by class')}
+          filterOptions={[{ value: '', label: t('allClasses', 'All classes') }, ...classes.map((cls) => ({ value: cls.id, label: cls.name }))]}
+          activeFilter={selectedClassId}
+          onFilterChange={(value) => {
+            setSelectedClassId(value)
+            setCurrentPage(1)
+          }}
+          onFilterClick={() => {
+            setSelectedStatusReason('')
+            setStatusDateFrom('')
+            setStatusDateTo('')
+          }}
+          headerControls={
+            selectedStudentIds.length > 0 ? (
+              <Button
+                variant="danger"
+                disabled={bulkDeleting}
+                isLoading={bulkDeleting}
+                className="inline-flex items-center gap-1.5"
+                onClick={() => {
+                  void handleDeleteStudents(selectedStudentIds)
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+                {t('deleteSelected', 'Delete selected')} ({selectedStudentIds.length})
+              </Button>
+            ) : null
+          }
+          getRowActions={studentRowActions}
+          rowKey="id"
+          emptyMessage={
+            searchTerm.trim() || selectedClassId || selectedStatusReason || statusDateFrom || statusDateTo
+              ? t('noSearchResults', 'No students match your search.')
+              : t('noStudentsFound', 'No students found. Click "Enroll Student" to create one.')
+          }
+          ariaLabel={t('pageTitle', 'Students Management')}
+        />
 
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
