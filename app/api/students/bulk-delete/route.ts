@@ -19,14 +19,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'School context required' }, { status: 400 })
     }
 
-    const body = await request.json().catch(() => null)
+    const body = (await request.json().catch(() => null)) as { ids?: unknown } | null
     const rawIds = Array.isArray(body?.ids) ? body.ids : []
-    const ids = [
+    const ids: string[] = [
       ...new Set(
         rawIds
-          .filter((id: unknown): id is string => typeof id === 'string')
-          .map((id: string) => id.trim())
-          .filter(Boolean)
+          .filter((id): id is string => typeof id === 'string')
+          .map((id) => id.trim())
+          .filter((id) => id.length > 0)
       ),
     ]
 
