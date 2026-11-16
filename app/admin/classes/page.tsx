@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Form'
 import Table from '@/components/ui/Table'
 import { useToast } from '@/components/ui/Toast'
+import { useConfirmDialog } from '@/lib/useConfirmDialog'
 import { ADMIN_NAV_ITEMS, DEPUTY_ADMIN_NAV_ITEMS } from '@/lib/admin-nav'
 import enMessages from '@/messages/en.json'
 import frMessages from '@/messages/fr.json'
@@ -44,6 +45,7 @@ export default function ClassesPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { confirm } = useConfirmDialog()
 
   const [classes, setClasses] = useState<ClassRow[]>([])
   const [teachers, setTeachers] = useState<Teacher[]>([])
@@ -224,10 +226,27 @@ export default function ClassesPage() {
     setShowModal(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm(tAdmin('confirmDeleteClass', 'Êtes-vous sûr de vouloir supprimer cette classe ?'))) return
+  const handleDelete = async (cls: ClassRow) => {
+    const isConfirmed = await confirm({
+      title: tAdmin('confirmDeleteClassTitle', 'Delete class'),
+      description: tAdmin(
+        'confirmDeleteClass',
+        'Are you sure you want to delete this class?'
+      ),
+      variant: 'danger',
+      confirmLabel: tCommon('delete', 'Delete'),
+      cancelLabel: tCommon('cancel', 'Cancel'),
+      entity: {
+        name: cls.name,
+        subtitle: String(cls.academicYear),
+      },
+      allowBackdropClose: false,
+      allowEscapeClose: false,
+    })
+    if (!isConfirmed) return
+
     try {
-      const res = await fetch(`/api/classes/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/classes/${cls.id}`, { method: 'DELETE' })
       const data = await res.json()
       if (res.ok || res.status === 202) {
         showToast(
@@ -384,7 +403,9 @@ export default function ClassesPage() {
     {
       label: tCommon('delete', 'Supprimer'),
       danger: true,
-      onClick: () => handleDelete(cls.id),
+      onClick: () => {
+        void handleDelete(cls)
+      },
     },
   ]
 

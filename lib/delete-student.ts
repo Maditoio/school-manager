@@ -15,10 +15,15 @@ export class StudentDeleteError extends Error {
 /**
  * Permanently remove a student from a school, including related cascade data
  * and the student login User when present. Parent accounts are never deleted.
+ * Writes a SchoolAuditLog entry so admins can review deletions.
  */
 export async function deleteStudentCompletely(
   db: DbClient,
-  params: { studentId: string; schoolId: string }
+  params: {
+    studentId: string
+    schoolId: string
+    actorId?: string | null
+  }
 ) {
   const student = await db.student.findFirst({
     where: {
@@ -31,12 +36,43 @@ export async function deleteStudentCompletely(
       firstName: true,
       lastName: true,
       admissionNumber: true,
+      classId: true,
+      parentId: true,
+      status: true,
+      class: { select: { name: true } },
     },
   })
 
   if (!student) {
     throw new StudentDeleteError('Student not found', 404)
   }
+
+  const studentName = `${student.firstName} ${student.lastName}`.trim()
+  const summary = student.admissionNumber
+    ? `Deleted student ${studentName} (${student.admissionNumber})`
+    : `Deleted student ${studentName}`
+
+  // Audit before hard delete so the snapshot is preserved even after the row is gone.
+  await db.schoolAuditLog.create({
+    data: {
+      schoolId: params.schoolId,
+      actorId: params.actorId || null,
+      resourceType: 'student',
+      resourceId: student.id,
+      action: 'delete',
+      summary,
+      metadata: {
+        firstName: student.firstName,
+        lastName: student.lastName,
+        admissionNumber: student.admissionNumber,
+        classId: student.classId,
+        className: student.class?.name || null,
+        parentId: student.parentId,
+        status: student.status,
+        hadLogin: Boolean(student.userId),
+      },
+    },
+  })
 
   // Keep expense / complaint audit trails; unlink the student FK (no onDelete).
   await db.expense.updateMany({
@@ -75,7 +111,7 @@ export async function deleteStudentCompletely(
 
   return {
     id: student.id,
-    name: `${student.firstName} ${student.lastName}`.trim(),
+    name: studentName,
     admissionNumber: student.admissionNumber,
   }
 }

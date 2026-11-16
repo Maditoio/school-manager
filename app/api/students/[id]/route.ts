@@ -395,6 +395,7 @@ export async function DELETE(
       deleteStudentCompletely(tx, {
         studentId: existing.id,
         schoolId: existing.schoolId,
+        actorId: session.user.id,
       })
     )
 

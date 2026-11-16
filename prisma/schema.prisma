@@ -43,6 +43,7 @@ model School {
   parentComplaints             ParentComplaint[]
   parentInteractions           ParentInteraction[]
   results                      Result[]
+  schoolAuditLogs              SchoolAuditLog[]
   schoolBilling                SchoolBilling?
   schoolSettings               SchoolSettings?
   reportTemplates              ReportTemplate[]
@@ -180,6 +181,7 @@ model User {
   sentMessages                   Message[]               @relation("SentMessages")
   parentComplaints               ParentComplaint[]       @relation("ParentComplaints")
   parentInteractions             ParentInteraction[]     @relation("ParentInteractions")
+  schoolAuditLogs                SchoolAuditLog[]        @relation("SchoolAuditActor")
   classHistoryChanges            StudentClassHistory[]   @relation("ClassHistoryChangedBy")
   studentStatusChanges           StudentStatusHistory[]  @relation("StudentStatusChangedBy")
   students                       Student[]               @relation("ParentStudents")
@@ -764,6 +766,28 @@ model ParentInteraction {
   @@index([resourceId])
   @@index([createdAt])
   @@map("parent_interactions")
+}
+
+model SchoolAuditLog {
+  id           String   @id @default(uuid())
+  schoolId     String   @map("school_id")
+  actorId      String?  @map("actor_id")
+  resourceType String   @map("resource_type")
+  resourceId   String   @map("resource_id")
+  action       String
+  summary      String?
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+  actor        User?    @relation("SchoolAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([actorId])
+  @@index([resourceType])
+  @@index([resourceId])
+  @@index([createdAt])
+  @@index([schoolId, createdAt])
+  @@map("school_audit_logs")
 }
 
 model FeeSchedule {

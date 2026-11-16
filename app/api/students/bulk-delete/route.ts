@@ -48,7 +48,11 @@ export async function POST(request: NextRequest) {
     for (const studentId of ids) {
       try {
         const result = await prisma.$transaction(async (tx) =>
-          deleteStudentCompletely(tx, { studentId, schoolId })
+          deleteStudentCompletely(tx, {
+            studentId,
+            schoolId,
+            actorId: session.user.id,
+          })
         )
         deleted.push({ id: result.id, name: result.name })
       } catch (error) {

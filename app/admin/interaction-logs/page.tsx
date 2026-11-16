@@ -57,10 +57,29 @@ interface ClassMoveLog {
   } | null
 }
 
+interface SchoolAuditLog {
+  id: string
+  schoolId: string
+  actorId: string | null
+  resourceType: string
+  resourceId: string
+  action: string
+  summary: string | null
+  metadata: Record<string, unknown> | null
+  createdAt: string
+  actor: {
+    id: string
+    firstName: string | null
+    lastName: string | null
+    email: string
+  } | null
+}
+
 export default function AdminInteractionLogsPage() {
   const { data: session, status } = useSession()
   const [logs, setLogs] = useState<InteractionLog[]>([])
   const [classMoveLogs, setClassMoveLogs] = useState<ClassMoveLog[]>([])
+  const [auditLogs, setAuditLogs] = useState<SchoolAuditLog[]>([])
   const [children, setChildren] = useState<Child[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -74,10 +93,10 @@ export default function AdminInteractionLogsPage() {
   }, [session, status])
 
   useEffect(() => {
-    if (session?.user?.role === 'SCHOOL_ADMIN') {
-      fetchLogs()
-      fetchClassMoveLogs()
-      fetchChildren()
+    if (session?.user?.role === 'SCHOOL_ADMIN' || session?.user?.role === 'DEPUTY_ADMIN') {
+      void Promise.all([fetchLogs(), fetchClassMoveLogs(), fetchAuditLogs(), fetchChildren()]).finally(
+        () => setLoading(false)
+      )
     }
   }, [session])
 
@@ -90,8 +109,6 @@ export default function AdminInteractionLogsPage() {
       }
     } catch (error) {
       console.error('Failed to fetch interaction logs:', error)
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -104,6 +121,18 @@ export default function AdminInteractionLogsPage() {
       }
     } catch (error) {
       console.error('Failed to fetch class move logs:', error)
+    }
+  }
+
+  const fetchAuditLogs = async () => {
+    try {
+      const res = await fetch('/api/school-audit-logs?take=200')
+      if (res.ok) {
+        const data = await res.json()
+        setAuditLogs(Array.isArray(data.logs) ? data.logs : [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch school audit logs:', error)
     }
   }
 
@@ -130,6 +159,11 @@ export default function AdminInteractionLogsPage() {
     return map
   }, [children])
 
+  const studentDeletionLogs = useMemo(
+    () => auditLogs.filter((log) => log.resourceType === 'student' && log.action === 'delete'),
+    [auditLogs]
+  )
+
   if (status === 'loading' || !session) {
     return <div>Loading...</div>
   }
@@ -147,46 +181,126 @@ export default function AdminInteractionLogsPage() {
     >
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Parent Interaction Logs</h1>
-          <p className="text-gray-600 mt-2">Track parent clicks on dashboard announcements and assessments</p>
+          <h1 className="text-[1.25rem] font-semibold ui-text-primary">Interaction Logs</h1>
+          <p className="mt-1 ui-text-secondary">
+            Parent activity, class moves, and permanent student deletions
+          </p>
         </div>
 
-        <Card className="p-0 overflow-hidden">
+        <Card className="overflow-hidden p-0">
+          <div className="border-b border-(--border-subtle) px-4 py-3">
+            <h2 className="text-[0.875rem] font-semibold ui-text-primary">Student deletions</h2>
+            <p className="mt-0.5 text-[0.75rem] ui-text-secondary">
+              Permanent removals from the school (kept after the student record is gone)
+            </p>
+          </div>
           {loading ? (
-            <div className="p-6">Loading logs...</div>
-          ) : logs.length === 0 ? (
-            <div className="p-6 text-gray-500">No interaction logs yet.</div>
+            <div className="p-6 ui-text-secondary">Loading deletion logs...</div>
+          ) : studentDeletionLogs.length === 0 ? (
+            <div className="p-6 ui-text-secondary">No student deletions logged yet.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="ui-table no-table-stripes min-w-full">
+                <thead>
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Time</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Parent</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Child</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Resource</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Details</th>
+                    <th>Time</th>
+                    <th>Student</th>
+                    <th>Class</th>
+                    <th>Deleted by</th>
+                    <th>Details</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
-                  {logs.map((log) => {
-                    const parentName = `${log.parent?.firstName || ''} ${log.parent?.lastName || ''}`.trim() || log.parent?.email || 'Unknown'
-                    const childLabel = log.childId ? childNameById.get(log.childId) || log.childId : '-'
+                <tbody>
+                  {studentDeletionLogs.map((log) => {
+                    const meta = log.metadata || {}
+                    const studentLabel =
+                      log.summary ||
+                      [meta.firstName, meta.lastName].filter(Boolean).join(' ') ||
+                      log.resourceId
+                    const admission =
+                      typeof meta.admissionNumber === 'string' && meta.admissionNumber
+                        ? ` (${meta.admissionNumber})`
+                        : ''
+                    const className =
+                      typeof meta.className === 'string' && meta.className ? meta.className : '—'
+                    const actorLabel = log.actor
+                      ? `${log.actor.firstName || ''} ${log.actor.lastName || ''}`.trim() ||
+                        log.actor.email
+                      : 'System'
+
                     return (
                       <tr key={log.id}>
-                        <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                        <td className="whitespace-nowrap">
                           {new Date(log.createdAt).toLocaleString()}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{parentName}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{childLabel}</td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className="px-2 py-1 rounded bg-blue-100 text-blue-700 uppercase text-xs font-medium">
+                        <td>
+                          {studentLabel}
+                          {admission && !String(studentLabel).includes(String(meta.admissionNumber))
+                            ? admission
+                            : ''}
+                        </td>
+                        <td>{className}</td>
+                        <td>{actorLabel}</td>
+                        <td className="text-[0.75rem] ui-text-secondary">
+                          {meta.hadLogin ? 'Had login · ' : ''}
+                          ID: {log.resourceId}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+
+        <Card className="overflow-hidden p-0">
+          <div className="border-b border-(--border-subtle) px-4 py-3">
+            <h2 className="text-[0.875rem] font-semibold ui-text-primary">Parent interactions</h2>
+            <p className="mt-0.5 text-[0.75rem] ui-text-secondary">
+              Parent clicks on dashboard announcements and assessments
+            </p>
+          </div>
+          {loading ? (
+            <div className="p-6 ui-text-secondary">Loading logs...</div>
+          ) : logs.length === 0 ? (
+            <div className="p-6 ui-text-secondary">No interaction logs yet.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="ui-table no-table-stripes min-w-full">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Parent</th>
+                    <th>Child</th>
+                    <th>Resource</th>
+                    <th>Action</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map((log) => {
+                    const parentName =
+                      `${log.parent?.firstName || ''} ${log.parent?.lastName || ''}`.trim() ||
+                      log.parent?.email ||
+                      'Unknown'
+                    const childLabel = log.childId
+                      ? childNameById.get(log.childId) || log.childId
+                      : '-'
+                    return (
+                      <tr key={log.id}>
+                        <td className="whitespace-nowrap">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </td>
+                        <td>{parentName}</td>
+                        <td>{childLabel}</td>
+                        <td>
+                          <span className="ui-status ui-status-neutral uppercase">
                             {log.resourceType}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{log.action}</td>
-                        <td className="px-4 py-3 text-xs text-gray-500">
+                        <td>{log.action}</td>
+                        <td className="text-[0.75rem] ui-text-secondary">
                           <div>ID: {log.resourceId}</div>
                           {log.metadata ? (
                             <div className="mt-1">{JSON.stringify(log.metadata)}</div>
@@ -201,43 +315,47 @@ export default function AdminInteractionLogsPage() {
           )}
         </Card>
 
-        <Card className="p-0 overflow-hidden">
+        <Card className="overflow-hidden p-0">
+          <div className="border-b border-(--border-subtle) px-4 py-3">
+            <h2 className="text-[0.875rem] font-semibold ui-text-primary">Class moves</h2>
+          </div>
           {loading ? (
-            <div className="p-6">Loading class move logs...</div>
+            <div className="p-6 ui-text-secondary">Loading class move logs...</div>
           ) : classMoveLogs.length === 0 ? (
-            <div className="p-6 text-gray-500">No class move logs yet.</div>
+            <div className="p-6 ui-text-secondary">No class move logs yet.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="ui-table no-table-stripes min-w-full">
+                <thead>
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Time</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Student</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">From</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">To</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Changed By</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Reason</th>
+                    <th>Time</th>
+                    <th>Student</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Changed By</th>
+                    <th>Reason</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
+                <tbody>
                   {classMoveLogs.map((log) => {
                     const studentLabel = `${log.student.firstName} ${log.student.lastName}${
                       log.student.admissionNumber ? ` (${log.student.admissionNumber})` : ''
                     }`
                     const changedByLabel = log.changedBy
-                      ? `${log.changedBy.firstName || ''} ${log.changedBy.lastName || ''}`.trim() || log.changedBy.email
+                      ? `${log.changedBy.firstName || ''} ${log.changedBy.lastName || ''}`.trim() ||
+                        log.changedBy.email
                       : 'System'
 
                     return (
                       <tr key={log.id}>
-                        <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                        <td className="whitespace-nowrap">
                           {new Date(log.createdAt).toLocaleString()}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{studentLabel}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{log.fromClass?.name || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{log.toClass?.name || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{changedByLabel}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{log.reason || '-'}</td>
+                        <td>{studentLabel}</td>
+                        <td>{log.fromClass?.name || '-'}</td>
+                        <td>{log.toClass?.name || '-'}</td>
+                        <td>{changedByLabel}</td>
+                        <td>{log.reason || '-'}</td>
                       </tr>
                     )
                   })}
