@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { Upload, UserPlus } from 'lucide-react'
+import { Trash2, Upload, UserPlus } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -11,6 +11,7 @@ import Table from '@/components/ui/Table'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
+import { useConfirmDialog } from '@/lib/useConfirmDialog'
 import enMessages from '@/messages/en.json'
 import frMessages from '@/messages/fr.json'
 import swMessages from '@/messages/sw.json'
@@ -47,6 +48,7 @@ interface Class {
 export default function StudentsPage() {
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { confirm } = useConfirmDialog()
 
   const [students, setStudents] = useState<Student[]>([])
   const [classes, setClasses] = useState<Class[]>([])
@@ -59,6 +61,8 @@ export default function StudentsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 10
   const [totalCount, setTotalCount] = useState(0)
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([])
+  const [bulkDeleting, setBulkDeleting] = useState(false)
 
   const [showModal, setShowModal] = useState(false)
   const [editingStudent, setEditingStudent] = useState<Student | null>(null)
@@ -414,7 +418,7 @@ export default function StudentsPage() {
   }
 
   const handleRemoveStudentLogin = async (student: Student) => {
-    if (!confirm(`Remove login for ${student.firstName} ${student.lastName}? They will no longer be able to log in.`)) return
+    if (!window.confirm(`Remove login for ${student.firstName} ${student.lastName}? They will no longer be able to log in.`)) return
     try {
       const res = await fetch(`/api/students/${student.id}/create-login`, { method: 'DELETE' })
       const data = await res.json().catch(() => ({}))
@@ -655,6 +659,129 @@ export default function StudentsPage() {
     setCurrentPage(1)
   }, [searchTerm, selectedClassId, selectedStatusReason, statusDateFrom, statusDateTo, pageSize])
 
+  useEffect(() => {
+    setSelectedStudentIds([])
+  }, [searchTerm, selectedClassId, selectedStatusReason, statusDateFrom, statusDateTo, currentPage])
+
+  const refreshStudents = useCallback(async () => {
+    await fetchStudents(
+      currentPage,
+      pageSize,
+      searchTerm,
+      selectedClassId,
+      selectedStatusReason,
+      statusDateFrom,
+      statusDateTo
+    )
+  }, [
+    fetchStudents,
+    currentPage,
+    pageSize,
+    searchTerm,
+    selectedClassId,
+    selectedStatusReason,
+    statusDateFrom,
+    statusDateTo,
+  ])
+
+  const handleDeleteStudents = useCallback(
+    async (ids: string[]) => {
+      const uniqueIds = [...new Set(ids.filter(Boolean))]
+      if (uniqueIds.length === 0 || bulkDeleting) return
+
+      const targets = students.filter((student) => uniqueIds.includes(student.id))
+      const count = uniqueIds.length
+      const sampleNames = targets
+        .slice(0, 3)
+        .map((student) => `${student.firstName} ${student.lastName}`.trim())
+        .filter(Boolean)
+      const namesPreview =
+        sampleNames.length > 0
+          ? sampleNames.join(', ') + (count > sampleNames.length ? ` +${count - sampleNames.length}` : '')
+          : `${count} student${count === 1 ? '' : 's'}`
+
+      const isConfirmed = await confirm({
+        title: t('deleteStudentsTitle', 'Delete students permanently'),
+        description: t(
+          'deleteStudentsDescription',
+          'This permanently removes the selected students from the school, including attendance, results, fees, and login accounts. Parent accounts are kept. This cannot be undone.'
+        ),
+        variant: 'danger',
+        confirmLabel: t('deleteCompletely', 'Delete completely'),
+        cancelLabel: t('cancel', 'Cancel'),
+        loadingLabel: t('deleting', 'Deleting...'),
+        entity: {
+          name: namesPreview,
+          subtitle:
+            count === 1
+              ? t('deleteOneStudentSubtitle', '1 student selected')
+              : t('deleteManyStudentsSubtitle', '{{count}} students selected').replace(
+                  '{{count}}',
+                  String(count)
+                ),
+        },
+        requireInput: 'DELETE',
+        allowBackdropClose: false,
+        allowEscapeClose: false,
+      })
+
+      if (!isConfirmed) return
+
+      setBulkDeleting(true)
+      try {
+        const res = await fetch('/api/students/bulk-delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: uniqueIds }),
+        })
+        const data = await res.json().catch(() => ({}))
+
+        if (!res.ok) {
+          showToast(
+            typeof data.error === 'string'
+              ? data.error
+              : t('toastFailedDeleteStudent', 'Failed to delete student'),
+            'error'
+          )
+          return
+        }
+
+        const deletedCount = Number(data.deletedCount || 0)
+        const failedCount = Number(data.failedCount || 0)
+
+        if (deletedCount > 0 && failedCount === 0) {
+          showToast(
+            deletedCount === 1
+              ? t('toastStudentDeleted', 'Student deleted successfully')
+              : t('toastStudentsDeleted', '{{count}} students deleted successfully').replace(
+                  '{{count}}',
+                  String(deletedCount)
+                ),
+            'success'
+          )
+        } else if (deletedCount > 0) {
+          showToast(
+            t('toastStudentsPartialDelete', 'Deleted {{deleted}}, failed {{failed}}')
+              .replace('{{deleted}}', String(deletedCount))
+              .replace('{{failed}}', String(failedCount)),
+            'error'
+          )
+        } else {
+          showToast(t('toastFailedDeleteStudent', 'Failed to delete student'), 'error')
+        }
+
+        setSelectedStudentIds([])
+        await refreshStudents()
+      } catch (error) {
+        console.error('Failed to delete students:', error)
+        showToast(t('toastFailedDeleteStudent', 'Failed to delete student'), 'error')
+      } finally {
+        setBulkDeleting(false)
+      }
+    },
+    [bulkDeleting, students, confirm, t, showToast, refreshStudents]
+  )
+
   if (status === 'loading' || !session) {
     return <div>{t('loading', 'Loading...')}</div>
   }
@@ -745,6 +872,13 @@ export default function StudentsPage() {
           label: 'Create Student Login',
           onClick: () => handleCreateStudentLogin(student),
         },
+    {
+      label: t('deleteCompletely', 'Delete completely'),
+      danger: true,
+      onClick: () => {
+        void handleDeleteStudents([student.id])
+      },
+    },
   ]
 
   const navItems = session?.user?.role === 'DEPUTY_ADMIN' ? DEPUTY_ADMIN_NAV_ITEMS : ADMIN_NAV_ITEMS
@@ -801,6 +935,9 @@ export default function StudentsPage() {
             totalCount={totalCount}
             page={currentPage}
             pageSize={pageSize}
+            selectable
+            selectedKeys={selectedStudentIds}
+            onSelectionChange={(keys) => setSelectedStudentIds(keys.map(String))}
             onSort={() => {
               // Default order is admissionNumber asc from /api/students; header clicks are not wired to server sort yet.
             }}
@@ -821,6 +958,22 @@ export default function StudentsPage() {
               setStatusDateFrom('')
               setStatusDateTo('')
             }}
+            headerControls={
+              selectedStudentIds.length > 0 ? (
+                <Button
+                  variant="danger"
+                  disabled={bulkDeleting}
+                  isLoading={bulkDeleting}
+                  className="inline-flex items-center gap-1.5"
+                  onClick={() => {
+                    void handleDeleteStudents(selectedStudentIds)
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {t('deleteSelected', 'Delete selected')} ({selectedStudentIds.length})
+                </Button>
+              ) : null
+            }
             getRowActions={studentRowActions}
             rowKey="id"
             emptyMessage={

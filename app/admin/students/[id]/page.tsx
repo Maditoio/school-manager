@@ -1,13 +1,14 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { redirect } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Form'
 import { useToast } from '@/components/ui/Toast'
+import { useConfirmDialog } from '@/lib/useConfirmDialog'
 import {
   ActionMenu,
   DetailBreadcrumb,
@@ -163,9 +164,11 @@ function personName(
 
 export default function StudentDetailsPage() {
   const params = useParams<{ id: string }>()
+  const router = useRouter()
   const studentId = params?.id
   const { data: session, status } = useSession()
   const { showToast } = useToast()
+  const { confirm } = useConfirmDialog()
   const { formatCurrency } = useCurrency()
 
   const preferredLanguage = session?.user?.preferredLanguage || 'fr'
@@ -429,11 +432,51 @@ export default function StudentDetailsPage() {
     }
   }
 
+  const handleDeleteCompletely = async () => {
+    if (!studentId || !data) return
+    const name = `${data.student.firstName} ${data.student.lastName}`.trim()
+
+    const isConfirmed = await confirm({
+      title: t('deleteStudentTitle', 'Delete student permanently'),
+      description: t(
+        'deleteStudentDescription',
+        'This permanently removes the student from the school, including attendance, results, fees, and login account. The parent account is kept. This cannot be undone.'
+      ),
+      variant: 'danger',
+      confirmLabel: t('deleteCompletely', 'Delete completely'),
+      cancelLabel: t('cancel', 'Cancel'),
+      loadingLabel: t('deleting', 'Deleting...'),
+      entity: {
+        name,
+        subtitle: data.student.admissionNumber || undefined,
+      },
+      requireInput: 'DELETE',
+      allowBackdropClose: false,
+      allowEscapeClose: false,
+    })
+
+    if (!isConfirmed) return
+
+    try {
+      const res = await fetch(`/api/students/${studentId}`, { method: 'DELETE' })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        showToast(body.error || t('toastDeleteFailed', 'Failed to delete student'), 'error')
+        return
+      }
+      showToast(t('toastDeleteSuccess', 'Student deleted successfully'), 'success')
+      router.push('/admin/students')
+    } catch (deleteError) {
+      console.error('Failed to delete student:', deleteError)
+      showToast(t('toastDeleteFailed', 'Failed to delete student'), 'error')
+    }
+  }
+
   const handleRemoveLogin = async () => {
     if (!studentId || !data) return
     const name = `${data.student.firstName} ${data.student.lastName}`
     if (
-      !confirm(
+      !window.confirm(
         interpolate(t('toastRemoveLoginConfirm', 'Supprimer la connexion de {name} ? Il ne pourra plus se connecter.'), {
           name,
         })
@@ -623,6 +666,15 @@ export default function StudentDetailsPage() {
           onClick: () => {
             window.location.href = '/admin/messages'
           },
+        },
+        {
+          id: 'delete',
+          label: t('menuDeleteCompletely', 'Delete completely'),
+          onClick: () => {
+            void handleDeleteCompletely()
+          },
+          tone: 'danger',
+          separatorBefore: true,
         },
       ]
     : []

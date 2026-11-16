@@ -57,6 +57,9 @@ type TableProps<T extends RowData = RowData> = {
   onRowClick?: (row: T) => void
   rowKey?: string
   ariaLabel?: string
+  selectable?: boolean
+  selectedKeys?: Array<string | number>
+  onSelectionChange?: (keys: Array<string | number>) => void
 }
 
 function buildPageWindow(currentPage: number, totalPages: number) {
@@ -124,6 +127,9 @@ export default function Table<T extends RowData = RowData>({
   onRowClick,
   rowKey = 'id',
   ariaLabel,
+  selectable = false,
+  selectedKeys,
+  onSelectionChange,
 }: TableProps<T>) {
   const locale = getClientLocale()
   const tTitle = translateText(title, locale)
@@ -154,6 +160,45 @@ export default function Table<T extends RowData = RowData>({
   const visibleRows = Number.isFinite(totalCount) ? data : data.slice(startIndex, endIndex)
 
   const pageWindow = useMemo(() => buildPageWindow(resolvedPage, totalPages), [resolvedPage, totalPages])
+
+  const selectedKeySet = useMemo(
+    () => new Set((selectedKeys ?? []).map((key) => String(key))),
+    [selectedKeys]
+  )
+
+  const visibleRowKeys = useMemo(
+    () =>
+      visibleRows.map((row, rowIndex) => {
+        const rowRecord = row as Record<string, unknown>
+        return String(rowRecord[rowKey] ?? `${rowIndex}`)
+      }),
+    [visibleRows, rowKey]
+  )
+
+  const allVisibleSelected =
+    selectable && visibleRowKeys.length > 0 && visibleRowKeys.every((key) => selectedKeySet.has(key))
+  const someVisibleSelected =
+    selectable && visibleRowKeys.some((key) => selectedKeySet.has(key)) && !allVisibleSelected
+
+  const toggleRowSelection = (key: string | number) => {
+    if (!onSelectionChange) return
+    const keyStr = String(key)
+    const next = new Set(selectedKeySet)
+    if (next.has(keyStr)) next.delete(keyStr)
+    else next.add(keyStr)
+    onSelectionChange(Array.from(next))
+  }
+
+  const toggleSelectAllVisible = () => {
+    if (!onSelectionChange) return
+    const next = new Set(selectedKeySet)
+    if (allVisibleSelected) {
+      visibleRowKeys.forEach((key) => next.delete(key))
+    } else {
+      visibleRowKeys.forEach((key) => next.add(key))
+    }
+    onSelectionChange(Array.from(next))
+  }
 
   useEffect(() => {
     const handleDocumentClick = (event: MouseEvent) => {
@@ -303,7 +348,7 @@ export default function Table<T extends RowData = RowData>({
             />
           </label>
 
-          {headerControls ? <div className="hidden sm:flex items-center gap-2">{headerControls}</div> : null}
+          {headerControls ? <div className="flex flex-wrap items-center gap-2">{headerControls}</div> : null}
 
           <div className="relative" ref={filterContainerRef}>
             <button
@@ -401,6 +446,20 @@ export default function Table<T extends RowData = RowData>({
         <table className="ui-table no-table-stripes min-w-full table-auto">
           <thead>
             <tr className="text-left">
+              {selectable ? (
+                <th className="w-10">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = someVisibleSelected
+                    }}
+                    onChange={toggleSelectAllVisible}
+                    aria-label={translateText('Select all on this page', locale)}
+                    className="h-4 w-4 rounded border-(--border-subtle) accent-[#635bff]"
+                  />
+                </th>
+              ) : null}
               {columns.map((column) => (
                 <th
                   key={column.key}
@@ -416,6 +475,7 @@ export default function Table<T extends RowData = RowData>({
             {loading
               ? Array.from({ length: Math.min(pageSize, 6) }).map((_, index) => (
                   <tr key={`skeleton-${index}`}>
+                    {selectable ? <td /> : null}
                     {columns.map((column) => (
                       <td key={`${column.key}-${index}`}>
                         <div
@@ -436,6 +496,7 @@ export default function Table<T extends RowData = RowData>({
                   const key = (rowRecord[rowKey] ?? `${rowIndex}`) as string | number
                   const actions = getRowActions?.(row) ?? []
                   const isSelected = key === selectedRowKey
+                  const isChecked = selectedKeySet.has(String(key))
 
                   return (
                     <tr
@@ -448,7 +509,7 @@ export default function Table<T extends RowData = RowData>({
                         onRowClick ? 'cursor-pointer' : ''
                       }`}
                       style={
-                        isSelected
+                        isChecked || isSelected
                           ? {
                               background: 'color-mix(in srgb, var(--accent-soft) 70%, transparent)',
                               boxShadow: 'inset 3px 0 0 #635bff',
@@ -456,6 +517,17 @@ export default function Table<T extends RowData = RowData>({
                           : undefined
                       }
                     >
+                      {selectable ? (
+                        <td onClick={(event) => event.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleRowSelection(key)}
+                            aria-label={translateText('Select row', locale)}
+                            className="h-4 w-4 rounded border-(--border-subtle) accent-[#635bff]"
+                          />
+                        </td>
+                      ) : null}
                       {columns.map((column) => {
                         if (column.key === 'actions') {
                           return (
@@ -528,7 +600,10 @@ export default function Table<T extends RowData = RowData>({
 
             {!loading && visibleRows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="py-8 text-center text-sm ui-text-secondary">
+                <td
+                  colSpan={columns.length + (selectable ? 1 : 0)}
+                  className="py-8 text-center text-sm ui-text-secondary"
+                >
                   {tEmptyMessage}
                 </td>
               </tr>

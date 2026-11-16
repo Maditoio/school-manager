@@ -5,6 +5,7 @@ import { hasRole } from "@/lib/auth-utils"
 import { updateStudentSchema } from "@/lib/validations"
 import { Prisma } from "@prisma/client"
 import { hash } from "bcryptjs"
+import { deleteStudentCompletely, StudentDeleteError } from "@/lib/delete-student"
 
 const DEFAULT_PARENT_PASSWORD = 'parent1234'
 
@@ -359,7 +360,7 @@ export async function PUT(
   }
 }
 
-// DELETE /api/students/[id] - Delete student
+// DELETE /api/students/[id] - Permanently delete student from school
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -371,14 +372,37 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    if (!session.user.schoolId && session.user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'School context required' }, { status: 400 })
+    }
+
     const { id: studentId } = await params
 
-    await prisma.student.delete({
-      where: { id: studentId },
+    const schoolScope = session.user.schoolId
+      ? { schoolId: session.user.schoolId }
+      : undefined
+
+    const existing = await prisma.student.findFirst({
+      where: { id: studentId, ...schoolScope },
+      select: { id: true, schoolId: true },
     })
 
-    return NextResponse.json({ success: true })
+    if (!existing) {
+      return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+    }
+
+    const deleted = await prisma.$transaction(async (tx) =>
+      deleteStudentCompletely(tx, {
+        studentId: existing.id,
+        schoolId: existing.schoolId,
+      })
+    )
+
+    return NextResponse.json({ success: true, student: deleted })
   } catch (error) {
+    if (error instanceof StudentDeleteError) {
+      return NextResponse.json({ error: error.message }, { status: error.status })
+    }
     console.error('Error deleting student:', error)
     return NextResponse.json(
       { error: 'Failed to delete student' },
